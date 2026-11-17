@@ -1,0 +1,15 @@
+.git
+.next
+node_modules
+.env
+.env.*
+!.env.example
+.claude
+.impeccable
+playwright-report
+test-results
+coverage
+*.log
+docs
+e2e
+tests

@@ -1,0 +1,55 @@
+# Bucketbook: the app plus its Postgres database.
+#
+#   cp .env.example .env     # then fill in the required values
+#   docker compose up -d
+#
+# Data lives in two named volumes: `pgdata` (the database) and `receipts`
+# (uploaded files). See docs/backup-restore.md before upgrading.
+name: bucketbook
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bucketbook}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-bucketbook}
+    # Modest settings that suit a household-sized database on a small server.
+    command:
+      - postgres
+      - -c
+      - shared_buffers=${POSTGRES_SHARED_BUFFERS:-64MB}
+      - -c
+      - max_connections=${POSTGRES_MAX_CONNECTIONS:-30}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    image: bucketbook:local
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-bucketbook}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-bucketbook}
+      APP_URL: ${APP_URL:?Set APP_URL in .env}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in .env}
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?Set APP_ENCRYPTION_KEY in .env}
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-}
+      DB_POOL_MAX: ${DB_POOL_MAX:-5}
+      JOBS_ENABLED: ${JOBS_ENABLED:-true}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      - receipts:/data/receipts
+
+volumes:
+  pgdata:
+  receipts:
