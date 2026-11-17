@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { Archive, Lock, Plus } from "lucide-react";
+import { Archive, Lock, Pencil, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -18,6 +18,9 @@ import { type AccountRow, listAccounts } from "@/server/accounts/service";
 import { CHART_TEMPLATES } from "@/server/accounts/templates";
 import { getDb } from "@/server/db/client";
 import { loadBookForPage } from "@/server/guards";
+import { Money } from "@/components/money";
+import { naturalBalance } from "@/lib/ledger-math";
+import { accountTotals } from "@/server/ledger/queries";
 import { AccountEditor, type EditorAccount } from "./account-editor";
 import { MobileSheetGuard } from "./mobile-sheet-guard";
 import { AccountShortcuts } from "./shortcuts";
@@ -57,6 +60,17 @@ async function AccountsContent({ params, searchParams }: PageProps<"/books/[book
   const newHref = hrefWith(base, { ...keep, new: "1" });
 
   const tree = buildAccountTree(rows);
+  // Balances in each account's natural direction, with sub-accounts rolled up.
+  const totals = await accountTotals(getDb(), book.id);
+  const balances = new Map<string, number>();
+  const roll = (n: AccountNode<AccountRow>): number => {
+    const t = totals.get(n.id);
+    const own = t ? naturalBalance(n.type as AccountType, t.debitCents, t.creditCents) : 0;
+    const sum = n.children.reduce((acc, c) => acc + roll(c), own);
+    balances.set(n.id, sum);
+    return sum;
+  };
+  for (const t of ACCOUNT_TYPES) tree[t].forEach(roll);
   const activeCount = rows.filter((r) => !r.archivedAt).length;
   const archivedCount = rows.length - activeCount;
 
@@ -75,7 +89,7 @@ async function AccountsContent({ params, searchParams }: PageProps<"/books/[book
       <div data-sheet-inert>
         <PageHeader
           title="Chart of accounts"
-          maxWidthClass="max-w-[46rem]"
+          maxWidthClass="max-w-[52rem]"
           description={
             <span className="tabular">
               {activeCount} accounts{archivedCount > 0 ? `, ${archivedCount} archived` : ""}
@@ -111,11 +125,19 @@ async function AccountsContent({ params, searchParams }: PageProps<"/books/[book
       {welcome ? (
         <div
           data-sheet-inert
-          className="mx-5 mt-5 flex max-w-[46rem] items-start justify-between gap-4 rounded-xl bg-signal-soft px-4 py-3 text-sm text-ink lg:mx-10"
+          className="mx-5 mt-5 flex max-w-[52rem] items-start justify-between gap-4 rounded-xl bg-signal-soft px-4 py-3 text-sm text-ink lg:mx-10"
         >
           <p>
             <span className="font-medium">Your book is ready.</span> These accounts came from the{" "}
-            {templateLabel} template. Rename, add, nest, or archive anything to make it yours.
+            {templateLabel} template. Rename, add, nest, or archive anything to make it yours. Next,
+            enter your{" "}
+            <Link
+              href={`/books/${book.id}/opening-balances`}
+              className="font-medium text-signal-ink underline"
+            >
+              opening balances
+            </Link>
+            .
           </p>
           <Link href={closeHref} className="shrink-0 font-medium text-signal-ink underline">
             Got it
@@ -125,7 +147,7 @@ async function AccountsContent({ params, searchParams }: PageProps<"/books/[book
 
       <div className="flex items-stretch">
         <div data-sheet-inert className="min-w-0 flex-1 px-5 pb-16 lg:px-10">
-          <div className="max-w-[46rem]">
+          <div className="max-w-[52rem]">
             {ACCOUNT_TYPES.map((type) => (
               <TypeSection
                 key={type}
@@ -137,6 +159,7 @@ async function AccountsContent({ params, searchParams }: PageProps<"/books/[book
                 savedId={savedId}
                 canEdit={canEdit}
                 showCodes={showCodes}
+                balances={balances}
               />
             ))}
           </div>
@@ -210,6 +233,7 @@ function TypeSection({
   savedId,
   canEdit,
   showCodes,
+  balances,
 }: {
   type: AccountType;
   nodes: AccountNode<AccountRow>[];
@@ -219,6 +243,7 @@ function TypeSection({
   savedId?: string;
   canEdit: boolean;
   showCodes: boolean;
+  balances: Map<string, number>;
 }) {
   const headingId = `type-${type}`;
   return (
@@ -253,6 +278,7 @@ function TypeSection({
               <th scope="col">Name</th>
               {showCodes ? <th scope="col">Number</th> : null}
               <th scope="col">Detail type</th>
+              <th scope="col">Balance</th>
               <th scope="col">Actions</th>
             </tr>
           </thead>
@@ -277,8 +303,7 @@ function TypeSection({
                         <span aria-hidden className="mr-2 h-px w-2.5 shrink-0 bg-rule-strong" />
                       ) : null}
                       <Link
-                        href={hrefWith(base, { ...keep, edit: n.id })}
-                        scroll={false}
+                        href={`${base}/${n.id}`}
                         aria-current={selected ? "true" : undefined}
                         className={`min-w-0 truncate rounded hover:underline ${
                           archived ? "text-ink-muted line-through decoration-ink-faint" : "text-ink"
@@ -305,10 +330,27 @@ function TypeSection({
                       {n.code}
                     </td>
                   ) : null}
-                  <td className="hidden w-48 py-0 pr-4 text-ink-muted sm:table-cell">
+                  <td className="hidden w-40 py-0 pr-4 text-ink-muted sm:table-cell">
                     {subtypeLabel(n.type as AccountType, n.subtype)}
                   </td>
-                  <td className="w-10 py-0 text-right">
+                  <td className="w-32 py-0 pr-2 text-right">
+                    <Money
+                      cents={balances.get(n.id) ?? 0}
+                      className={n.children.length > 0 && !selected ? "text-ink-muted" : ""}
+                    />
+                  </td>
+                  <td className="w-20 whitespace-nowrap py-0 text-right">
+                    {canEdit ? (
+                      <Link
+                        href={hrefWith(base, { ...keep, edit: n.id })}
+                        scroll={false}
+                        aria-label={`Edit ${n.name}`}
+                        title="Edit account"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted transition-[opacity,background-color,transform] duration-150 hover:bg-surface hover:text-ink active:scale-[0.95] [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-visible:opacity-100"
+                      >
+                        <Pencil size={14} aria-hidden />
+                      </Link>
+                    ) : null}
                     {canEdit && !archived ? (
                       <Link
                         href={hrefWith(base, { ...keep, new: "1", parent: n.id })}

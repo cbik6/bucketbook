@@ -3,7 +3,7 @@
 import { Lock, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useMemo, useState, useTransition } from "react";
+import { useActionState, useId, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Field, FormError, SelectInput, TextInput, inputClass } from "@/components/ui/field";
@@ -59,6 +59,7 @@ export function AccountEditor({
   defaultParentId,
 }: Props) {
   const isNew = !account;
+  const uid = useId();
   const [state, formAction] = useActionState(
     saveAccountAction.bind(null, bookId, account?.id ?? null),
     {},
@@ -122,12 +123,12 @@ export function AccountEditor({
           <FormError message={state.field ? undefined : state.error} />
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Type" htmlFor="acct-type" error={err("type")}>
+            <Field label="Type" htmlFor={`${uid}-acct-type`} error={err("type")}>
               {typeLocked ? (
                 <>
                   <input type="hidden" name="type" value={type} />
                   <div
-                    id="acct-type"
+                    id={`${uid}-acct-type`}
                     className={`${inputClass} flex items-center bg-sunken text-ink-muted`}
                     title={
                       account?.isSystem
@@ -140,7 +141,7 @@ export function AccountEditor({
                 </>
               ) : (
                 <SelectInput
-                  id="acct-type"
+                  id={`${uid}-acct-type`}
                   name="type"
                   value={type}
                   onChange={(e) => {
@@ -156,10 +157,10 @@ export function AccountEditor({
                 </SelectInput>
               )}
             </Field>
-            <Field label="Detail type" htmlFor="acct-subtype" error={err("subtype")}>
+            <Field label="Detail type" htmlFor={`${uid}-acct-subtype`} error={err("subtype")}>
               <SelectInput
                 key={type}
-                id="acct-subtype"
+                id={`${uid}-acct-subtype`}
                 name="subtype"
                 defaultValue={defaultSubtype}
                 disabled={account?.isSystem}
@@ -177,9 +178,9 @@ export function AccountEditor({
             </Field>
           </div>
 
-          <Field label="Name" htmlFor="acct-name" error={err("name")}>
+          <Field label="Name" htmlFor={`${uid}-acct-name`} error={err("name")}>
             <TextInput
-              id="acct-name"
+              id={`${uid}-acct-name`}
               name="name"
               required
               maxLength={100}
@@ -192,13 +193,13 @@ export function AccountEditor({
 
           <Field
             label="Account number"
-            htmlFor="acct-code"
+            htmlFor={`${uid}-acct-code`}
             optional
             hint="Numbers sort before names, like 6010 Advertising."
             error={err("code")}
           >
             <TextInput
-              id="acct-code"
+              id={`${uid}-acct-code`}
               name="code"
               maxLength={20}
               inputMode="numeric"
@@ -211,7 +212,7 @@ export function AccountEditor({
 
           <Field
             label="Sub-account of"
-            htmlFor="acct-parent"
+            htmlFor={`${uid}-acct-parent`}
             hint={
               parentOptions.length === 0
                 ? `No other ${ACCOUNT_TYPE_SINGULAR[type].toLowerCase()} accounts to nest under.`
@@ -220,7 +221,7 @@ export function AccountEditor({
             error={err("parentAccountId")}
           >
             <SelectInput
-              id="acct-parent"
+              id={`${uid}-acct-parent`}
               name="parentAccountId"
               value={parentId}
               onChange={(e) => setParentId(e.target.value)}
@@ -239,9 +240,14 @@ export function AccountEditor({
             {account?.isSystem ? <input type="hidden" name="parentAccountId" value="" /> : null}
           </Field>
 
-          <Field label="Description" htmlFor="acct-description" optional error={err("description")}>
+          <Field
+            label="Description"
+            htmlFor={`${uid}-acct-description`}
+            optional
+            error={err("description")}
+          >
             <textarea
-              id="acct-description"
+              id={`${uid}-acct-description`}
               name="description"
               rows={3}
               maxLength={500}
