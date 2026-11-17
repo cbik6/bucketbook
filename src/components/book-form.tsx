@@ -25,6 +25,7 @@ export function BookForm({
   const [state, formAction] = useActionState(action, {});
   const v = state.values ?? {};
   const groupId = useId();
+  const uid = useId();
   const selected = v.template || "household";
 
   return (
@@ -33,12 +34,12 @@ export function BookForm({
 
       <Field
         label="Book name"
-        htmlFor="book-name"
+        htmlFor={`${uid}-book-name`}
         hint="One book per household or business. You can rename it later."
         error={state.field === "name" ? state.error : undefined}
       >
         <TextInput
-          id="book-name"
+          id={`${uid}-book-name`}
           name="name"
           required
           maxLength={80}
@@ -94,12 +95,12 @@ export function BookForm({
 
       <Field
         label="Start date"
-        htmlFor="book-start"
+        htmlFor={`${uid}-book-start`}
         hint="Your opening balances are as of this date. Bank transactions before it are ignored."
         error={state.field === "startDate" ? state.error : undefined}
       >
         <TextInput
-          id="book-start"
+          id={`${uid}-book-start`}
           name="startDate"
           type="date"
           required

@@ -1,6 +1,6 @@
 "use client";
 
-import { ListTree, Settings2 } from "lucide-react";
+import { BookOpenText, History, Landmark, ListTree, NotebookPen, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -8,6 +8,10 @@ export function NavLinks({ bookId, layout }: { bookId: string; layout: "rail" | 
   const pathname = usePathname();
   const links = [
     { href: `/books/${bookId}/accounts`, label: "Chart of accounts", Icon: ListTree },
+    { href: `/books/${bookId}/journal`, label: "Journal entries", Icon: NotebookPen },
+    { href: `/books/${bookId}/ledger`, label: "General ledger", Icon: BookOpenText },
+    { href: `/books/${bookId}/opening-balances`, label: "Opening balances", Icon: Landmark },
+    { href: `/books/${bookId}/activity`, label: "Activity", Icon: History },
     { href: `/books/${bookId}/settings`, label: "Book settings", Icon: Settings2 },
   ];
 
