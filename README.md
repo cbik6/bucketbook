@@ -3,10 +3,11 @@
 Double-entry books for households and small businesses, with savings "buckets" inside
 your real bank accounts, running on your own server.
 
-> **Status: early development (Phase 1 of 7).** Today you can install it, run the
-> setup wizard, create books from a template, and build your chart of accounts.
-> Journal entries, bank sync, buckets, reconciliation and reports come in later
-> phases (see [Roadmap](#roadmap)). Not ready for real money yet.
+> **Status: early development (Phase 2 of 7).** Today you can install it, run the
+> setup wizard, build your chart of accounts, enter opening balances, and post, edit
+> and reverse journal entries with registers and a general ledger. Bank sync, buckets,
+> reconciliation and reports come in later phases (see [Roadmap](#roadmap)). Not ready
+> for real money yet.
 
 "Bucketbook" is a working name.
 
@@ -86,6 +87,20 @@ docker compose up -d --build
 
 Back up first (see [docs/backup-restore.md](docs/backup-restore.md)).
 
+## Querying your books with SQL
+
+The database uses plain, readable names. The `ledger_lines` view has one row per posted
+line with its date, entry number, memo and `net_cents` (debit minus credit), so a trial
+balance is one query:
+
+```sql
+select a.name, sum(l.net_cents) / 100.0 as balance
+from ledger_lines l join accounts a on a.id = l.account_id
+group by a.name order by a.name;
+```
+
+Open a SQL prompt with `docker compose exec postgres psql -U bucketbook`.
+
 ## Backups
 
 Your data is in two Docker volumes: the database (`pgdata`) and uploaded receipts
@@ -151,7 +166,7 @@ restore them with `npx skills experimental_install` (from `skills-lock.json`).
 ## Roadmap
 
 1. **Foundation** (done): install, setup wizard, books, chart of accounts.
-2. Ledger: journal entries, opening balances, registers, general ledger, audit log views.
+2. **Ledger** (done): journal entries, opening balances, registers, general ledger, activity log.
 3. Bank data: SimpleFIN, CSV import, review queue, rules, transfer matching, receipts.
 4. Buckets: bucket setup, allocation rules, goals.
 5. Reconciliation, loans, and credit cards.

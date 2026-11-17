@@ -6,8 +6,32 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+Phase 2: Ledger.
+
+### Added
+
+- Manual journal entries with a multi-line entry screen: live debit and credit totals,
+  automatic balancing amount on the next line, Enter to add a line, Ctrl+Enter to post,
+  and a stacked layout on phones.
+- Editing a posted entry saves a new version; every version stays viewable in the
+  entry's history. Reversing posts a mirror-image entry on a date you choose.
+- Opening balances screen that builds one entry offset to Opening Balance Equity.
+- Account registers with a running balance, date ranges, and an option to include
+  sub-accounts.
+- General ledger by account with beginning balances, date range presets and custom
+  ranges.
+- Activity log showing every change to a book in plain language.
+- Balances on the chart of accounts, with sub-accounts rolled into their parents.
+- Changing a book's start date from Book settings.
+- Database-level double entry: unbalanced entries and in-place edits of posted lines are
+  refused by Postgres itself.
+- `ledger_lines` view for querying the current ledger with SQL.
+
 ### Changed
 
+- Clicking an account name now opens its register; the pencil button opens the editor.
+- Accounts with transactions can no longer be deleted or change type, and need a zero
+  balance before archiving.
 - New "Balanced" look: felt-green navigation, a white page, Figtree type, green actions, and
   pastel colors reserved for buckets. Light and dark modes were rechecked for contrast.
 

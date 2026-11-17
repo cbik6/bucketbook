@@ -45,6 +45,7 @@ services:
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-}
       DB_POOL_MAX: ${DB_POOL_MAX:-5}
       JOBS_ENABLED: ${JOBS_ENABLED:-true}
+      TZ: ${TZ:-UTC}
     ports:
       - "${APP_PORT:-3000}:3000"
     volumes:

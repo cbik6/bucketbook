@@ -173,3 +173,50 @@ actions, the clip-path fill line).
 - Fonts are self-hosted at build time by Next.js, so the app makes no requests to Google
   when it runs.
 
+## Phase 2: Ledger (2026-11-17)
+
+### D25. Corrections: edit as a new version, or reverse
+
+Clark chose to support both. Editing a posted entry saves a new version: the old lines
+stay in `journal_lines` with `is_current = false`, each version's date and memo are kept
+in `journal_entry_versions`, and the audit log stores before and after. Reversing posts
+a mirror-image entry (kind `reversal`) on a date you choose, linked to the original. A
+reversed entry or a reversal can't be edited, and an entry can be reversed only once.
+Reconciled-entry warnings arrive with reconciliation in Phase 5.
+
+### D26. Double entry enforced by the database, not only the app
+
+A deferred constraint trigger checks every entry at COMMIT: at least two current lines,
+debits equal credits, and only one version marked current. Other triggers make lines
+append-only (no edits or deletes, except flipping `is_current` off), make version
+history and entries undeletable (except when a whole book is removed), and refuse
+postings to accounts with `allows_posting = false` (bucket parents). Composite foreign
+keys keep every line, account and reversal inside one book. Integration tests write raw
+SQL to prove these hold even if app code is bypassed.
+
+### D27. A `ledger_lines` view for reports and hand-written SQL
+
+One row per current line with the entry's number, date and memo, plus `net_cents`
+(debit minus credit). Reports and registers read it, and it is the easiest place to
+start when querying the books directly, for example:
+`select account_id, sum(net_cents) from ledger_lines group by account_id;`
+
+### D28. Opening balances are one versioned entry
+
+Each book has at most one `opening_balance` entry, dated on the book's start date, with
+the difference posted to Opening Balance Equity. You enter balances as positive,
+statement-style amounts and the app turns them into debits or credits. Saving again
+records a new version. Changing the start date moves the entry (as a new version) and
+is refused while other entries are dated before the new date. Regular entries can't be
+dated before the start date.
+
+### D29. Accounts with history
+
+Accounts with any journal lines (current or replaced) can't be deleted, can't change
+type, and can be archived only when their balance is zero, so history stays meaningful.
+
+### D30. Entry numbers
+
+Entries are numbered per book (JE 1, JE 2, ...), assigned inside the posting
+transaction while the book row is locked, so numbers never collide.
+
