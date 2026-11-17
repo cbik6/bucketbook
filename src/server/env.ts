@@ -26,11 +26,9 @@ const envSchema = z.object({
   APP_URL: z.url({
     message: "must be the full URL people use to open the app, like http://192.168.1.20:3000",
   }),
-  BETTER_AUTH_SECRET: z
-    .string()
-    .min(32, {
-      message: "must be at least 32 characters (generate with: openssl rand -base64 32)",
-    }),
+  BETTER_AUTH_SECRET: z.string().min(32, {
+    message: "must be at least 32 characters (generate with: openssl rand -base64 32)",
+  }),
   APP_ENCRYPTION_KEY: base64Key32,
   TRUSTED_ORIGINS: z
     .string()
