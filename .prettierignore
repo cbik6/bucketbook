@@ -1,0 +1,9 @@
+.next
+node_modules
+drizzle/meta
+.claude
+.impeccable
+package-lock.json
+skills-lock.json
+playwright-report
+test-results
