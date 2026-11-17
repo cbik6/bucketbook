@@ -1,31 +1,31 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-17T20:05:08+00:00",
+  "generatedAt": "2026-11-17T21:30:13+00:00",
   "title": "Design System: Bucketbook",
   "extensions": {
     "colorMeta": {
       "paper": {
         "role": "neutral",
         "displayName": "Paper",
-        "canonical": "#faf9f6",
-        "darkValue": "#0e1917",
+        "canonical": "#ffffff",
+        "darkValue": "#0f1712",
         "cssVar": "--paper",
         "tonalRamp": [
-          "oklch(15.0% 0.002 91.4)",
-          "oklch(26.4% 0.002 91.4)",
-          "oklch(37.9% 0.003 91.4)",
-          "oklch(49.3% 0.004 91.4)",
-          "oklch(60.7% 0.004 91.4)",
-          "oklch(72.1% 0.003 91.4)",
-          "oklch(83.6% 0.002 91.4)",
-          "oklch(95.0% 0.002 91.4)"
+          "oklch(15.0% 0.000 89.9)",
+          "oklch(26.4% 0.000 89.9)",
+          "oklch(37.9% 0.000 89.9)",
+          "oklch(49.3% 0.000 89.9)",
+          "oklch(60.7% 0.000 89.9)",
+          "oklch(72.1% 0.000 89.9)",
+          "oklch(83.6% 0.000 89.9)",
+          "oklch(95.0% 0.000 89.9)"
         ]
       },
       "surface": {
         "role": "neutral",
         "displayName": "Surface",
         "canonical": "#ffffff",
-        "darkValue": "#14221f",
+        "darkValue": "#16211b",
         "cssVar": "--surface",
         "tonalRamp": [
           "oklch(15.0% 0.000 89.9)",
@@ -41,324 +41,358 @@
       "surface-sunken": {
         "role": "neutral",
         "displayName": "Sunken",
-        "canonical": "#f2f1ec",
-        "darkValue": "#0a1311",
+        "canonical": "#f3f6f4",
+        "darkValue": "#0b120e",
         "cssVar": "--surface-sunken",
         "tonalRamp": [
-          "oklch(15.0% 0.003 97.4)",
-          "oklch(26.4% 0.004 97.4)",
-          "oklch(37.9% 0.005 97.4)",
-          "oklch(49.3% 0.006 97.4)",
-          "oklch(60.7% 0.006 97.4)",
-          "oklch(72.1% 0.005 97.4)",
-          "oklch(83.6% 0.004 97.4)",
-          "oklch(95.0% 0.003 97.4)"
+          "oklch(15.0% 0.002 157.2)",
+          "oklch(26.4% 0.003 157.2)",
+          "oklch(37.9% 0.003 157.2)",
+          "oklch(49.3% 0.004 157.2)",
+          "oklch(60.7% 0.004 157.2)",
+          "oklch(72.1% 0.003 157.2)",
+          "oklch(83.6% 0.003 157.2)",
+          "oklch(95.0% 0.002 157.2)"
         ]
       },
       "ink": {
         "role": "neutral",
         "displayName": "Ink",
-        "canonical": "#18211f",
-        "darkValue": "#e5ece8",
+        "canonical": "#1c2620",
+        "darkValue": "#e6eee9",
         "cssVar": "--ink",
         "tonalRamp": [
-          "oklch(15.0% 0.006 180.0)",
-          "oklch(26.4% 0.008 180.0)",
-          "oklch(37.9% 0.010 180.0)",
-          "oklch(49.3% 0.012 180.0)",
-          "oklch(60.7% 0.012 180.0)",
-          "oklch(72.1% 0.010 180.0)",
-          "oklch(83.6% 0.008 180.0)",
-          "oklch(95.0% 0.006 180.0)"
+          "oklch(15.0% 0.008 158.5)",
+          "oklch(26.4% 0.012 158.5)",
+          "oklch(37.9% 0.015 158.5)",
+          "oklch(49.3% 0.018 158.5)",
+          "oklch(60.7% 0.018 158.5)",
+          "oklch(72.1% 0.015 158.5)",
+          "oklch(83.6% 0.012 158.5)",
+          "oklch(95.0% 0.008 158.5)"
         ]
       },
       "ink-muted": {
         "role": "neutral",
         "displayName": "Ink Muted",
-        "canonical": "#55615d",
-        "darkValue": "#a2b1ac",
+        "canonical": "#56665c",
+        "darkValue": "#a3b5aa",
         "cssVar": "--ink-muted",
         "tonalRamp": [
-          "oklch(15.0% 0.007 173.6)",
-          "oklch(26.4% 0.009 173.6)",
-          "oklch(37.9% 0.012 173.6)",
-          "oklch(49.3% 0.015 173.6)",
-          "oklch(60.7% 0.015 173.6)",
-          "oklch(72.1% 0.012 173.6)",
-          "oklch(83.6% 0.009 173.6)",
-          "oklch(95.0% 0.007 173.6)"
+          "oklch(15.0% 0.012 157.9)",
+          "oklch(26.4% 0.016 157.9)",
+          "oklch(37.9% 0.021 157.9)",
+          "oklch(49.3% 0.025 157.9)",
+          "oklch(60.7% 0.025 157.9)",
+          "oklch(72.1% 0.021 157.9)",
+          "oklch(83.6% 0.016 157.9)",
+          "oklch(95.0% 0.012 157.9)"
         ]
       },
       "ink-faint": {
         "role": "neutral",
         "displayName": "Ink Faint",
-        "canonical": "#737f7b",
-        "darkValue": "#82918c",
+        "canonical": "#6f7d75",
+        "darkValue": "#839589",
         "cssVar": "--ink-faint",
         "tonalRamp": [
-          "oklch(15.0% 0.007 173.8)",
-          "oklch(26.4% 0.009 173.8)",
-          "oklch(37.9% 0.012 173.8)",
-          "oklch(49.3% 0.014 173.8)",
-          "oklch(60.7% 0.014 173.8)",
-          "oklch(72.1% 0.012 173.8)",
-          "oklch(83.6% 0.009 173.8)",
-          "oklch(95.0% 0.007 173.8)"
+          "oklch(15.0% 0.009 160.7)",
+          "oklch(26.4% 0.013 160.7)",
+          "oklch(37.9% 0.017 160.7)",
+          "oklch(49.3% 0.021 160.7)",
+          "oklch(60.7% 0.021 160.7)",
+          "oklch(72.1% 0.017 160.7)",
+          "oklch(83.6% 0.013 160.7)",
+          "oklch(95.0% 0.009 160.7)"
         ]
       },
       "rule": {
         "role": "neutral",
         "displayName": "Rule",
-        "canonical": "#e3e1d9",
-        "darkValue": "#22322e",
+        "canonical": "#e8ede9",
+        "darkValue": "#223129",
         "cssVar": "--rule",
         "tonalRamp": [
-          "oklch(15.0% 0.005 95.2)",
-          "oklch(26.4% 0.006 95.2)",
-          "oklch(37.9% 0.008 95.2)",
-          "oklch(49.3% 0.010 95.2)",
-          "oklch(60.7% 0.010 95.2)",
-          "oklch(72.1% 0.008 95.2)",
-          "oklch(83.6% 0.006 95.2)",
-          "oklch(95.0% 0.005 95.2)"
+          "oklch(15.0% 0.003 151.9)",
+          "oklch(26.4% 0.005 151.9)",
+          "oklch(37.9% 0.006 151.9)",
+          "oklch(49.3% 0.008 151.9)",
+          "oklch(60.7% 0.008 151.9)",
+          "oklch(72.1% 0.006 151.9)",
+          "oklch(83.6% 0.005 151.9)",
+          "oklch(95.0% 0.003 151.9)"
         ]
       },
       "rule-strong": {
         "role": "neutral",
         "displayName": "Rule Strong",
-        "canonical": "#cdcac0",
-        "darkValue": "#34463f",
+        "canonical": "#d3dcd6",
+        "darkValue": "#31443a",
         "cssVar": "--rule-strong",
         "tonalRamp": [
-          "oklch(15.0% 0.006 93.0)",
-          "oklch(26.4% 0.008 93.0)",
-          "oklch(37.9% 0.011 93.0)",
-          "oklch(49.3% 0.013 93.0)",
-          "oklch(60.7% 0.013 93.0)",
-          "oklch(72.1% 0.011 93.0)",
-          "oklch(83.6% 0.008 93.0)",
-          "oklch(95.0% 0.006 93.0)"
+          "oklch(15.0% 0.006 157.0)",
+          "oklch(26.4% 0.008 157.0)",
+          "oklch(37.9% 0.010 157.0)",
+          "oklch(49.3% 0.013 157.0)",
+          "oklch(60.7% 0.013 157.0)",
+          "oklch(72.1% 0.010 157.0)",
+          "oklch(83.6% 0.008 157.0)",
+          "oklch(95.0% 0.006 157.0)"
         ]
       },
       "field-border": {
         "role": "neutral",
         "displayName": "Field Border",
-        "canonical": "#857f73",
-        "darkValue": "#647a72",
+        "canonical": "#7f8c84",
+        "darkValue": "#66806f",
         "cssVar": "--field-border",
         "tonalRamp": [
-          "oklch(15.0% 0.008 84.6)",
-          "oklch(26.4% 0.011 84.6)",
-          "oklch(37.9% 0.014 84.6)",
-          "oklch(49.3% 0.018 84.6)",
-          "oklch(60.7% 0.018 84.6)",
-          "oklch(72.1% 0.014 84.6)",
-          "oklch(83.6% 0.011 84.6)",
-          "oklch(95.0% 0.008 84.6)"
+          "oklch(15.0% 0.009 158.8)",
+          "oklch(26.4% 0.012 158.8)",
+          "oklch(37.9% 0.016 158.8)",
+          "oklch(49.3% 0.019 158.8)",
+          "oklch(60.7% 0.019 158.8)",
+          "oklch(72.1% 0.016 158.8)",
+          "oklch(83.6% 0.012 158.8)",
+          "oklch(95.0% 0.009 158.8)"
         ]
       },
       "rail": {
         "role": "secondary",
-        "displayName": "Deep Spruce",
-        "canonical": "#163530",
-        "darkValue": "#0f2723",
+        "displayName": "Felt Rail",
+        "canonical": "#1f5b3f",
+        "darkValue": "#143d2a",
         "cssVar": "--rail",
         "tonalRamp": [
-          "oklch(15.0% 0.016 181.8)",
-          "oklch(26.4% 0.022 181.8)",
-          "oklch(37.9% 0.029 181.8)",
-          "oklch(49.3% 0.035 181.8)",
-          "oklch(60.7% 0.035 181.8)",
-          "oklch(72.1% 0.029 181.8)",
-          "oklch(83.6% 0.022 181.8)",
-          "oklch(95.0% 0.016 181.8)"
+          "oklch(15.0% 0.036 159.9)",
+          "oklch(26.4% 0.050 159.9)",
+          "oklch(37.9% 0.064 159.9)",
+          "oklch(49.3% 0.078 159.9)",
+          "oklch(60.7% 0.078 159.9)",
+          "oklch(72.1% 0.064 159.9)",
+          "oklch(83.6% 0.050 159.9)",
+          "oklch(95.0% 0.036 159.9)"
         ]
       },
       "rail-raised": {
         "role": "secondary",
-        "displayName": "Spruce Raised",
-        "canonical": "#1e443e",
-        "darkValue": "#17352f",
+        "displayName": "Rail Raised",
+        "canonical": "#286648",
+        "darkValue": "#1c4c35",
         "cssVar": "--rail-raised",
         "tonalRamp": [
-          "oklch(15.0% 0.019 182.1)",
-          "oklch(26.4% 0.026 182.1)",
-          "oklch(37.9% 0.034 182.1)",
-          "oklch(49.3% 0.041 182.1)",
-          "oklch(60.7% 0.041 182.1)",
-          "oklch(72.1% 0.034 182.1)",
-          "oklch(83.6% 0.026 182.1)",
-          "oklch(95.0% 0.019 182.1)"
+          "oklch(15.0% 0.037 159.6)",
+          "oklch(26.4% 0.052 159.6)",
+          "oklch(37.9% 0.067 159.6)",
+          "oklch(49.3% 0.081 159.6)",
+          "oklch(60.7% 0.081 159.6)",
+          "oklch(72.1% 0.067 159.6)",
+          "oklch(83.6% 0.052 159.6)",
+          "oklch(95.0% 0.037 159.6)"
         ]
       },
       "rail-active": {
         "role": "secondary",
-        "displayName": "Spruce Active",
-        "canonical": "#275249",
-        "darkValue": "#20453e",
+        "displayName": "Rail Active",
+        "canonical": "#2f7353",
+        "darkValue": "#245a40",
         "cssVar": "--rail-active",
         "tonalRamp": [
-          "oklch(15.0% 0.021 178.3)",
-          "oklch(26.4% 0.030 178.3)",
-          "oklch(37.9% 0.038 178.3)",
-          "oklch(49.3% 0.046 178.3)",
-          "oklch(60.7% 0.046 178.3)",
-          "oklch(72.1% 0.038 178.3)",
-          "oklch(83.6% 0.030 178.3)",
-          "oklch(95.0% 0.021 178.3)"
+          "oklch(15.0% 0.040 160.4)",
+          "oklch(26.4% 0.055 160.4)",
+          "oklch(37.9% 0.071 160.4)",
+          "oklch(49.3% 0.087 160.4)",
+          "oklch(60.7% 0.087 160.4)",
+          "oklch(72.1% 0.071 160.4)",
+          "oklch(83.6% 0.055 160.4)",
+          "oklch(95.0% 0.040 160.4)"
         ]
       },
       "rail-ink": {
         "role": "secondary",
         "displayName": "Rail Ink",
-        "canonical": "#eef3ef",
-        "darkValue": "#e9f0ec",
+        "canonical": "#f2f7f3",
+        "darkValue": "#eef5f0",
         "cssVar": "--rail-ink",
         "tonalRamp": [
           "oklch(15.0% 0.003 151.9)",
-          "oklch(26.4% 0.004 151.9)",
+          "oklch(26.4% 0.005 151.9)",
           "oklch(37.9% 0.006 151.9)",
           "oklch(49.3% 0.007 151.9)",
           "oklch(60.7% 0.007 151.9)",
           "oklch(72.1% 0.006 151.9)",
-          "oklch(83.6% 0.004 151.9)",
+          "oklch(83.6% 0.005 151.9)",
           "oklch(95.0% 0.003 151.9)"
         ]
       },
       "rail-muted": {
         "role": "secondary",
         "displayName": "Rail Muted",
-        "canonical": "#a9bdb6",
-        "darkValue": "#9db3ab",
+        "canonical": "#cfe1d6",
+        "darkValue": "#a9c6b6",
         "cssVar": "--rail-muted",
         "tonalRamp": [
-          "oklch(15.0% 0.010 172.6)",
-          "oklch(26.4% 0.014 172.6)",
-          "oklch(37.9% 0.018 172.6)",
-          "oklch(49.3% 0.022 172.6)",
-          "oklch(60.7% 0.022 172.6)",
-          "oklch(72.1% 0.018 172.6)",
-          "oklch(83.6% 0.014 172.6)",
-          "oklch(95.0% 0.010 172.6)"
+          "oklch(15.0% 0.011 159.1)",
+          "oklch(26.4% 0.016 159.1)",
+          "oklch(37.9% 0.020 159.1)",
+          "oklch(49.3% 0.024 159.1)",
+          "oklch(60.7% 0.024 159.1)",
+          "oklch(72.1% 0.020 159.1)",
+          "oklch(83.6% 0.016 159.1)",
+          "oklch(95.0% 0.011 159.1)"
         ]
       },
       "rail-rule": {
         "role": "secondary",
         "displayName": "Rail Rule",
-        "canonical": "#2a4a44",
-        "darkValue": "#1f3a34",
+        "canonical": "#2f6a4d",
+        "darkValue": "#22513a",
         "cssVar": "--rail-rule",
         "tonalRamp": [
-          "oklch(15.0% 0.017 180.8)",
-          "oklch(26.4% 0.023 180.8)",
-          "oklch(37.9% 0.030 180.8)",
-          "oklch(49.3% 0.036 180.8)",
-          "oklch(60.7% 0.036 180.8)",
-          "oklch(72.1% 0.030 180.8)",
-          "oklch(83.6% 0.023 180.8)",
-          "oklch(95.0% 0.017 180.8)"
+          "oklch(15.0% 0.036 159.9)",
+          "oklch(26.4% 0.050 159.9)",
+          "oklch(37.9% 0.064 159.9)",
+          "oklch(49.3% 0.078 159.9)",
+          "oklch(60.7% 0.078 159.9)",
+          "oklch(72.1% 0.064 159.9)",
+          "oklch(83.6% 0.050 159.9)",
+          "oklch(95.0% 0.036 159.9)"
+        ]
+      },
+      "rail-focus": {
+        "role": "secondary",
+        "displayName": "Rail Yellow",
+        "canonical": "#f8ecaa",
+        "darkValue": "#f8ecaa",
+        "cssVar": "--rail-focus",
+        "tonalRamp": [
+          "oklch(15.0% 0.039 99.1)",
+          "oklch(26.4% 0.054 99.1)",
+          "oklch(37.9% 0.070 99.1)",
+          "oklch(49.3% 0.085 99.1)",
+          "oklch(60.7% 0.085 99.1)",
+          "oklch(72.1% 0.070 99.1)",
+          "oklch(83.6% 0.054 99.1)",
+          "oklch(95.0% 0.039 99.1)"
+        ]
+      },
+      "mark-fill": {
+        "role": "secondary",
+        "displayName": "Mark Yellow",
+        "canonical": "#f8ecaa",
+        "darkValue": "#f8ecaa",
+        "cssVar": "--mark-fill",
+        "tonalRamp": [
+          "oklch(15.0% 0.039 99.1)",
+          "oklch(26.4% 0.054 99.1)",
+          "oklch(37.9% 0.070 99.1)",
+          "oklch(49.3% 0.085 99.1)",
+          "oklch(60.7% 0.085 99.1)",
+          "oklch(72.1% 0.070 99.1)",
+          "oklch(83.6% 0.054 99.1)",
+          "oklch(95.0% 0.039 99.1)"
         ]
       },
       "signal": {
         "role": "primary",
-        "displayName": "Marigold Signal",
-        "canonical": "#e8a33d",
-        "darkValue": "#f0b04f",
+        "displayName": "Felt Green",
+        "canonical": "#1f5b3f",
+        "darkValue": "#7fd0a2",
         "cssVar": "--signal",
         "tonalRamp": [
-          "oklch(15.0% 0.059 72.9)",
-          "oklch(26.4% 0.082 72.9)",
-          "oklch(37.9% 0.105 72.9)",
-          "oklch(49.3% 0.128 72.9)",
-          "oklch(60.7% 0.128 72.9)",
-          "oklch(72.1% 0.105 72.9)",
-          "oklch(83.6% 0.082 72.9)",
-          "oklch(95.0% 0.059 72.9)"
+          "oklch(15.0% 0.036 159.9)",
+          "oklch(26.4% 0.050 159.9)",
+          "oklch(37.9% 0.064 159.9)",
+          "oklch(49.3% 0.078 159.9)",
+          "oklch(60.7% 0.078 159.9)",
+          "oklch(72.1% 0.064 159.9)",
+          "oklch(83.6% 0.050 159.9)",
+          "oklch(95.0% 0.036 159.9)"
         ]
       },
       "signal-strong": {
         "role": "primary",
-        "displayName": "Marigold Strong",
-        "canonical": "#d48c22",
-        "darkValue": "#f5bf68",
+        "displayName": "Deep Felt",
+        "canonical": "#184a33",
+        "darkValue": "#9fdcb9",
         "cssVar": "--signal-strong",
         "tonalRamp": [
-          "oklch(15.0% 0.059 70.4)",
-          "oklch(26.4% 0.083 70.4)",
-          "oklch(37.9% 0.106 70.4)",
-          "oklch(49.3% 0.129 70.4)",
-          "oklch(60.7% 0.129 70.4)",
-          "oklch(72.1% 0.106 70.4)",
-          "oklch(83.6% 0.083 70.4)",
-          "oklch(95.0% 0.059 70.4)"
+          "oklch(15.0% 0.031 160.3)",
+          "oklch(26.4% 0.043 160.3)",
+          "oklch(37.9% 0.055 160.3)",
+          "oklch(49.3% 0.067 160.3)",
+          "oklch(60.7% 0.067 160.3)",
+          "oklch(72.1% 0.055 160.3)",
+          "oklch(83.6% 0.043 160.3)",
+          "oklch(95.0% 0.031 160.3)"
         ]
       },
       "signal-ink": {
         "role": "primary",
-        "displayName": "Marigold Ink",
-        "canonical": "#6b4a0e",
-        "darkValue": "#f6c97f",
+        "displayName": "Felt Ink",
+        "canonical": "#1f5b3f",
+        "darkValue": "#9fdcb9",
         "cssVar": "--signal-ink",
         "tonalRamp": [
-          "oklch(15.0% 0.036 76.8)",
-          "oklch(26.4% 0.050 76.8)",
-          "oklch(37.9% 0.063 76.8)",
-          "oklch(49.3% 0.077 76.8)",
-          "oklch(60.7% 0.077 76.8)",
-          "oklch(72.1% 0.063 76.8)",
-          "oklch(83.6% 0.050 76.8)",
-          "oklch(95.0% 0.036 76.8)"
+          "oklch(15.0% 0.036 159.9)",
+          "oklch(26.4% 0.050 159.9)",
+          "oklch(37.9% 0.064 159.9)",
+          "oklch(49.3% 0.078 159.9)",
+          "oklch(60.7% 0.078 159.9)",
+          "oklch(72.1% 0.064 159.9)",
+          "oklch(83.6% 0.050 159.9)",
+          "oklch(95.0% 0.036 159.9)"
         ]
       },
       "signal-soft": {
         "role": "primary",
-        "displayName": "Marigold Wash",
-        "canonical": "#fbedd3",
-        "darkValue": "#33291a",
+        "displayName": "Green Wash",
+        "canonical": "#e6f2ea",
+        "darkValue": "#1d3527",
         "cssVar": "--signal-soft",
         "tonalRamp": [
-          "oklch(15.0% 0.016 83.0)",
-          "oklch(26.4% 0.022 83.0)",
-          "oklch(37.9% 0.028 83.0)",
-          "oklch(49.3% 0.034 83.0)",
-          "oklch(60.7% 0.034 83.0)",
-          "oklch(72.1% 0.028 83.0)",
-          "oklch(83.6% 0.022 83.0)",
-          "oklch(95.0% 0.016 83.0)"
+          "oklch(15.0% 0.008 156.9)",
+          "oklch(26.4% 0.011 156.9)",
+          "oklch(37.9% 0.014 156.9)",
+          "oklch(49.3% 0.017 156.9)",
+          "oklch(60.7% 0.017 156.9)",
+          "oklch(72.1% 0.014 156.9)",
+          "oklch(83.6% 0.011 156.9)",
+          "oklch(95.0% 0.008 156.9)"
         ]
       },
       "on-signal": {
         "role": "primary",
-        "displayName": "Signal Ink",
-        "canonical": "#241a05",
-        "darkValue": "#1a1406",
+        "displayName": "On Green",
+        "canonical": "#ffffff",
+        "darkValue": "#0f1712",
         "cssVar": "--on-signal",
         "tonalRamp": [
-          "oklch(15.0% 0.016 84.0)",
-          "oklch(26.4% 0.022 84.0)",
-          "oklch(37.9% 0.029 84.0)",
-          "oklch(49.3% 0.035 84.0)",
-          "oklch(60.7% 0.035 84.0)",
-          "oklch(72.1% 0.029 84.0)",
-          "oklch(83.6% 0.022 84.0)",
-          "oklch(95.0% 0.016 84.0)"
+          "oklch(15.0% 0.000 89.9)",
+          "oklch(26.4% 0.000 89.9)",
+          "oklch(37.9% 0.000 89.9)",
+          "oklch(49.3% 0.000 89.9)",
+          "oklch(60.7% 0.000 89.9)",
+          "oklch(72.1% 0.000 89.9)",
+          "oklch(83.6% 0.000 89.9)",
+          "oklch(95.0% 0.000 89.9)"
         ]
       },
       "focus": {
         "role": "primary",
-        "displayName": "Focus Amber",
-        "canonical": "#9a6408",
-        "darkValue": "#f0b04f",
+        "displayName": "Focus Green",
+        "canonical": "#1f5b3f",
+        "darkValue": "#7fd0a2",
         "cssVar": "--focus",
         "tonalRamp": [
-          "oklch(15.0% 0.049 71.7)",
-          "oklch(26.4% 0.068 71.7)",
-          "oklch(37.9% 0.087 71.7)",
-          "oklch(49.3% 0.106 71.7)",
-          "oklch(60.7% 0.106 71.7)",
-          "oklch(72.1% 0.087 71.7)",
-          "oklch(83.6% 0.068 71.7)",
-          "oklch(95.0% 0.049 71.7)"
+          "oklch(15.0% 0.036 159.9)",
+          "oklch(26.4% 0.050 159.9)",
+          "oklch(37.9% 0.064 159.9)",
+          "oklch(49.3% 0.078 159.9)",
+          "oklch(60.7% 0.078 159.9)",
+          "oklch(72.1% 0.064 159.9)",
+          "oklch(83.6% 0.050 159.9)",
+          "oklch(95.0% 0.036 159.9)"
         ]
       },
       "positive": {
@@ -368,14 +402,14 @@
         "darkValue": "#80cb9c",
         "cssVar": "--positive",
         "tonalRamp": [
-          "oklch(15.0% 0.039 156.3)",
-          "oklch(26.4% 0.055 156.3)",
-          "oklch(37.9% 0.070 156.3)",
-          "oklch(49.3% 0.085 156.3)",
-          "oklch(60.7% 0.085 156.3)",
-          "oklch(72.1% 0.070 156.3)",
-          "oklch(83.6% 0.055 156.3)",
-          "oklch(95.0% 0.039 156.3)"
+          "oklch(15.0% 0.043 156.3)",
+          "oklch(26.4% 0.060 156.3)",
+          "oklch(37.9% 0.076 156.3)",
+          "oklch(49.3% 0.093 156.3)",
+          "oklch(60.7% 0.093 156.3)",
+          "oklch(72.1% 0.076 156.3)",
+          "oklch(83.6% 0.060 156.3)",
+          "oklch(95.0% 0.043 156.3)"
         ]
       },
       "negative": {
@@ -385,14 +419,14 @@
         "darkValue": "#f2907e",
         "cssVar": "--negative",
         "tonalRamp": [
-          "oklch(15.0% 0.064 31.2)",
-          "oklch(26.4% 0.089 31.2)",
-          "oklch(37.9% 0.115 31.2)",
-          "oklch(49.3% 0.140 31.2)",
-          "oklch(60.7% 0.140 31.2)",
-          "oklch(72.1% 0.115 31.2)",
-          "oklch(83.6% 0.089 31.2)",
-          "oklch(95.0% 0.064 31.2)"
+          "oklch(15.0% 0.070 31.2)",
+          "oklch(26.4% 0.097 31.2)",
+          "oklch(37.9% 0.125 31.2)",
+          "oklch(49.3% 0.152 31.2)",
+          "oklch(60.7% 0.152 31.2)",
+          "oklch(72.1% 0.125 31.2)",
+          "oklch(83.6% 0.097 31.2)",
+          "oklch(95.0% 0.070 31.2)"
         ]
       },
       "negative-soft": {
@@ -402,14 +436,14 @@
         "darkValue": "#3a1e19",
         "cssVar": "--negative-soft",
         "tonalRamp": [
-          "oklch(15.0% 0.010 33.5)",
-          "oklch(26.4% 0.014 33.5)",
-          "oklch(37.9% 0.018 33.5)",
-          "oklch(49.3% 0.022 33.5)",
-          "oklch(60.7% 0.022 33.5)",
-          "oklch(72.1% 0.018 33.5)",
-          "oklch(83.6% 0.014 33.5)",
-          "oklch(95.0% 0.010 33.5)"
+          "oklch(15.0% 0.011 33.5)",
+          "oklch(26.4% 0.015 33.5)",
+          "oklch(37.9% 0.020 33.5)",
+          "oklch(49.3% 0.024 33.5)",
+          "oklch(60.7% 0.024 33.5)",
+          "oklch(72.1% 0.020 33.5)",
+          "oklch(83.6% 0.015 33.5)",
+          "oklch(95.0% 0.011 33.5)"
         ]
       },
       "negative-fill": {
@@ -419,18 +453,132 @@
         "darkValue": "#d9634f",
         "cssVar": "--negative-fill",
         "tonalRamp": [
-          "oklch(15.0% 0.064 31.5)",
-          "oklch(26.4% 0.089 31.5)",
-          "oklch(37.9% 0.114 31.5)",
-          "oklch(49.3% 0.139 31.5)",
-          "oklch(60.7% 0.139 31.5)",
-          "oklch(72.1% 0.114 31.5)",
-          "oklch(83.6% 0.089 31.5)",
-          "oklch(95.0% 0.064 31.5)"
+          "oklch(15.0% 0.070 31.5)",
+          "oklch(26.4% 0.097 31.5)",
+          "oklch(37.9% 0.124 31.5)",
+          "oklch(49.3% 0.151 31.5)",
+          "oklch(60.7% 0.151 31.5)",
+          "oklch(72.1% 0.124 31.5)",
+          "oklch(83.6% 0.097 31.5)",
+          "oklch(95.0% 0.070 31.5)"
         ]
+      },
+      "on-negative-fill": {
+        "role": "tertiary",
+        "displayName": "On Brick",
+        "canonical": "#ffffff",
+        "darkValue": "#1a0d0a",
+        "cssVar": "--on-negative-fill",
+        "tonalRamp": [
+          "oklch(15.0% 0.000 89.9)",
+          "oklch(26.4% 0.000 89.9)",
+          "oklch(37.9% 0.000 89.9)",
+          "oklch(49.3% 0.000 89.9)",
+          "oklch(60.7% 0.000 89.9)",
+          "oklch(72.1% 0.000 89.9)",
+          "oklch(83.6% 0.000 89.9)",
+          "oklch(95.0% 0.000 89.9)"
+        ]
+      },
+      "scrim": {
+        "role": "neutral",
+        "displayName": "Scrim",
+        "canonical": "rgb(12 24 18 / 0.45)",
+        "darkValue": "rgb(0 0 0 / 0.6)",
+        "cssVar": "--scrim"
+      },
+      "bucket-pink": {
+        "role": "reserved",
+        "displayName": "Bucket Pink",
+        "canonical": "#f8d6e0",
+        "darkValue": "#4a2a35",
+        "cssVar": "--bucket-pink",
+        "tonalRamp": [
+          "oklch(15.0% 0.018 358.3)",
+          "oklch(26.4% 0.026 358.3)",
+          "oklch(37.9% 0.033 358.3)",
+          "oklch(49.3% 0.040 358.3)",
+          "oklch(60.7% 0.040 358.3)",
+          "oklch(72.1% 0.033 358.3)",
+          "oklch(83.6% 0.026 358.3)",
+          "oklch(95.0% 0.018 358.3)"
+        ],
+        "status": "Reserved for buckets (Phase 4). Not used on any screen yet."
+      },
+      "bucket-yellow": {
+        "role": "reserved",
+        "displayName": "Bucket Yellow",
+        "canonical": "#f8ecaa",
+        "darkValue": "#4a4422",
+        "cssVar": "--bucket-yellow",
+        "tonalRamp": [
+          "oklch(15.0% 0.039 99.1)",
+          "oklch(26.4% 0.054 99.1)",
+          "oklch(37.9% 0.070 99.1)",
+          "oklch(49.3% 0.085 99.1)",
+          "oklch(60.7% 0.085 99.1)",
+          "oklch(72.1% 0.070 99.1)",
+          "oklch(83.6% 0.054 99.1)",
+          "oklch(95.0% 0.039 99.1)"
+        ],
+        "status": "Reserved for buckets (Phase 4). Not used on any screen yet."
+      },
+      "bucket-green": {
+        "role": "reserved",
+        "displayName": "Bucket Green",
+        "canonical": "#d4ebc6",
+        "darkValue": "#2c4426",
+        "cssVar": "--bucket-green",
+        "tonalRamp": [
+          "oklch(15.0% 0.025 133.6)",
+          "oklch(26.4% 0.035 133.6)",
+          "oklch(37.9% 0.045 133.6)",
+          "oklch(49.3% 0.055 133.6)",
+          "oklch(60.7% 0.055 133.6)",
+          "oklch(72.1% 0.045 133.6)",
+          "oklch(83.6% 0.035 133.6)",
+          "oklch(95.0% 0.025 133.6)"
+        ],
+        "status": "Reserved for buckets (Phase 4). Not used on any screen yet."
+      },
+      "bucket-blue": {
+        "role": "reserved",
+        "displayName": "Bucket Blue",
+        "canonical": "#d3e6f5",
+        "darkValue": "#233a4d",
+        "cssVar": "--bucket-blue",
+        "tonalRamp": [
+          "oklch(15.0% 0.013 241.6)",
+          "oklch(26.4% 0.018 241.6)",
+          "oklch(37.9% 0.024 241.6)",
+          "oklch(49.3% 0.029 241.6)",
+          "oklch(60.7% 0.029 241.6)",
+          "oklch(72.1% 0.024 241.6)",
+          "oklch(83.6% 0.018 241.6)",
+          "oklch(95.0% 0.013 241.6)"
+        ],
+        "status": "Reserved for buckets (Phase 4). Not used on any screen yet."
+      },
+      "on-bucket": {
+        "role": "reserved",
+        "displayName": "On Bucket",
+        "canonical": "#1c2620",
+        "darkValue": "#eef5f0",
+        "cssVar": "--on-bucket",
+        "tonalRamp": [
+          "oklch(15.0% 0.008 158.5)",
+          "oklch(26.4% 0.012 158.5)",
+          "oklch(37.9% 0.015 158.5)",
+          "oklch(49.3% 0.018 158.5)",
+          "oklch(60.7% 0.018 158.5)",
+          "oklch(72.1% 0.015 158.5)",
+          "oklch(83.6% 0.012 158.5)",
+          "oklch(95.0% 0.008 158.5)"
+        ],
+        "status": "Reserved for buckets (Phase 4). Not used on any screen yet."
       }
     },
-    "colorNotes": "Light values are canonical and live in DESIGN.md frontmatter. darkValue is the token's value under prefers-color-scheme: dark (unless data-theme=light) and under data-theme=dark. On the spruce rail (.on-rail) the focus token resolves to signal.",
+    "colorNotes": "Light values are canonical and live in DESIGN.md frontmatter. darkValue is the token's value under prefers-color-scheme: dark (unless data-theme=light) and under data-theme=dark. Inside the green frame (.on-rail: rail, phone top bar, plain-shell header) the focus token resolves to rail-focus (pale yellow). Bucket pastels (role reserved) are defined but not used on any screen yet.",
     "typographyMeta": {
       "headline": {
         "displayName": "Headline",
@@ -446,7 +594,7 @@
       },
       "body": {
         "displayName": "Body",
-        "purpose": "Document ground and running text; ss01 and cv11 on."
+        "purpose": "Document ground and running text (Figtree)."
       },
       "body-sm": {
         "displayName": "Body Small",
@@ -468,7 +616,7 @@
     "shadows": [
       {
         "name": "float",
-        "value": "0 12px 32px -8px rgb(22 53 48 / 0.18), 0 2px 6px -2px rgb(22 53 48 / 0.12)",
+        "value": "0 12px 32px -8px rgb(20 50 35 / 0.18), 0 2px 6px -2px rgb(20 50 35 / 0.12)",
         "darkValue": "0 12px 32px -8px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.4)",
         "purpose": "Floating layers only: book switcher menu, toasts, phone bottom sheet."
       }
@@ -507,7 +655,7 @@
       {
         "name": "saved-flash",
         "value": "signal-soft to transparent, 1.6s ease-out",
-        "purpose": "One-time glow on a just-saved row."
+        "purpose": "One-time green glow on a just-saved row."
       },
       {
         "name": "reduced-motion",
@@ -531,95 +679,107 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The one primary action per view: marigold fill, signal ink text, press scale 0.97.",
-      "html": "<button class=\"ds-btn ds-btn-primary\">Create account <kbd class=\"ds-kbd\">N</kbd></button>",
-      "css": ".ds-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:8px;font-family:var(--font-geist-sans),ui-sans-serif,system-ui,sans-serif;font-size:0.875rem;font-weight:500;white-space:nowrap;cursor:pointer;border:1px solid transparent;transition:transform 150ms var(--ease-out),background-color 150ms var(--ease-out),border-color 150ms var(--ease-out),color 150ms var(--ease-out);}.ds-btn:active{transform:scale(0.97);}.ds-btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}.ds-btn-primary{background:var(--signal);color:var(--on-signal);}@media (hover:hover){.ds-btn-primary:hover{background:var(--signal-strong);}}.ds-kbd{margin-left:4px;padding:0 4px;border:1px solid color-mix(in srgb,var(--on-signal) 25%,transparent);border-radius:4px;font:500 0.6875rem/1rem var(--font-geist-sans),ui-sans-serif,sans-serif;opacity:0.7;}"
+      "description": "The one primary action per view: felt green pill, white text, press scale 0.97.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">New account <kbd class=\"ds-kbd\">N</kbd></button>",
+      "css": ".ds-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:9999px;font-family:var(--font-figtree),ui-sans-serif,system-ui,sans-serif;font-size:0.875rem;font-weight:500;white-space:nowrap;cursor:pointer;border:1px solid transparent;transition:transform 150ms var(--ease-out),background-color 150ms var(--ease-out),border-color 150ms var(--ease-out),color 150ms var(--ease-out);}.ds-btn:active{transform:scale(0.97);}.ds-btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}.ds-btn-primary{background:var(--signal);color:var(--on-signal);}@media (hover:hover){.ds-btn-primary:hover{background:var(--signal-strong);}}.ds-kbd{margin-left:4px;padding:0 4px;border:1px solid color-mix(in srgb,var(--on-signal) 25%,transparent);border-radius:4px;font:500 0.6875rem/1rem var(--font-figtree),ui-sans-serif,system-ui,sans-serif;opacity:0.7;}"
     },
     {
       "name": "Secondary Button",
       "kind": "button",
       "refersTo": "button-secondary",
-      "description": "White surface, ink text, field-border stroke that sharpens on hover.",
+      "description": "White pill, ink text, field-border stroke that sharpens on hover.",
       "html": "<button class=\"ds-btn ds-btn-secondary\">Restore account</button>",
-      "css": ".ds-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:8px;font-family:var(--font-geist-sans),ui-sans-serif,system-ui,sans-serif;font-size:0.875rem;font-weight:500;white-space:nowrap;cursor:pointer;border:1px solid transparent;transition:transform 150ms var(--ease-out),background-color 150ms var(--ease-out),border-color 150ms var(--ease-out),color 150ms var(--ease-out);}.ds-btn:active{transform:scale(0.97);}.ds-btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}.ds-btn-secondary{background:var(--surface);color:var(--ink);border-color:var(--field-border);}@media (hover:hover){.ds-btn-secondary:hover{border-color:var(--ink-muted);}}"
+      "css": ".ds-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:9999px;font-family:var(--font-figtree),ui-sans-serif,system-ui,sans-serif;font-size:0.875rem;font-weight:500;white-space:nowrap;cursor:pointer;border:1px solid transparent;transition:transform 150ms var(--ease-out),background-color 150ms var(--ease-out),border-color 150ms var(--ease-out),color 150ms var(--ease-out);}.ds-btn:active{transform:scale(0.97);}.ds-btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}.ds-btn-secondary{background:var(--surface);color:var(--ink);border-color:var(--field-border);}@media (hover:hover){.ds-btn-secondary:hover{border-color:var(--ink-muted);}}"
     },
     {
       "name": "Ghost Button",
       "kind": "button",
       "refersTo": "button-ghost",
-      "description": "Unfilled, muted; used for Cancel and view toggles.",
+      "description": "Unfilled, muted pill; used for Cancel and view toggles.",
       "html": "<button class=\"ds-btn ds-btn-ghost\">Cancel</button>",
-      "css": ".ds-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:8px;font-family:var(--font-geist-sans),ui-sans-serif,system-ui,sans-serif;font-size:0.875rem;font-weight:500;white-space:nowrap;cursor:pointer;border:1px solid transparent;transition:transform 150ms var(--ease-out),background-color 150ms var(--ease-out),border-color 150ms var(--ease-out),color 150ms var(--ease-out);}.ds-btn:active{transform:scale(0.97);}.ds-btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}.ds-btn-ghost{background:transparent;color:var(--ink-muted);}@media (hover:hover){.ds-btn-ghost:hover{background:var(--surface-sunken);color:var(--ink);}}"
+      "css": ".ds-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:9999px;font-family:var(--font-figtree),ui-sans-serif,system-ui,sans-serif;font-size:0.875rem;font-weight:500;white-space:nowrap;cursor:pointer;border:1px solid transparent;transition:transform 150ms var(--ease-out),background-color 150ms var(--ease-out),border-color 150ms var(--ease-out),color 150ms var(--ease-out);}.ds-btn:active{transform:scale(0.97);}.ds-btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}.ds-btn-ghost{background:transparent;color:var(--ink-muted);}@media (hover:hover){.ds-btn-ghost:hover{background:var(--surface-sunken);color:var(--ink);}}"
     },
     {
       "name": "Hold Button",
       "kind": "custom",
       "refersTo": "button-danger",
-      "description": "Press and hold to confirm archive or delete: a 1200ms linear brick sweep, 200ms ease-out release. Replaces confirmation dialogs.",
+      "description": "Press and hold to confirm archive or delete: a 1200ms linear brick sweep across the danger pill, 200ms ease-out release. Replaces confirmation dialogs.",
       "html": "<button class=\"ds-btn ds-btn-danger ds-hold\" style=\"height:32px;padding:0 12px;font-size:0.8125rem\"><span>Hold to archive account</span><span class=\"ds-hold-fill\" aria-hidden=\"true\">Keep holding</span></button>",
-      "css": ".ds-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:8px;font-family:var(--font-geist-sans),ui-sans-serif,system-ui,sans-serif;font-size:0.875rem;font-weight:500;white-space:nowrap;cursor:pointer;border:1px solid transparent;transition:transform 150ms var(--ease-out),background-color 150ms var(--ease-out),border-color 150ms var(--ease-out),color 150ms var(--ease-out);}.ds-btn:active{transform:scale(0.97);}.ds-btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}.ds-btn-danger{background:var(--surface);color:var(--negative);border-color:var(--field-border);overflow:hidden;}@media (hover:hover){.ds-btn-danger:hover{border-color:var(--negative);}}.ds-hold-fill{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--negative-fill);color:#fff;pointer-events:none;clip-path:inset(0 100% 0 0);transition:clip-path 200ms var(--ease-out);}.ds-hold:active .ds-hold-fill{clip-path:inset(0 0 0 0);transition:clip-path 1200ms linear;}@media (prefers-reduced-motion:reduce){.ds-hold-fill{clip-path:none;opacity:0;transition:opacity 200ms ease;}.ds-hold:active .ds-hold-fill{clip-path:none;opacity:1;transition:opacity 200ms ease;}}"
+      "css": ".ds-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:9999px;font-family:var(--font-figtree),ui-sans-serif,system-ui,sans-serif;font-size:0.875rem;font-weight:500;white-space:nowrap;cursor:pointer;border:1px solid transparent;transition:transform 150ms var(--ease-out),background-color 150ms var(--ease-out),border-color 150ms var(--ease-out),color 150ms var(--ease-out);}.ds-btn:active{transform:scale(0.97);}.ds-btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}.ds-btn-danger{background:var(--surface);color:var(--negative);border-color:var(--field-border);overflow:hidden;}@media (hover:hover){.ds-btn-danger:hover{border-color:var(--negative);}}.ds-hold-fill{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--negative-fill);color:var(--on-negative-fill);pointer-events:none;clip-path:inset(0 100% 0 0);transition:clip-path 200ms var(--ease-out);}.ds-hold:active .ds-hold-fill{clip-path:inset(0 0 0 0);transition:clip-path 1200ms linear;}@media (prefers-reduced-motion:reduce){.ds-hold-fill{clip-path:none;opacity:0;transition:opacity 200ms ease;}.ds-hold:active .ds-hold-fill{clip-path:none;opacity:1;transition:opacity 200ms ease;}}"
     },
     {
       "name": "Text Field",
       "kind": "input",
       "refersTo": "input",
-      "description": "Label, 40px input with field-border stroke, muted hint; focus turns the border amber with a soft ring.",
+      "description": "Label, 40px input with 8px corners and a field-border stroke, muted hint; focus turns the border green with a soft ring.",
       "html": "<div class=\"ds-field\"><label class=\"ds-label\" for=\"ds-name\">Book name</label><input id=\"ds-name\" class=\"ds-input\" placeholder=\"Family\"><p class=\"ds-hint\">One book per household or business. You can rename it later.</p></div>",
-      "css": ".ds-field{display:flex;flex-direction:column;gap:6px;font-family:var(--font-geist-sans),ui-sans-serif,system-ui,sans-serif;}.ds-label{font-size:0.8125rem;font-weight:500;color:var(--ink);}.ds-input{display:block;height:40px;width:100%;padding:0 12px;border:1px solid var(--field-border);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:0.875rem;transition:border-color 150ms,box-shadow 150ms;}.ds-input::placeholder{color:var(--ink-muted);}.ds-input:focus{outline:none;border-color:var(--focus);box-shadow:0 0 0 2px color-mix(in srgb,var(--focus) 25%,transparent);}.ds-input[aria-invalid=true]{border-color:var(--negative);}.ds-input:disabled{background:var(--surface-sunken);color:var(--ink-muted);}.ds-hint{margin:0;font-size:0.8125rem;color:var(--ink-muted);}"
+      "css": ".ds-field{display:flex;flex-direction:column;gap:6px;font-family:var(--font-figtree),ui-sans-serif,system-ui,sans-serif;}.ds-label{font-size:0.8125rem;font-weight:500;color:var(--ink);}.ds-input{display:block;height:40px;width:100%;padding:0 12px;border:1px solid var(--field-border);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:0.875rem;transition:border-color 150ms,box-shadow 150ms;}.ds-input::placeholder{color:var(--ink-muted);}.ds-input:focus{outline:none;border-color:var(--focus);box-shadow:0 0 0 2px color-mix(in srgb,var(--focus) 25%,transparent);}.ds-input[aria-invalid=true]{border-color:var(--negative);}.ds-input:disabled{background:var(--surface-sunken);color:var(--ink-muted);}.ds-hint{margin:0;font-size:0.8125rem;color:var(--ink-muted);}"
     },
     {
       "name": "Rail Navigation",
       "kind": "nav",
       "refersTo": "nav-rail-item",
-      "description": "Spruce rail nav: muted items, raised hover, active item on spruce active with a 2px marigold tick.",
+      "description": "Felt-green rail nav: muted items, raised hover, active item on rail active with a 2px pale yellow tick; focus rings on the rail are pale yellow.",
       "html": "<nav class=\"ds-rail\"><a class=\"ds-rail-item ds-rail-active\" href=\"#\" aria-current=\"page\"><span class=\"ds-tick\"></span><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 12h-8\"/><path d=\"M21 6H8\"/><path d=\"M21 18h-8\"/><path d=\"M3 6v4c0 1.1.9 2 2 2h3\"/><path d=\"M3 10v6c0 1.1.9 2 2 2h3\"/></svg>Chart of accounts</a><a class=\"ds-rail-item\" href=\"#\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 7h-9\"/><path d=\"M14 17H5\"/><circle cx=\"17\" cy=\"17\" r=\"3\"/><circle cx=\"7\" cy=\"7\" r=\"3\"/></svg>Book settings</a></nav>",
-      "css": ".ds-rail{display:flex;flex-direction:column;gap:2px;width:16rem;padding:12px;background:var(--rail);font-family:var(--font-geist-sans),ui-sans-serif,system-ui,sans-serif;}.ds-rail-item{position:relative;display:flex;align-items:center;gap:10px;height:36px;padding:0 12px;border-radius:8px;font-size:0.875rem;color:var(--rail-muted);text-decoration:none;transition:background-color 150ms,color 150ms;}.ds-rail-item:hover{background:var(--rail-raised);color:var(--rail-ink);}.ds-rail-item:focus-visible{outline:2px solid var(--signal);outline-offset:2px;}.ds-rail-active,.ds-rail-active:hover{background:var(--rail-active);color:var(--rail-ink);font-weight:500;}.ds-tick{position:absolute;left:0;top:8px;bottom:8px;width:2px;border-radius:9999px;background:var(--signal);}"
+      "css": ".ds-rail{display:flex;flex-direction:column;gap:2px;width:16rem;padding:12px;background:var(--rail);font-family:var(--font-figtree),ui-sans-serif,system-ui,sans-serif;}.ds-rail-item{position:relative;display:flex;align-items:center;gap:10px;height:36px;padding:0 12px;border-radius:8px;font-size:0.875rem;color:var(--rail-muted);text-decoration:none;transition:background-color 150ms,color 150ms;}.ds-rail-item:hover{background:var(--rail-raised);color:var(--rail-ink);}.ds-rail-item:focus-visible{outline:2px solid var(--rail-focus);outline-offset:2px;}.ds-rail-active,.ds-rail-active:hover{background:var(--rail-active);color:var(--rail-ink);font-weight:500;}.ds-tick{position:absolute;left:0;top:8px;bottom:8px;width:2px;border-radius:9999px;background:var(--rail-focus);}"
+    },
+    {
+      "name": "Book Switcher",
+      "kind": "custom",
+      "refersTo": "book-switcher-trigger",
+      "description": "44px trigger with 8px corners on rail raised; its white menu scales from 0.96 at the trigger's origin with the float shadow, current book marked with a felt ink check.",
+      "html": "<div class=\"ds-switch-wrap\"><button class=\"ds-switch\"><span class=\"ds-switch-text\"><span class=\"ds-switch-name\">Family</span><span class=\"ds-switch-sub\">Household</span></span><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"opacity:0.7\"><path d=\"m7 15 5 5 5-5\"/><path d=\"m7 9 5-5 5 5\"/></svg></button><div class=\"ds-menu\" role=\"menu\"><div class=\"ds-menu-label\">Your books</div><a class=\"ds-menu-item\" role=\"menuitem\" href=\"#\"><span>Family</span><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"var(--signal-ink)\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 6 9 17l-5-5\"/></svg></a><a class=\"ds-menu-item\" role=\"menuitem\" href=\"#\"><span>Studio LLC</span></a><div class=\"ds-menu-sep\"></div><a class=\"ds-menu-item\" role=\"menuitem\" href=\"#\"><span>New book</span></a></div></div>",
+      "css": ".ds-switch-wrap{display:flex;flex-direction:column;gap:6px;width:16rem;padding:12px;background:var(--rail);font-family:var(--font-figtree),ui-sans-serif,system-ui,sans-serif;}.ds-switch{display:flex;align-items:center;gap:10px;height:44px;width:100%;padding:0 12px;border:none;border-radius:8px;background:var(--rail-raised);color:var(--rail-ink);text-align:left;cursor:pointer;font:inherit;transition:background-color 150ms,transform 150ms;}.ds-switch:hover{background:var(--rail-active);}.ds-switch:active{transform:scale(0.98);}.ds-switch:focus-visible{outline:2px solid var(--rail-focus);outline-offset:2px;}.ds-switch-text{display:flex;flex:1;min-width:0;flex-direction:column;line-height:1.25;}.ds-switch-name{font-size:0.875rem;font-weight:500;}.ds-switch-sub{font-size:0.75rem;color:var(--rail-muted);}.ds-menu{padding:6px;border:1px solid var(--rule);border-radius:12px;background:var(--surface);box-shadow:var(--shadow-float);transform-origin:top left;animation:ds-pop 150ms var(--ease-out);}@keyframes ds-pop{from{scale:0.96;opacity:0;}}.ds-menu-label{padding:6px 10px 4px;font-size:0.75rem;font-weight:500;color:var(--ink-muted);}.ds-menu-item{display:flex;align-items:center;justify-content:space-between;gap:10px;height:36px;padding:0 10px;border-radius:6px;font-size:0.875rem;color:var(--ink);text-decoration:none;}.ds-menu-item:hover,.ds-menu-item:focus-visible{background:var(--surface-sunken);outline:none;}.ds-menu-sep{height:1px;margin:6px 0;background:var(--rule);}@media (prefers-reduced-motion:reduce){.ds-menu{animation:none;}}"
     },
     {
       "name": "Fill Line",
       "kind": "custom",
       "refersTo": "fill-line-track",
-      "description": "The signature progress device: a hairline track filled in marigold by a clip-path inset, 500ms in-out.",
+      "description": "The signature progress device: a hairline track filled in felt green by a clip-path inset, 500ms in-out.",
       "html": "<div class=\"ds-fill\" role=\"progressbar\" aria-label=\"Setup progress, step 2 of 3\" aria-valuemin=\"0\" aria-valuemax=\"3\" aria-valuenow=\"1\"><div class=\"ds-fill-bar\" style=\"clip-path:inset(0 66.7% 0 0 round 999px)\"></div></div>",
       "css": ".ds-fill{position:relative;height:6px;width:100%;overflow:hidden;border-radius:9999px;background:var(--rule);}.ds-fill-bar{position:absolute;inset:0;border-radius:9999px;background:var(--signal);transition:clip-path 500ms var(--ease-in-out);}"
-    },
-    {
-      "name": "Book Switcher Menu",
-      "kind": "custom",
-      "refersTo": "menu-popup",
-      "description": "White popup with the float shadow that scales from 0.96 at its trigger's origin; current book marked with a marigold ink check.",
-      "html": "<div class=\"ds-menu\" role=\"menu\"><div class=\"ds-menu-label\">Your books</div><a class=\"ds-menu-item\" role=\"menuitem\" href=\"#\"><span>Family</span><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"var(--signal-ink)\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 6 9 17l-5-5\"/></svg></a><a class=\"ds-menu-item\" role=\"menuitem\" href=\"#\"><span>Studio LLC</span></a><div class=\"ds-menu-sep\"></div><a class=\"ds-menu-item\" role=\"menuitem\" href=\"#\"><span>New book</span></a></div>",
-      "css": ".ds-menu{width:18rem;padding:6px;border:1px solid var(--rule);border-radius:12px;background:var(--surface);box-shadow:var(--shadow-float);font-family:var(--font-geist-sans),ui-sans-serif,system-ui,sans-serif;transform-origin:top left;animation:ds-pop 150ms var(--ease-out);}@keyframes ds-pop{from{scale:0.96;opacity:0;}}.ds-menu-label{padding:6px 10px 4px;font-size:0.75rem;font-weight:500;color:var(--ink-muted);}.ds-menu-item{display:flex;align-items:center;justify-content:space-between;gap:10px;height:36px;padding:0 10px;border-radius:6px;font-size:0.875rem;color:var(--ink);text-decoration:none;}.ds-menu-item:hover,.ds-menu-item:focus-visible{background:var(--surface-sunken);outline:none;}.ds-menu-sep{height:1px;margin:6px 0;background:var(--rule);}@media (prefers-reduced-motion:reduce){.ds-menu{animation:none;}}"
     },
     {
       "name": "Option Card",
       "kind": "card",
       "refersTo": "option-card",
-      "description": "A described radio choice; selected turns the border marigold strong on a marigold wash.",
-      "html": "<label class=\"ds-option\"><input type=\"radio\" name=\"ds-t\" checked><span class=\"ds-radio\"></span><span class=\"ds-option-text\"><strong>Household</strong> <span class=\"ds-option-count\">24 accounts</span><span class=\"ds-option-desc\">Checking, savings, cards, and everyday spending.</span></span></label>",
-      "css": ".ds-option{position:relative;display:flex;gap:12px;padding:16px;border:1px solid var(--field-border);border-radius:12px;background:var(--surface);color:var(--ink);cursor:pointer;font-family:var(--font-geist-sans),ui-sans-serif,system-ui,sans-serif;transition:border-color 150ms,background-color 150ms;}.ds-option input{position:absolute;opacity:0;}.ds-option:has(:checked){border-color:var(--signal-strong);background:var(--signal-soft);}.ds-option:has(:focus-visible){outline:2px solid var(--focus);outline-offset:2px;}.ds-radio{margin-top:2px;display:flex;align-items:center;justify-content:center;width:16px;height:16px;flex-shrink:0;border-radius:9999px;border:1px solid var(--field-border);background:var(--surface);}.ds-option:has(:checked) .ds-radio{border-color:var(--signal-strong);}.ds-option:has(:checked) .ds-radio::after{content:'';width:8px;height:8px;border-radius:9999px;background:var(--signal-strong);}.ds-option-text{display:flex;flex-direction:column;gap:2px;font-size:0.9375rem;}.ds-option-text strong{font-weight:500;}.ds-option-count{font-size:0.8125rem;color:var(--ink-muted);font-variant-numeric:tabular-nums;}.ds-option-desc{font-size:0.875rem;color:var(--ink-muted);}"
+      "description": "A described radio choice; selected turns the border deep felt on a green wash.",
+      "html": "<label class=\"ds-option\"><input type=\"radio\" name=\"ds-t\" checked><span class=\"ds-radio\"></span><span class=\"ds-option-text\"><strong>Household <span class=\"ds-option-count\">24 accounts</span></strong><span class=\"ds-option-desc\">Checking, savings, cards, and everyday spending.</span></span></label>",
+      "css": ".ds-option{position:relative;display:flex;gap:12px;padding:16px;border:1px solid var(--field-border);border-radius:12px;background:var(--surface);color:var(--ink);cursor:pointer;font-family:var(--font-figtree),ui-sans-serif,system-ui,sans-serif;transition:border-color 150ms,background-color 150ms;}.ds-option input{position:absolute;opacity:0;}.ds-option:has(:checked){border-color:var(--signal-strong);background:var(--signal-soft);}.ds-option:has(:focus-visible){outline:2px solid var(--focus);outline-offset:2px;}.ds-radio{margin-top:2px;display:flex;align-items:center;justify-content:center;width:16px;height:16px;flex-shrink:0;border-radius:9999px;border:1px solid var(--field-border);background:var(--surface);}.ds-option:has(:checked) .ds-radio{border-color:var(--signal-strong);}.ds-option:has(:checked) .ds-radio::after{content:'';width:8px;height:8px;border-radius:9999px;background:var(--signal-strong);}.ds-option-text{display:flex;flex-direction:column;gap:2px;font-size:0.9375rem;}.ds-option-text strong{font-weight:500;}.ds-option-count{margin-left:8px;font-weight:400;font-size:0.8125rem;color:var(--ink-muted);font-variant-numeric:tabular-nums;}.ds-option-desc{font-size:0.875rem;color:var(--ink-muted);}"
     }
   ],
   "narrative": {
     "northStar": "The Well-Made Instrument",
-    "overview": "**Creative North Star: \"The Well-Made Instrument\"**\n\nBucketbook is a standard, fast bookkeeping shell whose distinction is in how it behaves, not in costume. The frame is familiar on purpose: a deep spruce rail on the left, a warm paper work area on the right, a page title row with one primary action, then the work. What makes it feel made is the response of every control: presses give back a small, quick scale, menus grow out of the thing that opened them, consequential actions ask for a deliberate hold, and progress fills in marigold along a hairline. Nothing moves for decoration.\n\nDensity is calm but working: 44px rows, 40px controls, hairline 1px rules instead of boxes, and one column of content capped at a readable measure. Color is spent sparingly. Spruce belongs to the frame, ink and paper carry the content, and a single marigold signal marks what is active, focused, selected, or filling. The system explicitly refuses the grey SaaS dashboard with a blue accent, and refuses motion that exists only to be seen.\n\nLight is the default. Dark mode follows the system unless the user picks a theme, and every color token is redefined for it: a spruce-black ground with the same marigold signal, brightened for contrast.",
+    "overview": "**Creative North Star: \"The Well-Made Instrument\"**\n\nBucketbook is a standard, fast bookkeeping shell whose distinction is in how it behaves, not in costume. The frame is familiar on purpose: a felt-green rail on the left, a plain white work area on the right, a page title row with one primary action, then the work. What makes it feel made is the response of every control: presses give back a small, quick scale, menus grow out of the thing that opened them, consequential actions ask for a deliberate hold, and progress fills in green along a hairline. Nothing moves for decoration.\n\nThe palette is balanced rather than loud. One felt green does two jobs: it is the frame (rail, phone top bar, setup header) and, on the white work area, the action color for primary buttons, focus, selection, and fills. A single pale yellow lives only on the green frame, where it marks keyboard focus, the current nav item, and the fill inside the bucket mark. Four soft pastels are defined and reserved for buckets; no screen uses them yet. Density is calm but working: 44px rows, 40px controls, hairline 1px rules instead of boxes, and one column of content capped at a readable measure. The system explicitly refuses the grey SaaS dashboard with a blue accent, and refuses motion that exists only to be seen.\n\nLight is the default. Dark mode follows the system unless the user picks a theme, and every color token is redefined for it: a deep green ground (#0f1712) with a lighter mint action color (#7fd0a2) and the same pale yellow on the rail.",
     "keyCharacteristics": [
-      "Spruce frame, paper work area, one marigold signal.",
-      "One workhorse sans (Geist) with tabular figures; Geist Mono only for account codes.",
+      "Felt-green frame, white work area, green as the one action color.",
+      "Pale yellow only on the green frame: focus, the active-nav tick, the mark.",
+      "Pastel bucket colors reserved, unused until buckets ship.",
+      "Figtree for all UI text with tabular figures; Geist Mono only for account codes.",
+      "Pill buttons, 8px inputs and rail controls, 12px containers.",
       "Hairline 1px rules and tonal fills for structure; shadows only on floating layers.",
-      "8px corners on controls, 12px on containers.",
-      "Feel through precise, short, origin-aware motion; keyboard actions are instant.",
+      "Feel through precise, short, origin-aware motion; keyboard-opened menus are instant.",
       "Hold to confirm in place of confirmation dialogs."
     ],
     "rules": [
       {
-        "name": "The One Marigold Rule",
-        "body": "Marigold is the only accent hue. It marks what is primary, focused, selected, active, or filling, and nothing else. A second accent color for actions or emphasis is not part of this system.",
+        "name": "The One Green Rule",
+        "body": "Felt green is the only action hue. On the work area it marks what is primary, focused, selected, or filling, and nothing else. A second accent color for actions or emphasis is not part of this system.",
         "section": "colors"
       },
       {
-        "name": "The Spruce Frame Rule",
-        "body": "Spruce is the frame, never the content. It is used for the rail, the top bar, and the setup header; content surfaces stay on paper and white.",
+        "name": "The Felt Frame Rule",
+        "body": "The rail color fills only the frame: the rail, the phone top bar, and the setup and sign-in header. Content surfaces stay white; green reaches content only as the action, focus, selection, and fill tokens, never as a filled section ground.",
+        "section": "colors"
+      },
+      {
+        "name": "The Yellow On Green Rule",
+        "body": "Pale yellow appears only inside the green frame: the focus ring there, the active-nav tick, and the fill in the mark. It is never used on the white work area.",
+        "section": "colors"
+      },
+      {
+        "name": "The Reserved Pastels Rule",
+        "body": "The four bucket pastels belong to buckets. Until bucket UI exists they are not used, and when it does they mark buckets only, never general decoration or status.",
         "section": "colors"
       },
       {
@@ -634,7 +794,7 @@
       },
       {
         "name": "The Mono Is For Codes Rule",
-        "body": "Geist Mono appears only on account numbers. Keyboard hints, figures, and everything else stay in Geist.",
+        "body": "Geist Mono appears only on account numbers. Keyboard hints, figures, and everything else stay in Figtree.",
         "section": "typography"
       },
       {
@@ -650,9 +810,11 @@
     ],
     "dos": [
       "**Do** use the color tokens for every color so light and dark mode both hold; never hard-code a hex in a component.",
-      "**Do** spend marigold only on the primary action, focus, selection, current state, and fills (The One Marigold Rule).",
+      "**Do** spend felt green on the work area only on the primary action, focus, selection, current state, and fills (The One Green Rule).",
+      "**Do** keep pale yellow on the green frame only: focus there, the active-nav tick, the mark (The Yellow On Green Rule).",
       "**Do** use tabular figures for every number and right-align amounts in tables.",
-      "**Do** give every pressable control the 0.97 press scale at 150ms ease-out, and guard hover styles behind a hover-capable device.",
+      "**Do** make buttons pills, and keep inputs and rail controls at 8px.",
+      "**Do** give every button the 0.97 press scale at 150ms ease-out, and guard button hover styles behind a hover-capable device.",
       "**Do** skip transitions when a menu or panel is opened from the keyboard.",
       "**Do** confirm archive and delete with the Hold Button and offer Undo afterward in a toast.",
       "**Do** use the Fill Line for any progress toward a goal or through steps.",
@@ -661,9 +823,11 @@
       "**Do** write all copy, labels, and documentation without em dashes or en dashes; use commas, colons, parentheses, or separate sentences."
     ],
     "donts": [
-      "**Don't** introduce a second accent hue or a grey dashboard with a blue accent.",
+      "**Don't** introduce a second action hue or a grey dashboard with a blue accent.",
+      "**Don't** use the bucket pastels for anything but buckets, and don't use them at all before bucket UI exists.",
+      "**Don't** put pale yellow on the white work area.",
       "**Don't** put shadows on docked or resting surfaces; the Float shadow is for menus, toasts, and the phone sheet only.",
-      "**Don't** use spruce for content cards or page sections; it is the frame.",
+      "**Don't** fill content cards or page sections with the rail green; it is the frame.",
       "**Don't** add motion for decoration, or a confirmation modal for archive or delete.",
       "**Don't** use Geist Mono for anything but account numbers.",
       "**Don't** use uppercase tracked labels or eyebrow text above headings.",
