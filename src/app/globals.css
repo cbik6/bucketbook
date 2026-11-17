@@ -15,6 +15,7 @@
   --ink-faint: #737f7b;
   --rule: #e3e1d9;
   --rule-strong: #cdcac0;
+  --field-border: #857f73;
 
   --rail: #163530;
   --rail-raised: #1e443e;
@@ -53,6 +54,7 @@
     --ink-faint: #82918c;
     --rule: #22322e;
     --rule-strong: #34463f;
+    --field-border: #647a72;
 
     --rail: #0f2723;
     --rail-raised: #17352f;
@@ -87,6 +89,7 @@
   --ink-faint: #82918c;
   --rule: #22322e;
   --rule-strong: #34463f;
+  --field-border: #647a72;
 
   --rail: #0f2723;
   --rail-raised: #17352f;
@@ -119,6 +122,7 @@
   --color-ink-faint: var(--ink-faint);
   --color-rule: var(--rule);
   --color-rule-strong: var(--rule-strong);
+  --color-field-border: var(--field-border);
   --color-rail: var(--rail);
   --color-rail-raised: var(--rail-raised);
   --color-rail-active: var(--rail-active);
@@ -208,6 +212,18 @@ table {
   *::after {
     transition-property: opacity, color, background-color, border-color !important;
     animation: none !important;
+  }
+}
+
+/* Keyboard focus on the spruce rail uses the bright signal color for contrast. */
+.on-rail {
+  --focus: var(--signal);
+}
+
+/* Phone editor sheet rises from the bottom edge. */
+@keyframes sheet-rise {
+  from {
+    transform: translateY(100%);
   }
 }
 

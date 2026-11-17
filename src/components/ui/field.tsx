@@ -1,7 +1,7 @@
 import type { ComponentProps, ReactNode } from "react";
 
 export const inputClass =
-  "block h-10 w-full rounded-lg border border-rule-strong bg-surface px-3 text-sm text-ink " +
+  "block h-10 w-full rounded-lg border border-field-border bg-surface px-3 text-sm text-ink " +
   "placeholder:text-ink-muted transition-[border-color,box-shadow] duration-150 " +
   "focus:border-[var(--focus)] focus:outline-none focus:ring-2 focus:ring-[var(--focus)]/25 " +
   "aria-invalid:border-negative disabled:bg-sunken disabled:text-ink-muted";

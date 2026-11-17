@@ -19,6 +19,7 @@ import { CHART_TEMPLATES } from "@/server/accounts/templates";
 import { getDb } from "@/server/db/client";
 import { loadBookForPage } from "@/server/guards";
 import { AccountEditor, type EditorAccount } from "./account-editor";
+import { MobileSheetGuard } from "./mobile-sheet-guard";
 import { AccountShortcuts } from "./shortcuts";
 
 export const metadata: Metadata = { title: "Chart of accounts" };
@@ -69,41 +70,46 @@ async function AccountsContent({ params, searchParams }: PageProps<"/books/[book
   return (
     <>
       <AccountShortcuts newHref={newHref} closeHref={closeHref} panelOpen={panelOpen} />
-      <PageHeader
-        title="Chart of accounts"
-        description={
-          <span className="tabular">
-            {activeCount} accounts{archivedCount > 0 ? `, ${archivedCount} archived` : ""}
-          </span>
-        }
-        actions={
-          <>
-            {archivedCount > 0 || showArchived ? (
-              <Link
-                href={hrefWith(base, { archived: showArchived ? undefined : "1" })}
-                scroll={false}
-                className={buttonClass("ghost", "md")}
-                aria-pressed={showArchived}
-              >
-                <Archive size={16} aria-hidden />
-                {showArchived ? "Hide archived" : "Show archived"}
-              </Link>
-            ) : null}
-            {canEdit ? (
-              <ButtonLink href={newHref} scroll={false} variant="primary">
-                <Plus size={16} aria-hidden />
-                New account
-                <kbd className="ml-1 hidden rounded border border-on-signal/25 px-1 font-sans text-[0.6875rem] font-medium leading-4 opacity-70 sm:inline">
-                  N
-                </kbd>
-              </ButtonLink>
-            ) : null}
-          </>
-        }
-      />
+      <div data-sheet-inert>
+        <PageHeader
+          title="Chart of accounts"
+          description={
+            <span className="tabular">
+              {activeCount} accounts{archivedCount > 0 ? `, ${archivedCount} archived` : ""}
+            </span>
+          }
+          actions={
+            <>
+              {archivedCount > 0 || showArchived ? (
+                <Link
+                  href={hrefWith(base, { archived: showArchived ? undefined : "1" })}
+                  scroll={false}
+                  className={buttonClass("ghost", "md")}
+                  aria-pressed={showArchived}
+                >
+                  <Archive size={16} aria-hidden />
+                  {showArchived ? "Hide archived" : "Show archived"}
+                </Link>
+              ) : null}
+              {canEdit ? (
+                <ButtonLink href={newHref} scroll={false} variant="primary">
+                  <Plus size={16} aria-hidden />
+                  New account
+                  <kbd className="ml-1 hidden rounded border border-on-signal/25 px-1 font-sans text-[0.6875rem] font-medium leading-4 opacity-70 sm:inline">
+                    N
+                  </kbd>
+                </ButtonLink>
+              ) : null}
+            </>
+          }
+        />
+      </div>
 
       {welcome ? (
-        <div className="mx-5 mt-5 flex items-start justify-between gap-4 rounded-xl bg-signal-soft px-4 py-3 text-sm text-ink lg:mx-10">
+        <div
+          data-sheet-inert
+          className="mx-5 mt-5 flex max-w-[60rem] items-start justify-between gap-4 rounded-xl bg-signal-soft px-4 py-3 text-sm text-ink lg:mx-10"
+        >
           <p>
             <span className="font-medium">Your book is ready.</span> These accounts came from the{" "}
             {templateLabel} template. Rename, add, nest, or archive anything to make it yours.
@@ -115,39 +121,57 @@ async function AccountsContent({ params, searchParams }: PageProps<"/books/[book
       ) : null}
 
       <div className="flex items-stretch">
-        <div className={`min-w-0 flex-1 px-5 pb-16 lg:px-10 ${panelOpen ? "hidden lg:block" : ""}`}>
-          {ACCOUNT_TYPES.map((type) => (
-            <TypeSection
-              key={type}
-              type={type}
-              nodes={flattenTree(tree[type], { includeArchived: showArchived })}
-              base={base}
-              keep={keep}
-              selectedId={editing?.id}
-              savedId={savedId}
-              canEdit={canEdit}
-            />
-          ))}
+        <div data-sheet-inert className="min-w-0 flex-1 px-5 pb-16 lg:px-10">
+          <div className="max-w-[60rem]">
+            {ACCOUNT_TYPES.map((type) => (
+              <TypeSection
+                key={type}
+                type={type}
+                nodes={flattenTree(tree[type], { includeArchived: showArchived })}
+                base={base}
+                keep={keep}
+                selectedId={editing?.id}
+                savedId={savedId}
+                canEdit={canEdit}
+              />
+            ))}
+          </div>
         </div>
 
         {panelOpen ? (
-          <aside
-            aria-label={editing ? `Edit ${editing.name}` : "New account"}
-            className="w-full shrink-0 border-rule bg-surface lg:w-[26rem] lg:border-l"
-          >
-            <div className="lg:sticky lg:top-0 lg:max-h-dvh lg:overflow-y-auto">
-              <AccountEditor
-                key={editing?.id ?? `new-${newType}-${newParent}`}
-                bookId={book.id}
-                closeHref={closeHref}
-                canEdit={canEdit}
-                accounts={editorAccounts}
-                account={editing}
-                defaultType={newType && isAccountType(newType) ? newType : undefined}
-                defaultParentId={newParent}
+          <>
+            {/* Phones: the editor is a bottom sheet over the list. */}
+            <Link
+              href={closeHref}
+              scroll={false}
+              tabIndex={-1}
+              aria-hidden
+              className="fixed inset-0 z-40 bg-[rgb(10_20_18/0.45)] lg:hidden"
+            />
+            <MobileSheetGuard />
+            <aside
+              data-account-editor
+              aria-label={editing ? `Edit ${editing.name}` : "New account"}
+              className="fixed inset-x-0 bottom-0 z-50 max-h-[88dvh] overflow-y-auto rounded-t-2xl bg-surface pb-[env(safe-area-inset-bottom)] shadow-[var(--shadow-float)] animate-[sheet-rise_400ms_var(--ease-drawer)] lg:static lg:z-auto lg:max-h-none lg:w-[26rem] lg:shrink-0 lg:animate-none lg:overflow-visible lg:rounded-none lg:border-l lg:border-rule lg:pb-0 lg:shadow-none"
+            >
+              <div
+                aria-hidden
+                className="mx-auto mt-2 h-1 w-10 rounded-full bg-rule-strong lg:hidden"
               />
-            </div>
-          </aside>
+              <div className="lg:sticky lg:top-0 lg:max-h-dvh lg:overflow-y-auto">
+                <AccountEditor
+                  key={editing?.id ?? `new-${newType}-${newParent}`}
+                  bookId={book.id}
+                  closeHref={closeHref}
+                  canEdit={canEdit}
+                  accounts={editorAccounts}
+                  account={editing}
+                  defaultType={newType && isAccountType(newType) ? newType : undefined}
+                  defaultParentId={newParent}
+                />
+              </div>
+            </aside>
+          </>
         ) : null}
       </div>
     </>

@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type ButtonSize, buttonClass } from "./button";
 
-const HOLD_MS = 1000;
+const HOLD_MS = 1200;
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
 
 /**
  * Press and hold to confirm. A fill sweeps across the button while held
@@ -30,6 +36,7 @@ export function HoldButton({
   className?: string;
 }) {
   const [holding, setHolding] = useState(false);
+  const [reduced, setReduced] = useState(false);
   const timer = useRef<number | null>(null);
 
   const cancel = useCallback(() => {
@@ -40,6 +47,7 @@ export function HoldButton({
 
   const start = useCallback(() => {
     if (disabled || timer.current) return;
+    setReduced(prefersReducedMotion());
     setHolding(true);
     timer.current = window.setTimeout(() => {
       timer.current = null;
@@ -56,7 +64,7 @@ export function HoldButton({
     <button
       type="button"
       disabled={disabled}
-      aria-label={`${label} (press and hold)`}
+      aria-label={`${label}, press and hold to confirm`}
       className={buttonClass(
         tone === "danger" ? "danger" : "secondary",
         size,
@@ -81,14 +89,21 @@ export function HoldButton({
       onBlur={cancel}
       onContextMenu={(e) => e.preventDefault()}
     >
-      <span>{label}</span>
+      <span>Hold to {label.charAt(0).toLowerCase() + label.slice(1)}</span>
       <span
         aria-hidden
         className={`pointer-events-none absolute inset-0 flex items-center justify-center ${fill}`}
-        style={{
-          clipPath: holding ? "inset(0 0 0 0)" : "inset(0 100% 0 0)",
-          transition: holding ? `clip-path ${HOLD_MS}ms linear` : "clip-path 200ms var(--ease-out)",
-        }}
+        style={
+          reduced
+            ? // Reduced motion: no sweep, the confirming state simply fades in.
+              { opacity: holding ? 1 : 0, transition: "opacity 200ms ease" }
+            : {
+                clipPath: holding ? "inset(0 0 0 0)" : "inset(0 100% 0 0)",
+                transition: holding
+                  ? `clip-path ${HOLD_MS}ms linear`
+                  : "clip-path 200ms var(--ease-out)",
+              }
+        }
       >
         {holdingLabel}
       </span>

@@ -12,11 +12,11 @@ const base =
 const variants: Record<ButtonVariant, string> = {
   primary: "bg-signal text-on-signal [@media(hover:hover)]:hover:bg-signal-strong",
   secondary:
-    "border border-rule-strong bg-surface text-ink [@media(hover:hover)]:hover:border-ink-faint",
+    "border border-field-border bg-surface text-ink [@media(hover:hover)]:hover:border-ink-muted",
   ghost:
     "text-ink-muted [@media(hover:hover)]:hover:bg-sunken [@media(hover:hover)]:hover:text-ink",
   danger:
-    "border border-rule-strong bg-surface text-negative [@media(hover:hover)]:hover:border-negative",
+    "border border-field-border bg-surface text-negative [@media(hover:hover)]:hover:border-negative",
 };
 
 const sizes: Record<ButtonSize, string> = {

@@ -26,7 +26,9 @@ export function AccountShortcuts({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return;
-      if (e.key === "Escape" && panelOpen && !isTyping(e.target)) {
+      const inEditor = e.target instanceof HTMLElement && e.target.closest("[data-account-editor]");
+      const inSelect = e.target instanceof HTMLElement && e.target.tagName === "SELECT";
+      if (e.key === "Escape" && panelOpen && (!isTyping(e.target) || (inEditor && !inSelect))) {
         router.push(closeHref, { scroll: false });
       } else if ((e.key === "n" || e.key === "N") && !isTyping(e.target)) {
         e.preventDefault();

@@ -49,7 +49,7 @@ export function BookForm({
         />
       </Field>
 
-      <fieldset className="flex flex-col gap-2">
+      <fieldset className="flex min-w-0 flex-col gap-2">
         <legend id={groupId} className="mb-1.5 text-[0.8125rem] font-medium text-ink">
           Starting chart of accounts
         </legend>
@@ -57,7 +57,7 @@ export function BookForm({
           {templates.map((t) => (
             <label
               key={t.id}
-              className="group relative flex cursor-pointer gap-3 rounded-xl border border-rule-strong bg-surface p-4 transition-[border-color,background-color] duration-150 has-[:checked]:border-signal-strong has-[:checked]:bg-signal-soft has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--focus)]"
+              className="group relative flex cursor-pointer gap-3 rounded-xl border border-field-border bg-surface p-4 transition-[border-color,background-color] duration-150 has-[:checked]:border-signal-strong has-[:checked]:bg-signal-soft has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--focus)]"
             >
               <input
                 type="radio"
@@ -68,7 +68,7 @@ export function BookForm({
               />
               <span
                 aria-hidden
-                className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-rule-strong bg-surface peer-checked:border-signal-strong after:h-2 after:w-2 after:scale-50 after:rounded-full after:bg-signal-strong after:opacity-0 after:transition-[transform,opacity] after:duration-150 peer-checked:after:scale-100 peer-checked:after:opacity-100"
+                className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-field-border bg-surface peer-checked:border-signal-strong after:h-2 after:w-2 after:scale-50 after:rounded-full after:bg-signal-strong after:opacity-0 after:transition-[transform,opacity] after:duration-150 peer-checked:after:scale-100 peer-checked:after:opacity-100"
               />
               <span className="flex min-w-0 flex-col gap-0.5">
                 <span className="flex items-baseline gap-2">

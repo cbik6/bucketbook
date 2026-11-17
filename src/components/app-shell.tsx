@@ -60,7 +60,7 @@ export function AppShell({
       </a>
 
       {/* Wide screens: rail */}
-      <aside className="sticky top-0 hidden h-dvh flex-col gap-6 bg-rail px-3 pb-4 pt-5 text-rail-ink lg:flex">
+      <aside className="on-rail sticky top-0 hidden h-dvh flex-col gap-6 bg-rail px-3 pb-4 pt-5 text-rail-ink lg:flex">
         <Link href="/" className="rounded-md px-2 outline-offset-4">
           <Wordmark />
         </Link>
@@ -79,7 +79,10 @@ export function AppShell({
       </aside>
 
       {/* Phones and tablets: top bar */}
-      <header className="bg-rail pt-[env(safe-area-inset-top)] text-rail-ink lg:hidden">
+      <header
+        data-app-topbar
+        className="on-rail bg-rail pt-[env(safe-area-inset-top)] text-rail-ink lg:hidden"
+      >
         <div className="flex h-14 items-center gap-3 px-4">
           <Link href="/" className="rounded-md" aria-label="Home">
             <Wordmark />

@@ -5,7 +5,7 @@ import { Wordmark } from "./wordmark";
 export function PlainShell({ children, wide }: { children: ReactNode; wide?: boolean }) {
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="bg-rail text-rail-ink">
+      <header className="on-rail bg-rail text-rail-ink">
         <div className="mx-auto flex h-14 max-w-5xl items-center px-5">
           <Wordmark />
         </div>

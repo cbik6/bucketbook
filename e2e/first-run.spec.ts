@@ -58,7 +58,7 @@ test("first run: create the owner and a book, then manage the chart of accounts"
   const archive = editPanel.getByRole("button", { name: /Archive account/ });
   await archive.hover();
   await page.mouse.down();
-  await page.waitForTimeout(1300);
+  await page.waitForTimeout(1600);
   await page.mouse.up();
   await expect(page.getByText("Pet Food archived")).toBeVisible();
   await expect(expenses.getByRole("link", { name: "Pet Food", exact: true })).toHaveCount(0);
