@@ -53,7 +53,8 @@ test("first run: create the owner and a book, then manage the chart of accounts"
   await expect(panel).toHaveCount(0);
 
   // Archive it with press-and-hold, then find it under "Show archived".
-  await petFood.click();
+  // Account names open the register; the pencil opens the editor.
+  await page.getByRole("link", { name: "Edit Pet Food" }).click();
   const editPanel = page.getByRole("complementary", { name: "Edit Pet Food" });
   const archive = editPanel.getByRole("button", { name: /Archive account/ });
   await archive.hover();
