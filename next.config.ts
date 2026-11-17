@@ -20,6 +20,7 @@ const nextConfig: NextConfig = {
   },
   allowedDevOrigins: devOrigins,
   poweredByHeader: false,
+  devIndicators: { position: "bottom-right" },
   turbopack: {
     rules: {
       "*.css": {

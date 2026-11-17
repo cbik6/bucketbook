@@ -1,1 +1,222 @@
 @import "tailwindcss";
+
+/*
+ * Design tokens. Light is the default; dark follows the system unless the user
+ * picked one with the toggle (data-theme on <html>).
+ * Spruce rail + paper work area + one marigold signal color.
+ */
+:root {
+  color-scheme: light;
+  --paper: #faf9f6;
+  --surface: #ffffff;
+  --surface-sunken: #f2f1ec;
+  --ink: #18211f;
+  --ink-muted: #55615d;
+  --ink-faint: #737f7b;
+  --rule: #e3e1d9;
+  --rule-strong: #cdcac0;
+
+  --rail: #163530;
+  --rail-raised: #1e443e;
+  --rail-active: #275249;
+  --rail-ink: #eef3ef;
+  --rail-muted: #a9bdb6;
+  --rail-rule: #2a4a44;
+
+  --signal: #e8a33d;
+  --signal-strong: #d48c22;
+  --signal-ink: #6b4a0e;
+  --signal-soft: #fbedd3;
+  --on-signal: #241a05;
+  --focus: #9a6408;
+
+  --positive: #2b704a;
+  --negative: #ad3b2a;
+  --negative-soft: #f8e3de;
+  --negative-fill: #c4513e;
+
+  --shadow-float: 0 12px 32px -8px rgb(22 53 48 / 0.18), 0 2px 6px -2px rgb(22 53 48 / 0.12);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #0e1917;
+    --surface: #14221f;
+    --surface-sunken: #0a1311;
+    --ink: #e5ece8;
+    --ink-muted: #a2b1ac;
+    --ink-faint: #82918c;
+    --rule: #22322e;
+    --rule-strong: #34463f;
+
+    --rail: #0f2723;
+    --rail-raised: #17352f;
+    --rail-active: #20453e;
+    --rail-ink: #e9f0ec;
+    --rail-muted: #9db3ab;
+    --rail-rule: #1f3a34;
+
+    --signal: #f0b04f;
+    --signal-strong: #f5bf68;
+    --signal-ink: #f6c97f;
+    --signal-soft: #33291a;
+    --on-signal: #1a1406;
+    --focus: #f0b04f;
+
+    --positive: #80cb9c;
+    --negative: #f2907e;
+    --negative-soft: #3a1e19;
+    --negative-fill: #d9634f;
+
+    --shadow-float: 0 12px 32px -8px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #0e1917;
+  --surface: #14221f;
+  --surface-sunken: #0a1311;
+  --ink: #e5ece8;
+  --ink-muted: #a2b1ac;
+  --ink-faint: #82918c;
+  --rule: #22322e;
+  --rule-strong: #34463f;
+
+  --rail: #0f2723;
+  --rail-raised: #17352f;
+  --rail-active: #20453e;
+  --rail-ink: #e9f0ec;
+  --rail-muted: #9db3ab;
+  --rail-rule: #1f3a34;
+
+  --signal: #f0b04f;
+  --signal-strong: #f5bf68;
+  --signal-ink: #f6c97f;
+  --signal-soft: #33291a;
+  --on-signal: #1a1406;
+  --focus: #f0b04f;
+
+  --positive: #80cb9c;
+  --negative: #f2907e;
+  --negative-soft: #3a1e19;
+  --negative-fill: #d9634f;
+
+  --shadow-float: 0 12px 32px -8px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-sunken: var(--surface-sunken);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-rail: var(--rail);
+  --color-rail-raised: var(--rail-raised);
+  --color-rail-active: var(--rail-active);
+  --color-rail-ink: var(--rail-ink);
+  --color-rail-muted: var(--rail-muted);
+  --color-rail-rule: var(--rail-rule);
+  --color-signal: var(--signal);
+  --color-signal-strong: var(--signal-strong);
+  --color-signal-ink: var(--signal-ink);
+  --color-signal-soft: var(--signal-soft);
+  --color-on-signal: var(--on-signal);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-negative-soft: var(--negative-soft);
+  --color-negative-fill: var(--negative-fill);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --shadow-float: var(--shadow-float);
+  --ease-out: var(--ease-out);
+  --ease-in-out: var(--ease-in-out);
+}
+
+/* Browser surfaces carry the palette too. */
+html {
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+  text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  caret-color: var(--signal-strong);
+}
+
+::selection {
+  background: var(--signal-soft);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+a {
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule-strong) transparent;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+  letter-spacing: -0.02em;
+}
+
+/* Figures line up in every table and amount. */
+.tabular,
+table {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Inputs at 16px on touch screens so iOS never zooms the page. */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-property: opacity, color, background-color, border-color !important;
+    animation: none !important;
+  }
+}
+
+/* A just-saved row glows marigold once, then settles. */
+@keyframes saved-flash {
+  from {
+    background-color: var(--signal-soft);
+  }
+  to {
+    background-color: transparent;
+  }
+}
