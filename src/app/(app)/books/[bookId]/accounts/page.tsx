@@ -65,6 +65,8 @@ async function AccountsContent({ params, searchParams }: PageProps<"/books/[book
   );
   const editing = editId ? editorAccounts.find((a) => a.id === editId) : undefined;
   const panelOpen = Boolean(editing || (isNew && canEdit));
+  // The number column only appears once a book actually uses account numbers.
+  const showCodes = rows.some((r) => r.code);
   const templateLabel = CHART_TEMPLATES[book.template as keyof typeof CHART_TEMPLATES]?.label;
 
   return (
@@ -73,6 +75,7 @@ async function AccountsContent({ params, searchParams }: PageProps<"/books/[book
       <div data-sheet-inert>
         <PageHeader
           title="Chart of accounts"
+          maxWidthClass="max-w-[46rem]"
           description={
             <span className="tabular">
               {activeCount} accounts{archivedCount > 0 ? `, ${archivedCount} archived` : ""}
@@ -108,7 +111,7 @@ async function AccountsContent({ params, searchParams }: PageProps<"/books/[book
       {welcome ? (
         <div
           data-sheet-inert
-          className="mx-5 mt-5 flex max-w-[60rem] items-start justify-between gap-4 rounded-xl bg-signal-soft px-4 py-3 text-sm text-ink lg:mx-10"
+          className="mx-5 mt-5 flex max-w-[46rem] items-start justify-between gap-4 rounded-xl bg-signal-soft px-4 py-3 text-sm text-ink lg:mx-10"
         >
           <p>
             <span className="font-medium">Your book is ready.</span> These accounts came from the{" "}
@@ -122,7 +125,7 @@ async function AccountsContent({ params, searchParams }: PageProps<"/books/[book
 
       <div className="flex items-stretch">
         <div data-sheet-inert className="min-w-0 flex-1 px-5 pb-16 lg:px-10">
-          <div className="max-w-[60rem]">
+          <div className="max-w-[46rem]">
             {ACCOUNT_TYPES.map((type) => (
               <TypeSection
                 key={type}
@@ -133,6 +136,7 @@ async function AccountsContent({ params, searchParams }: PageProps<"/books/[book
                 selectedId={editing?.id}
                 savedId={savedId}
                 canEdit={canEdit}
+                showCodes={showCodes}
               />
             ))}
           </div>
@@ -146,7 +150,7 @@ async function AccountsContent({ params, searchParams }: PageProps<"/books/[book
               scroll={false}
               tabIndex={-1}
               aria-hidden
-              className="fixed inset-0 z-40 bg-[rgb(10_20_18/0.45)] lg:hidden"
+              className="fixed inset-0 z-40 bg-scrim lg:hidden"
             />
             <MobileSheetGuard />
             <aside
@@ -205,6 +209,7 @@ function TypeSection({
   selectedId,
   savedId,
   canEdit,
+  showCodes,
 }: {
   type: AccountType;
   nodes: AccountNode<AccountRow>[];
@@ -213,6 +218,7 @@ function TypeSection({
   selectedId?: string;
   savedId?: string;
   canEdit: boolean;
+  showCodes: boolean;
 }) {
   const headingId = `type-${type}`;
   return (
@@ -245,7 +251,7 @@ function TypeSection({
           <thead className="sr-only">
             <tr>
               <th scope="col">Name</th>
-              <th scope="col">Number</th>
+              {showCodes ? <th scope="col">Number</th> : null}
               <th scope="col">Detail type</th>
               <th scope="col">Actions</th>
             </tr>
@@ -294,9 +300,11 @@ function TypeSection({
                       ) : null}
                     </div>
                   </td>
-                  <td className="w-24 py-0 pr-4 font-mono text-[0.8125rem] text-ink-muted">
-                    {n.code}
-                  </td>
+                  {showCodes ? (
+                    <td className="w-24 py-0 pr-4 font-mono text-[0.8125rem] text-ink-muted">
+                      {n.code}
+                    </td>
+                  ) : null}
                   <td className="hidden w-48 py-0 pr-4 text-ink-muted sm:table-cell">
                     {subtypeLabel(n.type as AccountType, n.subtype)}
                   </td>

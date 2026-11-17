@@ -109,18 +109,27 @@ export function PageHeader({
   title,
   description,
   actions,
+  maxWidthClass,
 }: {
   title: string;
   description?: ReactNode;
   actions?: ReactNode;
+  /** Align the header's right edge with a width-capped page body. */
+  maxWidthClass?: string;
 }) {
   return (
-    <div className="flex flex-col gap-4 border-b border-rule px-5 pb-5 pt-6 sm:flex-row sm:items-end sm:justify-between lg:px-10 lg:pt-10">
-      <div className="min-w-0">
-        <h1 className="text-2xl font-semibold text-ink">{title}</h1>
-        {description ? <p className="mt-1 text-sm text-ink-muted">{description}</p> : null}
+    <div className="border-b border-rule px-5 pb-5 pt-6 lg:px-10 lg:pt-10">
+      <div
+        className={`flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between ${maxWidthClass ?? ""}`}
+      >
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold text-ink">{title}</h1>
+          {description ? <p className="mt-1 text-sm text-ink-muted">{description}</p> : null}
+        </div>
+        {actions ? (
+          <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
+        ) : null}
       </div>
-      {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
     </div>
   );
 }
