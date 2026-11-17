@@ -1,0 +1,41 @@
+# Development database only. Runs Postgres on 127.0.0.1:5433 for `npm run dev`,
+# Vitest integration tests and drizzle-kit. Not used in production.
+#
+#   docker compose -f docker-compose.dev.yml up -d
+#
+name: bucketbook-dev
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bucketbook
+      POSTGRES_PASSWORD: bucketbook
+      POSTGRES_DB: bucketbook
+    # Small memory footprint for a low-RAM dev VM.
+    command:
+      - postgres
+      - -c
+      - shared_buffers=32MB
+      - -c
+      - max_connections=30
+      - -c
+      - work_mem=2MB
+      - -c
+      - maintenance_work_mem=16MB
+      - -c
+      - effective_cache_size=128MB
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - pgdata-dev:/var/lib/postgresql
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bucketbook -d bucketbook"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata-dev:
