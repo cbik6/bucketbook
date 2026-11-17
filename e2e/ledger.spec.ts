@@ -25,7 +25,7 @@ const field = (page: Page, label: string | RegExp, exact = false) =>
 async function pickAccount(page: Page, label: string, name: string) {
   const select = field(page, label);
   const value = await select
-    .locator("option", { hasText: new RegExp(`^\\s*${name}$`) })
+    .locator("option", { hasText: new RegExp(`(^|: )${name}$`) })
     .getAttribute("value");
   await select.selectOption(value!);
 }

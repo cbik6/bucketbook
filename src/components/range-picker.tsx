@@ -46,25 +46,25 @@ export function RangePicker({
         {Object.entries(keep).map(([k, v]) =>
           v ? <input key={k} type="hidden" name={k} value={v} /> : null,
         )}
-        <label className="flex flex-col gap-1 text-xs text-ink-muted">
+        <label className="flex w-40 flex-col gap-1 text-xs text-ink-muted">
           From
           <input
             type="date"
             name="from"
             defaultValue={range.from ?? ""}
-            className={`${inputClass} tabular h-9 w-40`}
+            className={`${inputClass} tabular`}
           />
         </label>
-        <label className="flex flex-col gap-1 text-xs text-ink-muted">
+        <label className="flex w-40 flex-col gap-1 text-xs text-ink-muted">
           To
           <input
             type="date"
             name="to"
             defaultValue={range.to ?? ""}
-            className={`${inputClass} tabular h-9 w-40`}
+            className={`${inputClass} tabular`}
           />
         </label>
-        <button type="submit" className={buttonClass("secondary", "sm", "h-9")}>
+        <button type="submit" className={buttonClass("secondary", "md")}>
           Apply
         </button>
       </form>

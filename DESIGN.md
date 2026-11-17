@@ -251,7 +251,7 @@ A cool, green-cast neutral set on white, held inside a felt-green frame, with th
 ### Tertiary (state only)
 
 - **Ledger Green** (positive): success text, such as a saved-settings confirmation.
-- **Brick** (negative): error text, invalid field borders, the danger button label and its hover border.
+- **Brick** (negative): error text, invalid field borders, the danger button label and its hover border, and negative amounts (always with a minus sign, so color is never the only signal).
 - **Brick Wash** (negative-soft): background of the form-level error box.
 - **Brick Fill** (negative-fill) with **On Brick** (on-negative-fill): the sweep that fills a danger hold button while it is held, and its label.
 
@@ -366,7 +366,7 @@ Consequential actions such as archive and delete are confirmed by pressing and h
 
 ### Fill Line (signature)
 
-A 6px fully round track in Rule, filled from the left in Felt Green by a clip-path inset, so the fill never changes layout. The fill eases over 500ms on the in-out curve. It reports itself as a progressbar with a label. It is the shared progress device: setup wizard steps now, bucket goals later, and the same gesture as the hold sweep and the fill in the mark.
+A 6px fully round track in Rule, filled from the left in Felt Green by a clip-path inset, so the fill never changes layout. The fill eases over 500ms on the in-out curve. It reports itself as a progressbar with a label. It is the shared progress device: setup wizard steps now, bucket goals later, and the same gesture as the hold sweep and the fill in the mark. It also sits under the journal entry form's totals, filling as credits approach debits and full when the entry balances.
 
 ### Inputs / Fields
 
@@ -395,6 +395,26 @@ The chart of accounts is a set of tables grouped by type, each under a section h
 ### Editor Sheet
 
 On phones the editor rises from the bottom edge over 400ms on the drawer curve, with 16px top corners, a 40 by 4px grabber, the Float shadow, and the Scrim behind it. On desktop it is a docked panel with no shadow and no entrance animation.
+
+### Ledger Tables
+
+Registers, the general ledger, the journal list and entry lines share one table style: a 1px Rule Strong rule under a Label-size Ink Muted header row, 1px Rule hairlines between rows, no fills or stripes, and a soft Sunken hover. Dates are Ink Muted and never wrap. Amounts are right aligned in tabular figures through the Money component (Brick and a minus sign when negative, blank instead of $0.00 in a debit or credit column). Entry numbers (JE 12) are Felt Ink links to the entry. A register shows a running balance in the account's natural direction and an italic "Balance forward" row when a range starts after the first entry. On phones the register drops the number and the separate debit and credit columns for one signed Amount plus Balance.
+
+### Journal Line Grid
+
+The entry form is a grid of Account, Debit, Credit, Line memo and Remove, with headers aligned to the text inside the inputs. Account pickers are native selects grouped by type, with options labeled by their full path ("Food: Groceries") so every line starts flush. Typing in one amount clears the other; choosing an account on a new line fills the balancing amount. One blank spare line always waits at the end. Under the lines, totals sit under their columns beside a Fill Line that fills as credits approach debits and the words "Balanced" or "Out of balance by $x" (meaning never by color alone). On phones each line stacks: account with an inline remove, then debit and credit side by side, then memo.
+
+### Kind Badges
+
+Small labels after an entry's title or date: "Opening balances", "Reversal", "Reversed", "Edited, v2". Sunken fill, Ink Muted Caption text, 4px corners. They state facts, never status colors.
+
+### Range Picker
+
+Date range presets (This month, Last month, Year to date, Last year, All dates) as small pills, the active one filled Felt Green, followed by a From and To date pair and an Apply button at the same 40px height. The range lives in the URL so views can be bookmarked.
+
+### Keyboard Hints
+
+Shortcuts are shown where they apply, as small keys in Figtree at 0.6875rem with a 1px border and 4px corners: N on New account and New entry, and Ctrl+Enter and Enter beneath the entry form's buttons.
 
 ### Notices and Toasts
 

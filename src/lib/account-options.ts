@@ -1,9 +1,11 @@
-import { type AccountLike, buildAccountTree, flattenTree } from "./account-tree";
+import { type AccountLike, accountPath, buildAccountTree, flattenTree } from "./account-tree";
 import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS, type AccountType } from "./account-types";
 
 export type AccountOption = {
   id: string;
   name: string;
+  /** Name with its parents, for example "Food: Groceries", so every option starts flush. */
+  label: string;
   code: string | null;
   type: AccountType;
   depth: number;
@@ -31,6 +33,7 @@ export function accountOptionGroups(rows: Row[], keepIds: string[] = []): Accoun
       .map((n) => ({
         id: n.id,
         name: n.name,
+        label: accountPath(rows, n.id).join(": "),
         code: n.code,
         type,
         depth: n.depth,

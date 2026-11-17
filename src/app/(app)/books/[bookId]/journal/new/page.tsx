@@ -22,7 +22,7 @@ async function NewEntryContent({ params, searchParams }: PageProps<"/books/[book
   return (
     <>
       <PageHeader title="New journal entry" maxWidthClass="max-w-[60rem]" />
-      <div className="max-w-[60rem] px-5 pb-16 pt-6 lg:px-10">
+      <div className="box-content max-w-[60rem] px-5 pb-16 pt-6 lg:px-10">
         {posted ? (
           <p role="status" className="mb-5 rounded-xl bg-signal-soft px-4 py-3 text-sm">
             Entry posted.{" "}

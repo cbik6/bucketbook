@@ -72,7 +72,7 @@ async function RegisterContent({
           ) : null
         }
       />
-      <div className="flex max-w-[64rem] flex-col gap-5 px-5 pb-16 pt-6 lg:px-10">
+      <div className="box-content flex max-w-[64rem] flex-col gap-5 px-5 pb-16 pt-6 lg:px-10">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <div className="text-[0.8125rem] text-ink-muted">
@@ -111,23 +111,32 @@ async function RegisterContent({
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[40rem] text-sm">
+            <table className="w-full text-sm sm:min-w-[40rem]">
               <thead>
                 <tr className="border-b border-rule-strong text-left text-xs text-ink-muted">
-                  <th scope="col" className="py-2 pr-3 font-medium">
+                  <th scope="col" className="hidden py-2 pr-3 font-medium sm:table-cell">
                     Date
                   </th>
-                  <th scope="col" className="py-2 pr-3 font-medium">
+                  <th scope="col" className="hidden py-2 pr-3 font-medium sm:table-cell">
                     No.
                   </th>
                   <th scope="col" className="py-2 pr-3 font-medium">
                     Description
                   </th>
-                  <th scope="col" className="w-28 py-2 pr-3 text-right font-medium">
+                  <th
+                    scope="col"
+                    className="hidden w-28 py-2 pr-3 text-right font-medium sm:table-cell"
+                  >
                     Debit
                   </th>
-                  <th scope="col" className="w-28 py-2 pr-3 text-right font-medium">
+                  <th
+                    scope="col"
+                    className="hidden w-28 py-2 pr-3 text-right font-medium sm:table-cell"
+                  >
                     Credit
+                  </th>
+                  <th scope="col" className="py-2 pr-3 text-right font-medium sm:hidden">
+                    Amount
                   </th>
                   <th scope="col" className="w-32 py-2 text-right font-medium">
                     Balance
@@ -137,11 +146,14 @@ async function RegisterContent({
               <tbody>
                 {range.from ? (
                   <tr className="border-b border-rule text-ink-muted">
-                    <td className="tabular py-2.5 pr-3">{formatDay(range.from)}</td>
-                    <td className="py-2.5 pr-3" />
+                    <td className="tabular hidden py-2.5 pr-3 sm:table-cell">
+                      {formatDay(range.from)}
+                    </td>
+                    <td className="hidden py-2.5 pr-3 sm:table-cell" />
                     <td className="py-2.5 pr-3 italic">Balance forward</td>
-                    <td className="py-2.5 pr-3" />
-                    <td className="py-2.5 pr-3" />
+                    <td className="hidden py-2.5 pr-3 sm:table-cell" />
+                    <td className="hidden py-2.5 pr-3 sm:table-cell" />
+                    <td className="py-2.5 pr-3 sm:hidden" />
                     <td className="py-2.5 text-right">
                       <Money cents={nat(openingNetCents)} />
                     </td>
@@ -149,10 +161,10 @@ async function RegisterContent({
                 ) : null}
                 {lines.map((r) => (
                   <tr key={r.lineId} className="border-b border-rule hover:bg-sunken/70">
-                    <td className="tabular whitespace-nowrap py-2.5 pr-3 text-ink-muted">
+                    <td className="tabular hidden whitespace-nowrap py-2.5 pr-3 text-ink-muted sm:table-cell">
                       {formatDay(r.entryDate)}
                     </td>
-                    <td className="tabular whitespace-nowrap py-2.5 pr-3">
+                    <td className="tabular hidden whitespace-nowrap py-2.5 pr-3 sm:table-cell">
                       <Link
                         href={`${base}/journal/${r.entryId}`}
                         className="text-signal-ink hover:underline"
@@ -161,6 +173,9 @@ async function RegisterContent({
                       </Link>
                     </td>
                     <td className="py-2.5 pr-3">
+                      <div className="tabular text-xs text-ink-muted sm:hidden">
+                        {formatDay(r.entryDate)}
+                      </div>
                       <div className="text-ink">{r.lineMemo || r.entryMemo || "No memo"}</div>
                       <div className="text-[0.8125rem] text-ink-muted">
                         {includeSubs && r.accountId !== account.id
@@ -171,11 +186,14 @@ async function RegisterContent({
                           : (r.otherAccounts[0] ?? "")}
                       </div>
                     </td>
-                    <td className="py-2.5 pr-3 text-right">
+                    <td className="hidden py-2.5 pr-3 text-right sm:table-cell">
                       <Money cents={r.debitCents} blankZero />
                     </td>
-                    <td className="py-2.5 pr-3 text-right">
+                    <td className="hidden py-2.5 pr-3 text-right sm:table-cell">
                       <Money cents={r.creditCents} blankZero />
+                    </td>
+                    <td className="py-2.5 pr-3 text-right sm:hidden">
+                      <Money cents={nat(r.debitCents - r.creditCents)} />
                     </td>
                     <td className="py-2.5 text-right">
                       <Money cents={nat(r.runningNetCents)} />

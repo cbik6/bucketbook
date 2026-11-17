@@ -88,17 +88,19 @@ export function OpeningForm({
                     ) : null}
                     {r.name}
                   </label>
-                  <input
-                    id={`ob-${r.id}`}
-                    name={`amt-${r.id}`}
-                    inputMode="decimal"
-                    autoComplete="off"
-                    placeholder="0.00"
-                    value={values[r.id] ?? ""}
-                    onChange={(e) => setValues((v) => ({ ...v, [r.id]: e.target.value }))}
-                    aria-invalid={invalid || undefined}
-                    className={`${inputClass} tabular w-36 shrink-0 text-right`}
-                  />
+                  <div className="w-36 shrink-0">
+                    <input
+                      id={`ob-${r.id}`}
+                      name={`amt-${r.id}`}
+                      inputMode="decimal"
+                      autoComplete="off"
+                      placeholder="0.00"
+                      value={values[r.id] ?? ""}
+                      onChange={(e) => setValues((v) => ({ ...v, [r.id]: e.target.value }))}
+                      aria-invalid={invalid || undefined}
+                      className={`${inputClass} tabular text-right`}
+                    />
+                  </div>
                 </div>
               );
             })}

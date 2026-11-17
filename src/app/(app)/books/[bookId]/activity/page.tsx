@@ -37,7 +37,7 @@ async function ActivityContent({ params, searchParams }: PageProps<"/books/[book
         maxWidthClass="max-w-[52rem]"
         description="Every change to this book, newest first. Nothing here can be edited."
       />
-      <div className="max-w-[52rem] px-5 pb-16 pt-4 lg:px-10">
+      <div className="box-content max-w-[52rem] px-5 pb-16 pt-4 lg:px-10">
         <ol className="flex flex-col">
           {rows.map((r) => {
             const d = describeAudit(r, names);

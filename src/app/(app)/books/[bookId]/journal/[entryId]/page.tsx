@@ -74,7 +74,7 @@ async function EntryContent({
           ) : null
         }
       />
-      <div className="flex max-w-[60rem] flex-col gap-6 px-5 pb-16 pt-6 lg:px-10">
+      <div className="box-content flex max-w-[60rem] flex-col gap-6 px-5 pb-16 pt-6 lg:px-10">
         {saved ? (
           <p role="status" className="rounded-xl bg-signal-soft px-4 py-3 text-sm">
             Saved. This entry is in the ledger.

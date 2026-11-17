@@ -68,7 +68,7 @@ async function OpeningContent({
         maxWidthClass="max-w-[44rem]"
         description={`As of your book's start date, ${formatDay(book.startDate, "long")}.`}
       />
-      <div className="flex max-w-[44rem] flex-col gap-6 px-5 pb-16 pt-6 lg:px-10">
+      <div className="box-content flex max-w-[44rem] flex-col gap-6 px-5 pb-16 pt-6 lg:px-10">
         {sp.saved === "1" ? (
           <p role="status" className="rounded-xl bg-signal-soft px-4 py-3 text-sm">
             Opening balances saved.{" "}

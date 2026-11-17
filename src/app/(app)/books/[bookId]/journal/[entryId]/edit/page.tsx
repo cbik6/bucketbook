@@ -40,7 +40,7 @@ async function EditContent({ params }: PageProps<"/books/[bookId]/journal/[entry
         maxWidthClass="max-w-[60rem]"
         description="Saving keeps the current version in the entry's history."
       />
-      <div className="max-w-[60rem] px-5 pb-16 pt-6 lg:px-10">
+      <div className="box-content max-w-[60rem] px-5 pb-16 pt-6 lg:px-10">
         <EntryForm
           mode="edit"
           action={saveEntryAction.bind(null, book.id, entryId)}

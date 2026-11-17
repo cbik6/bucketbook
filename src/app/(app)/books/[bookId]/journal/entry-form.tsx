@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Field, FormError, SelectInput, TextInput, inputClass } from "@/components/ui/field";
 import { buttonClass } from "@/components/ui/button";
+import { FillLine } from "@/components/ui/fill-line";
 import type { AccountOptionGroup } from "@/lib/account-options";
 import { todayIso } from "@/lib/dates";
 import { type DraftLine, isBlankLine, parseDraftLines } from "@/lib/ledger-math";
@@ -230,9 +231,8 @@ export function EntryForm({
                             value={o.id}
                             disabled={o.disabled && o.id !== l.accountId}
                           >
-                            {"  ".repeat(o.depth)}
                             {o.code ? `${o.code} ` : ""}
-                            {o.name}
+                            {o.label}
                           </option>
                         ))}
                       </optgroup>
@@ -293,7 +293,7 @@ export function EntryForm({
           <button
             type="button"
             onClick={addLine}
-            className={buttonClass("ghost", "sm", "self-start")}
+            className={buttonClass("ghost", "sm", "self-start justify-self-start")}
           >
             <Plus size={15} aria-hidden />
             Add line
@@ -310,19 +310,29 @@ export function EntryForm({
               {formatCents(totals.creditTotal)}
             </span>
           </div>
-          <div aria-live="polite" className="text-sm sm:col-span-2">
-            {balanced ? (
-              <span className="inline-flex items-center gap-1.5 font-medium text-positive">
-                <Check size={15} aria-hidden /> Balanced
-              </span>
-            ) : difference !== 0 ? (
-              <span className="font-medium text-negative">
-                Out of balance by{" "}
-                <span className="tabular">{formatCents(Math.abs(difference))}</span>
-              </span>
-            ) : (
-              <span className="text-ink-muted">Enter at least two lines.</span>
-            )}
+          <div className="flex flex-col gap-1.5 text-sm sm:col-span-2">
+            {Math.max(totals.debitTotal, totals.creditTotal) > 0 ? (
+              <FillLine
+                value={Math.min(totals.debitTotal, totals.creditTotal)}
+                max={Math.max(totals.debitTotal, totals.creditTotal)}
+                label="Credits compared with debits"
+                className="mt-1.5 max-w-48"
+              />
+            ) : null}
+            <div aria-live="polite">
+              {balanced ? (
+                <span className="inline-flex items-center gap-1.5 font-medium text-positive">
+                  <Check size={15} aria-hidden /> Balanced
+                </span>
+              ) : difference !== 0 ? (
+                <span className="font-medium text-negative">
+                  Out of balance by{" "}
+                  <span className="tabular">{formatCents(Math.abs(difference))}</span>
+                </span>
+              ) : (
+                <span className="text-ink-muted">Enter at least two lines.</span>
+              )}
+            </div>
           </div>
         </div>
       </fieldset>

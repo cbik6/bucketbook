@@ -60,7 +60,7 @@ async function LedgerContent({ params, searchParams }: PageProps<"/books/[bookId
         maxWidthClass="max-w-[64rem]"
         description={`Every posted line, by account. ${range.label}.`}
       />
-      <div className="flex max-w-[64rem] flex-col gap-6 px-5 pb-16 pt-6 lg:px-10">
+      <div className="box-content flex max-w-[64rem] flex-col gap-6 px-5 pb-16 pt-6 lg:px-10">
         <RangePicker basePath={`${base}/ledger`} range={range} />
         {sections.length === 0 ? (
           <p className="py-6 text-ink-muted">
