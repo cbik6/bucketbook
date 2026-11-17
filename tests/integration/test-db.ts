@@ -31,7 +31,7 @@ export async function recreateTestDatabase(): Promise<void> {
 /** Empties every app table (not the migrations table) between tests. */
 export async function truncateAll(pool: Pool): Promise<void> {
   await pool.query(
-    `truncate table audit_log, accounts, book_members, books, auth_sessions, auth_accounts,
+    `truncate table audit_log, journal_lines, journal_entry_versions, journal_entries, accounts, book_members, books, auth_sessions, auth_accounts,
        auth_verifications, users, app_settings restart identity cascade`,
   );
 }

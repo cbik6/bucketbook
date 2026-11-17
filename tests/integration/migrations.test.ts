@@ -34,7 +34,7 @@ describe("migrations", () => {
 
   it("create the expected tables with readable names", async () => {
     const { rows } = await getPool().query<{ table_name: string }>(
-      `select table_name from information_schema.tables where table_schema = 'public' order by 1`,
+      `select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE' order by 1`,
     );
     expect(rows.map((r) => r.table_name)).toEqual([
       "accounts",
@@ -45,6 +45,9 @@ describe("migrations", () => {
       "auth_verifications",
       "book_members",
       "books",
+      "journal_entries",
+      "journal_entry_versions",
+      "journal_lines",
       "users",
     ]);
   });
