@@ -51,6 +51,7 @@ export function parseDraftLines(lines: DraftLine[]): {
     if (isBlankLine(l)) return;
     let debitCents = 0;
     let creditCents = 0;
+    const before = problems.length;
     try {
       debitCents = amount(l.debit);
     } catch (e) {
@@ -61,7 +62,10 @@ export function parseDraftLines(lines: DraftLine[]): {
     } catch (e) {
       problems.push({ index, field: "credit", message: (e as MoneyError).message });
     }
-    if (debitCents < 0 || creditCents < 0) {
+    const unreadable = problems.length > before;
+    if (unreadable) {
+      // The amount itself is the problem; don't pile on more messages for this line.
+    } else if (debitCents < 0 || creditCents < 0) {
       problems.push({
         index,
         field: debitCents < 0 ? "debit" : "credit",
