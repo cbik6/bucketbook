@@ -316,6 +316,7 @@ export function EntryForm({
                 value={Math.min(totals.debitTotal, totals.creditTotal)}
                 max={Math.max(totals.debitTotal, totals.creditTotal)}
                 label="Credits compared with debits"
+                instant
                 className="mt-1.5 max-w-48"
               />
             ) : null}

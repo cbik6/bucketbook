@@ -8,11 +8,14 @@ export function FillLine({
   max,
   label,
   className,
+  instant,
 }: {
   value: number;
   max: number;
   label: string;
   className?: string;
+  /** Draw at the true value with no animation, for values that change as you type. */
+  instant?: boolean;
 }) {
   const pct = max <= 0 ? 0 : Math.min(100, Math.max(0, (value / max) * 100));
   return (
@@ -25,7 +28,7 @@ export function FillLine({
       className={`relative h-1.5 w-full overflow-hidden rounded-full bg-rule ${className ?? ""}`}
     >
       <div
-        className="absolute inset-0 rounded-full bg-signal transition-[clip-path] duration-500 ease-[var(--ease-in-out)]"
+        className={`absolute inset-0 rounded-full bg-signal ${instant ? "" : "transition-[clip-path] duration-500 ease-[var(--ease-in-out)]"}`}
         style={{ clipPath: `inset(0 ${100 - pct}% 0 0 round 999px)` }}
       />
     </div>
