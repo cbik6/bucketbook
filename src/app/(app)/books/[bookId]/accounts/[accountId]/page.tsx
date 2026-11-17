@@ -78,7 +78,7 @@ async function RegisterContent({
             <div className="text-[0.8125rem] text-ink-muted">
               Balance{range.to ? ` on ${formatDay(range.to)}` : ""}
             </div>
-            <div className="text-[1.75rem] font-semibold tracking-[-0.02em]">
+            <div className="text-2xl font-semibold tracking-[-0.02em]">
               <Money cents={nat(ending)} />
             </div>
           </div>

@@ -117,7 +117,7 @@ async function EntryContent({
         ) : null}
 
         {versionHeader.memo ? (
-          <p className="max-w-prose text-[1rem]">{versionHeader.memo}</p>
+          <p className="max-w-prose font-medium">{versionHeader.memo}</p>
         ) : null}
 
         <div className="overflow-x-auto">

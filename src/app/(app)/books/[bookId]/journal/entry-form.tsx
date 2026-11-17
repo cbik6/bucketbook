@@ -27,6 +27,12 @@ let nextKey = 1;
 const blank = (): Line => ({ key: nextKey++, accountId: "", debit: "", credit: "", memo: "" });
 const plain = (cents: number) => formatCents(cents, { showSymbol: false });
 
+/** Keeps exactly one empty line at the end, so there's always somewhere to type. */
+function withSpare(ls: Line[]): Line[] {
+  const last = ls[ls.length - 1];
+  return last && isBlankLine(last) ? ls : [...ls, blank()];
+}
+
 export function EntryForm({
   action,
   groups,
@@ -44,8 +50,8 @@ export function EntryForm({
   const [memo, setMemo] = useState(initial?.memo ?? "");
   const [lines, setLines] = useState<Line[]>(() => {
     const start = (initial?.lines ?? []).map((l) => ({ ...l, key: nextKey++ }));
-    while (start.length < (mode === "new" ? 4 : 2)) start.push(blank());
-    return start;
+    while (start.length < 2) start.push(blank());
+    return withSpare(start);
   });
   const formRef = useRef<HTMLFormElement>(null);
   const focusLine = useRef<number | null>(null);
@@ -73,30 +79,34 @@ export function EntryForm({
 
   const update = (key: number, patch: Partial<DraftLine>) =>
     setLines((ls) =>
-      ls.map((l) => {
-        if (l.key !== key) return l;
-        const next = { ...l, ...patch };
-        // A line is a debit or a credit: typing in one side clears the other.
-        if (patch.debit !== undefined && patch.debit.trim()) next.credit = "";
-        if (patch.credit !== undefined && patch.credit.trim()) next.debit = "";
-        return next;
-      }),
+      withSpare(
+        ls.map((l) => {
+          if (l.key !== key) return l;
+          const next = { ...l, ...patch };
+          // A line is a debit or a credit: typing in one side clears the other.
+          if (patch.debit !== undefined && patch.debit.trim()) next.credit = "";
+          if (patch.credit !== undefined && patch.credit.trim()) next.debit = "";
+          return next;
+        }),
+      ),
     );
 
   const chooseAccount = (key: number, accountId: string) =>
     setLines((ls) => {
       const others = parseDraftLines(ls.filter((l) => l.key !== key));
       const diff = others.debitTotal - others.creditTotal;
-      return ls.map((l) => {
-        if (l.key !== key) return l;
-        const next = { ...l, accountId };
-        // Fill in whatever balances the entry, the way a ledger clerk would.
-        if (accountId && !l.debit.trim() && !l.credit.trim() && diff !== 0) {
-          if (diff > 0) next.credit = plain(diff);
-          else next.debit = plain(-diff);
-        }
-        return next;
-      });
+      return withSpare(
+        ls.map((l) => {
+          if (l.key !== key) return l;
+          const next = { ...l, accountId };
+          // Fill in whatever balances the entry, the way a ledger clerk would.
+          if (accountId && !l.debit.trim() && !l.credit.trim() && diff !== 0) {
+            if (diff > 0) next.credit = plain(diff);
+            else next.debit = plain(-diff);
+          }
+          return next;
+        }),
+      );
     });
 
   const addLine = () => {
@@ -107,9 +117,11 @@ export function EntryForm({
 
   const removeLine = (key: number) =>
     setLines((ls) =>
-      ls.length <= 2
-        ? ls.map((l) => (l.key === key ? blank() : l))
-        : ls.filter((l) => l.key !== key),
+      withSpare(
+        ls.length <= 2
+          ? ls.map((l) => (l.key === key ? blank() : l))
+          : ls.filter((l) => l.key !== key),
+      ),
     );
 
   const payload = JSON.stringify({
@@ -178,9 +190,9 @@ export function EntryForm({
           className="hidden grid-cols-[minmax(0,1.5fr)_8.5rem_8.5rem_minmax(0,1fr)_2.25rem] gap-2 border-b border-rule pb-2 text-xs font-medium text-ink-muted sm:grid"
         >
           <span>Account</span>
-          <span className="text-right">Debit</span>
-          <span className="text-right">Credit</span>
-          <span>Line memo</span>
+          <span className="pr-3 text-right">Debit</span>
+          <span className="pr-3 text-right">Credit</span>
+          <span className="pl-3">Line memo</span>
           <span />
         </div>
         <ol className="flex flex-col">
@@ -226,6 +238,15 @@ export function EntryForm({
                       </optgroup>
                     ))}
                   </SelectInput>
+                  <button
+                    type="button"
+                    onClick={() => removeLine(l.key)}
+                    aria-label={`Remove line ${i + 1}`}
+                    title="Remove line"
+                    className="flex h-10 w-9 shrink-0 items-center justify-center rounded-lg text-ink-muted transition-[background-color,transform] duration-150 hover:bg-sunken hover:text-ink active:scale-[0.95] sm:hidden"
+                  >
+                    <X size={16} aria-hidden />
+                  </button>
                 </div>
                 <AmountInput
                   id={`${uid}-line-${l.key}-debit`}
@@ -259,10 +280,9 @@ export function EntryForm({
                   onClick={() => removeLine(l.key)}
                   aria-label={`Remove line ${i + 1}`}
                   title="Remove line"
-                  className="col-span-2 flex h-8 items-center justify-center rounded-lg text-sm text-ink-muted transition-[background-color,transform] duration-150 hover:bg-sunken hover:text-ink active:scale-[0.95] sm:col-span-1 sm:h-9 sm:w-9"
+                  className="hidden h-9 w-9 items-center justify-center rounded-lg text-ink-muted transition-[background-color,transform] duration-150 hover:bg-sunken hover:text-ink active:scale-[0.95] sm:flex"
                 >
                   <X size={16} aria-hidden />
-                  <span className="ml-1 sm:hidden">Remove line</span>
                 </button>
               </li>
             );
