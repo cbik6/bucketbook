@@ -1,6 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import type { AccountType } from "@/lib/account-types";
 import { recordAudit } from "../audit/record";
+import { accountHasActivity, accountNetCents } from "../ledger/queries";
+import { formatCents } from "@/lib/money";
 import type { Database, DbOrTx } from "../db/client";
 import { accounts } from "../db/schema";
 import { NotFoundError, pgErrorInfo, UserFacingError } from "../errors";
@@ -38,13 +40,7 @@ export async function getAccount(
   return rows[0];
 }
 
-/**
- * Phase 1 has no journal lines yet, so no account has activity. Phase 2 replaces
- * this with a check against journal lines (and later bank transactions).
- */
-export async function accountHasActivity(_db: DbOrTx, _accountId: string): Promise<boolean> {
-  return false;
-}
+export { accountHasActivity };
 
 function friendlyConstraintError(
   err: unknown,
@@ -115,6 +111,12 @@ export async function updateAccount(
       const before = all.find((a) => a.id === accountId);
       if (!before) throw new NotFoundError("That account");
       assertCanChangeType(before, input.type, all);
+      if (before.type !== input.type && (await accountHasActivity(tx, accountId))) {
+        throw new UserFacingError(
+          "This account has transactions, so its type can't change. Create a new account and move the balance instead.",
+          "type",
+        );
+      }
       assertCanChangeSystemFields(before, input);
       if (before.isSystem && input.subtype !== before.subtype) {
         throw new UserFacingError("System accounts keep their detail type.", "subtype");
@@ -159,8 +161,15 @@ async function setArchived(
     const all = await listAccounts(tx, bookId);
     const before = all.find((a) => a.id === accountId);
     if (!before) throw new NotFoundError("That account");
-    if (archive) assertCanArchive(before, all);
-    else assertCanUnarchive(before, all);
+    if (archive) {
+      assertCanArchive(before, all);
+      const net = await accountNetCents(tx, accountId);
+      if (net !== 0) {
+        throw new UserFacingError(
+          `${before.name} has a balance of ${formatCents(Math.abs(net))}. Move it to another account with a journal entry before archiving.`,
+        );
+      }
+    } else assertCanUnarchive(before, all);
     const [after] = await tx
       .update(accounts)
       .set({ archivedAt: archive ? new Date() : null })

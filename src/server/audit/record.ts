@@ -1,7 +1,8 @@
 import type { DbOrTx } from "../db/client";
 import { auditLog } from "../db/schema";
 
-export type AuditAction = "create" | "update" | "archive" | "unarchive" | "delete" | "setup";
+export type AuditAction =
+  "create" | "update" | "archive" | "unarchive" | "delete" | "reverse" | "setup";
 
 export type AuditEntry = {
   bookId?: string | null;
