@@ -1,5 +1,5 @@
 /**
- * The app's signature fill line: a hairline track filled in marigold from the
+ * The app's signature fill line: a hairline track filled in green from the
  * left. Used for wizard progress now and bucket goals later. The fill animates
  * with clip-path so it never changes layout.
  */

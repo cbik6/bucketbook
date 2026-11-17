@@ -51,7 +51,7 @@ export function NavLinks({ bookId, layout }: { bookId: string; layout: "rail" | 
             {active ? (
               <span
                 aria-hidden
-                className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-signal"
+                className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-[var(--rail-focus)]"
               />
             ) : null}
             <Icon size={16} strokeWidth={1.75} aria-hidden />

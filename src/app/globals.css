@@ -3,43 +3,51 @@
 /*
  * Design tokens. Light is the default; dark follows the system unless the user
  * picked one with the toggle (data-theme on <html>).
- * Spruce rail + paper work area + one marigold signal color.
+ * "Balanced": felt-green rail, white page, green actions, pastel buckets.
  */
 :root {
   color-scheme: light;
-  --paper: #faf9f6;
+  --paper: #ffffff;
   --surface: #ffffff;
-  --surface-sunken: #f2f1ec;
-  --ink: #18211f;
-  --ink-muted: #55615d;
-  --ink-faint: #737f7b;
-  --rule: #e3e1d9;
-  --rule-strong: #cdcac0;
-  --field-border: #857f73;
+  --surface-sunken: #f3f6f4;
+  --ink: #1c2620;
+  --ink-muted: #56665c;
+  --ink-faint: #6f7d75;
+  --rule: #e8ede9;
+  --rule-strong: #d3dcd6;
+  --field-border: #7f8c84;
 
-  --rail: #163530;
-  --rail-raised: #1e443e;
-  --rail-active: #275249;
-  --rail-ink: #eef3ef;
-  --rail-muted: #a9bdb6;
-  --rail-rule: #2a4a44;
+  --rail: #1f5b3f;
+  --rail-raised: #286648;
+  --rail-active: #2f7353;
+  --rail-ink: #f2f7f3;
+  --rail-muted: #cfe1d6;
+  --rail-rule: #2f6a4d;
 
-  --signal: #e8a33d;
-  --signal-strong: #d48c22;
-  --signal-ink: #6b4a0e;
-  --signal-soft: #fbedd3;
-  --on-signal: #241a05;
-  --focus: #9a6408;
+  --signal: #1f5b3f;
+  --signal-strong: #184a33;
+  --signal-ink: #1f5b3f;
+  --signal-soft: #e6f2ea;
+  --on-signal: #ffffff;
+  --focus: #1f5b3f;
+
+  --rail-focus: #f8ecaa;
+  --mark-fill: #f8ecaa;
+  --bucket-pink: #f8d6e0;
+  --bucket-yellow: #f8ecaa;
+  --bucket-green: #d4ebc6;
+  --bucket-blue: #d3e6f5;
+  --on-bucket: #1c2620;
 
   --positive: #2b704a;
   --negative: #ad3b2a;
   --negative-soft: #f8e3de;
   --negative-fill: #c4513e;
   --on-negative-fill: #ffffff;
-  --scrim: rgb(10 20 18 / 0.45);
-  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2355615d' stroke-width='1.5' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+  --scrim: rgb(12 24 18 / 0.45);
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2356665c' stroke-width='1.5' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
 
-  --shadow-float: 0 12px 32px -8px rgb(22 53 48 / 0.18), 0 2px 6px -2px rgb(22 53 48 / 0.12);
+  --shadow-float: 0 12px 32px -8px rgb(20 50 35 / 0.18), 0 2px 6px -2px rgb(20 50 35 / 0.12);
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
@@ -49,29 +57,37 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --paper: #0e1917;
-    --surface: #14221f;
-    --surface-sunken: #0a1311;
-    --ink: #e5ece8;
-    --ink-muted: #a2b1ac;
-    --ink-faint: #82918c;
-    --rule: #22322e;
-    --rule-strong: #34463f;
-    --field-border: #647a72;
+    --paper: #0f1712;
+    --surface: #16211b;
+    --surface-sunken: #0b120e;
+    --ink: #e6eee9;
+    --ink-muted: #a3b5aa;
+    --ink-faint: #839589;
+    --rule: #223129;
+    --rule-strong: #31443a;
+    --field-border: #66806f;
 
-    --rail: #0f2723;
-    --rail-raised: #17352f;
-    --rail-active: #20453e;
-    --rail-ink: #e9f0ec;
-    --rail-muted: #9db3ab;
-    --rail-rule: #1f3a34;
+    --rail: #143d2a;
+    --rail-raised: #1c4c35;
+    --rail-active: #245a40;
+    --rail-ink: #eef5f0;
+    --rail-muted: #a9c6b6;
+    --rail-rule: #22513a;
 
-    --signal: #f0b04f;
-    --signal-strong: #f5bf68;
-    --signal-ink: #f6c97f;
-    --signal-soft: #33291a;
-    --on-signal: #1a1406;
-    --focus: #f0b04f;
+    --signal: #7fd0a2;
+    --signal-strong: #9fdcb9;
+    --signal-ink: #9fdcb9;
+    --signal-soft: #1d3527;
+    --on-signal: #0f1712;
+    --focus: #7fd0a2;
+
+    --rail-focus: #f8ecaa;
+    --mark-fill: #f8ecaa;
+    --bucket-pink: #4a2a35;
+    --bucket-yellow: #4a4422;
+    --bucket-green: #2c4426;
+    --bucket-blue: #233a4d;
+    --on-bucket: #eef5f0;
 
     --positive: #80cb9c;
     --negative: #f2907e;
@@ -79,7 +95,7 @@
     --negative-fill: #d9634f;
     --on-negative-fill: #1a0d0a;
     --scrim: rgb(0 0 0 / 0.6);
-    --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23a2b1ac' stroke-width='1.5' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+    --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23a3b5aa' stroke-width='1.5' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
 
     --shadow-float: 0 12px 32px -8px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.4);
   }
@@ -87,29 +103,37 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --paper: #0e1917;
-  --surface: #14221f;
-  --surface-sunken: #0a1311;
-  --ink: #e5ece8;
-  --ink-muted: #a2b1ac;
-  --ink-faint: #82918c;
-  --rule: #22322e;
-  --rule-strong: #34463f;
-  --field-border: #647a72;
+  --paper: #0f1712;
+  --surface: #16211b;
+  --surface-sunken: #0b120e;
+  --ink: #e6eee9;
+  --ink-muted: #a3b5aa;
+  --ink-faint: #839589;
+  --rule: #223129;
+  --rule-strong: #31443a;
+  --field-border: #66806f;
 
-  --rail: #0f2723;
-  --rail-raised: #17352f;
-  --rail-active: #20453e;
-  --rail-ink: #e9f0ec;
-  --rail-muted: #9db3ab;
-  --rail-rule: #1f3a34;
+  --rail: #143d2a;
+  --rail-raised: #1c4c35;
+  --rail-active: #245a40;
+  --rail-ink: #eef5f0;
+  --rail-muted: #a9c6b6;
+  --rail-rule: #22513a;
 
-  --signal: #f0b04f;
-  --signal-strong: #f5bf68;
-  --signal-ink: #f6c97f;
-  --signal-soft: #33291a;
-  --on-signal: #1a1406;
-  --focus: #f0b04f;
+  --signal: #7fd0a2;
+  --signal-strong: #9fdcb9;
+  --signal-ink: #9fdcb9;
+  --signal-soft: #1d3527;
+  --on-signal: #0f1712;
+  --focus: #7fd0a2;
+
+  --rail-focus: #f8ecaa;
+  --mark-fill: #f8ecaa;
+  --bucket-pink: #4a2a35;
+  --bucket-yellow: #4a4422;
+  --bucket-green: #2c4426;
+  --bucket-blue: #233a4d;
+  --on-bucket: #eef5f0;
 
   --positive: #80cb9c;
   --negative: #f2907e;
@@ -117,7 +141,7 @@
   --negative-fill: #d9634f;
   --on-negative-fill: #1a0d0a;
   --scrim: rgb(0 0 0 / 0.6);
-  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23a2b1ac' stroke-width='1.5' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23a3b5aa' stroke-width='1.5' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
 
   --shadow-float: 0 12px 32px -8px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.4);
 }
@@ -143,13 +167,18 @@
   --color-signal-ink: var(--signal-ink);
   --color-signal-soft: var(--signal-soft);
   --color-on-signal: var(--on-signal);
+  --color-bucket-pink: var(--bucket-pink);
+  --color-bucket-yellow: var(--bucket-yellow);
+  --color-bucket-green: var(--bucket-green);
+  --color-bucket-blue: var(--bucket-blue);
+  --color-on-bucket: var(--on-bucket);
   --color-positive: var(--positive);
   --color-negative: var(--negative);
   --color-negative-soft: var(--negative-soft);
   --color-negative-fill: var(--negative-fill);
   --color-on-negative-fill: var(--on-negative-fill);
   --color-scrim: var(--scrim);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --shadow-float: var(--shadow-float);
   --ease-out: var(--ease-out);
@@ -168,10 +197,9 @@ body {
   font-family: var(--font-sans);
   font-size: 0.9375rem;
   line-height: 1.5;
-  font-feature-settings: "ss01", "cv11";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  caret-color: var(--signal-strong);
+  caret-color: var(--signal);
 }
 
 ::selection {
@@ -226,9 +254,9 @@ table {
   }
 }
 
-/* Keyboard focus on the spruce rail uses the bright signal color for contrast. */
+/* Keyboard focus on the green rail uses pale yellow so it stands out. */
 .on-rail {
-  --focus: var(--signal);
+  --focus: var(--rail-focus);
 }
 
 /* Phone editor sheet rises from the bottom edge. */
@@ -238,7 +266,7 @@ table {
   }
 }
 
-/* A just-saved row glows marigold once, then settles. */
+/* A just-saved row glows soft green once, then settles. */
 @keyframes saved-flash {
   from {
     background-color: var(--signal-soft);

@@ -35,7 +35,7 @@ function SignOutButton({ compact }: { compact?: boolean }) {
 }
 
 /**
- * The app frame: a spruce rail on wide screens, a spruce top bar on phones.
+ * The app frame: a felt-green rail on wide screens, a green top bar on phones.
  * The page content sits on paper beside it.
  */
 export function AppShell({

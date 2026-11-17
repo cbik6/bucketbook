@@ -131,7 +131,7 @@ The dev VM has about 2.6 GB of RAM (sometimes less) plus 4 GB of swap. So:
 random secrets, runs Playwright, then removes it with its volumes. That tests the Docker
 setup and the first-run wizard exactly as a new user would see them.
 
-### D21. Design direction
+### D21. Design direction (superseded by D24)
 
 UI follows the Impeccable skill (product context in `PRODUCT.md`) and Emil Kowalski's
 design-engineering skill. Look: a deep spruce navigation rail, warm paper work area, and
@@ -152,3 +152,24 @@ behaves well on phones. A searchable picker can come later if lists get long.
 Third-party skills (Impeccable, Emil Kowalski's skills) are pinned in `skills-lock.json`
 and restored with `npx skills experimental_install`, so the public repo doesn't vendor
 their files.
+
+## Phase 1 follow-up (2026-11-17)
+
+### D24. Visual direction changed to "Balanced"
+
+After seeing the first build, Clark compared three rounds of directions and chose
+"Balanced", picked mainly because it feels clean. It replaces the spruce and marigold
+look from D21; the interaction details from D21 stay (press feedback, menus that grow
+from their trigger, press-and-hold to archive, undo toasts, no animation on keyboard
+actions, the clip-path fill line).
+
+- A felt-green rail and top bar (#1f5b3f), a plain white page, and Figtree for all text,
+  with tabular figures. Geist Mono stays for account numbers only.
+- Green is the action color (buttons, focus, selection, progress fills). Pale yellow marks
+  focus and the active item on the green rail, where green would disappear.
+- Four soft pastels (pink, yellow, green, blue) are reserved for buckets in Phase 4, so a
+  bucket is recognizable at a glance without the rest of the screen getting busy.
+- Every text and control color was checked against WCAG AA in light and dark mode.
+- Fonts are self-hosted at build time by Next.js, so the app makes no requests to Google
+  when it runs.
+

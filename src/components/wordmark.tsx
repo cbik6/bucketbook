@@ -1,6 +1,6 @@
 import { APP_NAME } from "@/lib/app-config";
 
-/** The mark: a bucket outline with a marigold fill line. Pure geometry. */
+/** The mark: a bucket outline with a pale yellow fill line. Pure geometry. */
 export function BucketMark({ size = 24, className }: { size?: number; className?: string }) {
   return (
     <svg
@@ -18,7 +18,7 @@ export function BucketMark({ size = 24, className }: { size?: number; className?
       />
       <path
         d="M5.6 13.5h12.8l-.75 5.2a2 2 0 0 1-2 1.8H8.35a2 2 0 0 1-2-1.8l-.75-5.2Z"
-        fill="var(--signal)"
+        fill="var(--mark-fill)"
       />
       <path
         d="M4.5 6.5h15l-1.6 12.2a2 2 0 0 1-2 1.8H8.1a2 2 0 0 1-2-1.8L4.5 6.5Z"

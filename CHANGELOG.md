@@ -6,6 +6,11 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- New "Balanced" look: felt-green navigation, a white page, Figtree type, green actions, and
+  pastel colors reserved for buckets. Light and dark modes were rechecked for contrast.
+
 ## [0.1.0] - 2026-11-17
 
 Phase 1: Foundation.

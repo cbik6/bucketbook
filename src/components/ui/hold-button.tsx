@@ -58,7 +58,8 @@ export function HoldButton({
 
   useEffect(() => cancel, [cancel]);
 
-  const fill = tone === "danger" ? "bg-negative-fill text-on-negative-fill" : "bg-signal text-on-signal";
+  const fill =
+    tone === "danger" ? "bg-negative-fill text-on-negative-fill" : "bg-signal text-on-signal";
 
   return (
     <button
