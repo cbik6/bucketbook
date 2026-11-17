@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { AppShell, AppShellFallback } from "@/components/app-shell";
 import { listBooksForUser } from "@/server/books/service";
@@ -5,6 +6,8 @@ import { getDb } from "@/server/db/client";
 import { loadBookForPage } from "@/server/guards";
 
 async function BookShell({ params, children }: LayoutProps<"/books/[bookId]">) {
+  // Per-user page: always render at request time, never at build time.
+  await connection();
   const { bookId } = await params;
   const { user, book } = await loadBookForPage(bookId);
   const books = await listBooksForUser(getDb(), user.id);

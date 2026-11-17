@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AppShell, AppShellFallback, PageHeader } from "@/components/app-shell";
@@ -11,6 +12,8 @@ import { createBookAction } from "../actions";
 export const metadata: Metadata = { title: "New book" };
 
 async function NewBookContent() {
+  // Per-user page: always render at request time, never at build time.
+  await connection();
   const user = await requireUser();
   const books = await listBooksForUser(getDb(), user.id);
   return (

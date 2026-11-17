@@ -10,7 +10,8 @@ export type CurrentUser = { id: string; name: string; email: string };
 
 /** The signed-in user for this request, or null. Cached per request. */
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
-  const session = await getAuth().api.getSession({ headers: await headers() });
+  const requestHeaders = await headers();
+  const session = await getAuth().api.getSession({ headers: requestHeaders });
   if (!session) return null;
   return { id: session.user.id, name: session.user.name, email: session.user.email };
 });

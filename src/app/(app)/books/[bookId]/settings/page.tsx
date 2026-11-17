@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PageHeader } from "@/components/app-shell";
@@ -10,6 +11,8 @@ export const metadata: Metadata = { title: "Book settings" };
 const dateFormat = new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeZone: "UTC" });
 
 async function SettingsContent({ params }: PageProps<"/books/[bookId]/settings">) {
+  // Per-user page: always render at request time, never at build time.
+  await connection();
   const { bookId } = await params;
   const { book } = await loadBookForPage(bookId);
   const isOwner = book.role === "owner";

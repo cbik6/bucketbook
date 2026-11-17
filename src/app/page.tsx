@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getCurrentUser } from "@/server/auth/session";
@@ -7,6 +8,8 @@ import { getSetupState } from "@/server/setup/service";
 
 /** The front door: sends people to setup, login, or their first book. */
 async function Route(): Promise<null> {
+  // Per-user page: always render at request time, never at build time.
+  await connection();
   const db = getDb();
   const setup = await getSetupState(db);
   if (!setup.completed) redirect("/setup");

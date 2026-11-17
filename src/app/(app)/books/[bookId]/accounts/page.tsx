@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { Archive, Lock, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -33,6 +34,8 @@ function hrefWith(base: string, params: Record<string, string | undefined>): str
 }
 
 async function AccountsContent({ params, searchParams }: PageProps<"/books/[bookId]/accounts">) {
+  // Per-user page: always render at request time, never at build time.
+  await connection();
   const { bookId } = await params;
   const sp: Search = await searchParams;
   const { book } = await loadBookForPage(bookId);

@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -10,6 +11,8 @@ import { LoginForm } from "./login-form";
 export const metadata: Metadata = { title: "Sign in" };
 
 async function LoginContent({ searchParams }: PageProps<"/login">) {
+  // Per-user page: always render at request time, never at build time.
+  await connection();
   const [setup, user, params] = await Promise.all([
     getSetupState(getDb()),
     getCurrentUser(),

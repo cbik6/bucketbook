@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -19,6 +20,8 @@ const dateFormat = new Intl.DateTimeFormat("en-US", {
 });
 
 async function BooksContent() {
+  // Per-user page: always render at request time, never at build time.
+  await connection();
   const user = await requireUser();
   const all = await listBooksForUser(getDb(), user.id, { includeArchived: true });
   const active = all.filter((b) => !b.archivedAt);

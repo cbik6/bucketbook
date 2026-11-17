@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -55,6 +56,8 @@ function defaultStartDate(): string {
 }
 
 async function SetupContent() {
+  // Per-user page: always render at request time, never at build time.
+  await connection();
   const db = getDb();
   const setup = await getSetupState(db);
   if (setup.completed) redirect("/");
