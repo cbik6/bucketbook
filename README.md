@@ -3,25 +3,37 @@
 Double-entry books for households and small businesses, with savings "buckets" inside
 your real bank accounts, running on your own server.
 
-> **Status: early development (Phase 3 of 7).** Today you can install it, run the
-> setup wizard, build your chart of accounts, enter opening balances, post, edit and
-> reverse journal entries, and bring in bank transactions through SimpleFIN or CSV files
-> to review, categorize with rules, and match as transfers. Buckets, reconciliation and
-> reports come in later phases (see [Roadmap](#roadmap)). Not ready for real money yet.
+> **Status: version 1.0.** Everything in the first-version plan is built: books and a
+> chart of accounts, journal entries, bank data through SimpleFIN and CSV with a review
+> queue and rules, buckets with goals, reconciliation, loans, budgets and reports. It
+> has been tested heavily but not yet with years of real money; keep your old tool
+> running alongside it for a while.
 
 "Bucketbook" is a working name.
 
 ## What it is
 
-- **Real double-entry accounting.** Every transaction balances, posted entries are
-  never edited in place, and every change is recorded in an audit log.
-- **Buckets.** Split one savings account into goals (Car, Vacation, Emergency) the way
-  some online banks do, while the ledger stays correct: the bank account always equals
-  the sum of its buckets.
+- **Real double-entry accounting.** Every transaction balances (the database itself
+  refuses one that doesn't), posted entries are never edited in place, and every change
+  is in an audit log.
+- **Bank data you approve.** Transactions arrive through
+  [SimpleFIN](https://www.simplefin.org/) or CSV files and wait in **For review**. Rules
+  suggest categories, transfers between your accounts (and between books) are matched,
+  splits and receipts are a click away, and nothing reaches the books until you approve
+  it.
+- **Buckets.** Split one savings account into goals (Emergency, Car, Vacation) the way
+  some online banks do. Deposits land in Unassigned, allocation rules move money into
+  buckets, and the bank account always equals the sum of its buckets.
+- **The rest of the bookkeeping.** Reconcile against statements, track loans with an
+  amortization schedule (payments split into principal and interest for you), budget by
+  month, and read Profit and Loss, Balance Sheet, Budget vs. Actuals, bucket, spending
+  and net worth reports, all with drill-down and CSV export.
 - **Multiple books.** Keep your household and each business separate.
-- **Your data, your server.** Plain Postgres with readable table names. Bank data comes
-  in through [SimpleFIN](https://www.simplefin.org/) or CSV files, and nothing reaches
-  the books until you approve it.
+- **Your data, your server.** Plain Postgres with readable table names, installable on
+  your phone's home screen, light and dark mode.
+
+Want to look around first? After setup, press **Try a demo book** on the Books page for
+a household with three months of activity, buckets, a car loan and a budget.
 
 ## Install with Docker Compose
 
@@ -79,6 +91,26 @@ books.example.com {
 If you also open the app by another address (such as its LAN IP), add that address to
 `TRUSTED_ORIGINS` in `.env`.
 
+### Installing on your phone
+
+Bucketbook can be added to a phone's home screen and opens like an app (Safari: Share,
+then Add to Home Screen). Browsers only allow this over HTTPS, so serve it through your
+proxy with a certificate the phone trusts:
+
+- A public certificate from Caddy's DNS challenge works on every device with no extra
+  steps, even when the name only resolves on your home network.
+- Caddy's internal CA (`tls internal`) works once you install and trust Caddy's root
+  certificate on each phone (on iPhone: install the profile, then turn on full trust in
+  Settings, General, About, Certificate Trust Settings).
+
+Over plain HTTP everything works in the browser; only the home screen install is off.
+
+### Using the published image
+
+Instead of building from source, set `BUCKETBOOK_IMAGE=ghcr.io/OWNER/bucketbook:latest`
+in `.env` (OWNER is the GitHub account that hosts the repository) and run
+`docker compose pull && docker compose up -d`.
+
 ### Updating
 
 ```bash
@@ -108,6 +140,24 @@ category for you, and nothing posts until you approve it.
 
 To try it without a bank, press **Use the demo bank** on the Bank connections page; it
 connects SimpleFIN's public demo account.
+
+Credit cards work like any other account: purchases are categorized in review, and the
+payment from checking is matched with the card's side as a transfer. Bank, cash, card and
+loan accounts can be reconciled against statements from **Reconcile**.
+
+## Buckets, loans and budgets
+
+- **Buckets:** on the Buckets page, turn on buckets for a savings or checking account.
+  Its balance moves into Unassigned; add buckets with optional goals, and allocation
+  rules (a percentage or amount of each deposit, or an amount each month). In review,
+  pick which bucket a withdrawal comes out of; rules can pick it for you.
+- **Loans:** on the Loans page, enter the terms from your loan papers. When you approve a
+  payment in review with the loan account as its category, it is split into principal
+  and interest automatically.
+- **Accounts no bank reports** (cash, a car's value): open the account and use **Record
+  a new balance**.
+- **Budget:** a monthly amount per income and expense account, with Copy last month.
+  Compare in Reports.
 
 For banks SimpleFIN can't reach, export a CSV from the bank and use **Import CSV** on the
 For review page. The column mapping is remembered per account.
@@ -168,12 +218,13 @@ To open the dev server from another computer on your network, set `APP_URL` to
 | `npm run db:migrate`                                    | Apply migrations by hand (the app also does this on start)                                                        |
 | `npm run db:reset`                                      | Wipe the dev database (asks nothing, dev only)                                                                    |
 | `npm run db:studio`                                     | Browse the dev database in Drizzle Studio                                                                         |
+| `npm run seed:demo`                                     | Add the demo book to the first user (or `npm run seed:demo -- you@example.com`)                                   |
 
 ### Project layout
 
 ```
 drizzle/                SQL migrations (generated, committed, readable)
-scripts/                migrate, e2e runner
+scripts/                migrate, e2e runner, demo seed
 src/app/                pages and API routes (Next.js App Router)
 src/components/         shared UI
 src/lib/                code shared by browser and server (money, account types)
@@ -190,13 +241,18 @@ restore them with `npx skills experimental_install` (from `skills-lock.json`).
 
 ## Roadmap
 
-1. **Foundation** (done): install, setup wizard, books, chart of accounts.
-2. **Ledger** (done): journal entries, opening balances, registers, general ledger, activity log.
-3. **Bank data** (done): SimpleFIN, CSV import, review queue, rules, transfer matching, receipts.
-4. Buckets: bucket setup, allocation rules, goals.
-5. Reconciliation, loans, and credit cards.
-6. Budgets and reports.
-7. Polish, PWA, docs, and publishing.
+Version 1 is complete:
+
+1. **Foundation:** install, setup wizard, books, chart of accounts.
+2. **Ledger:** journal entries, opening balances, registers, general ledger, activity log.
+3. **Bank data:** SimpleFIN, CSV import, review queue, rules, transfer matching, receipts.
+4. **Buckets:** bucket setup, allocation rules, bucket draws in review, transfers, goals.
+5. **Reconciliation, loans, and credit cards.**
+6. **Budgets and reports.**
+7. **Polish:** install as an app, demo book, CI and published images.
+
+Ideas for later (the schema leaves room): invoices and bills, multiple currencies,
+sharing a book with another person, importers from other apps.
 
 ## License
 

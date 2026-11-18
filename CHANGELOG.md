@@ -6,6 +6,36 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-18
+
+Phases 4 to 7: buckets, reconciliation and loans, budgets and reports, and polish. The
+first complete version.
+
+### Added
+
+- Buckets: turn them on for a savings or checking account, with an Unassigned bucket,
+  goals with a suggested monthly amount, moving money between buckets, and allocation
+  rules (a percentage or amount of each deposit, or an amount each month).
+- Bucket picker in For review, and a bucket action for rules.
+- Reconciliation against statements, with history, reports, undo for the latest one, and
+  a confirmation before changing a reconciled entry.
+- Loans with an amortization schedule; payments approved in review split into principal
+  and interest automatically.
+- "Record a new balance" for accounts no bank reports, such as cash or a car's value.
+- Monthly budgets with copy last month.
+- Reports: Profit and Loss (with monthly columns), Balance Sheet, Budget vs. Actuals,
+  Bucket summary, Spending trends and Net worth charts, all with drill-down to registers
+  and CSV export.
+- Install on a phone's home screen (web app manifest, icons, offline notice).
+- "Try a demo book" and `npm run seed:demo`.
+- GitHub Actions: tests on every push, multi-architecture images published to the GitHub
+  Container Registry. `BUCKETBOOK_IMAGE` lets an install use a published image.
+- Security headers on every page.
+
+### Changed
+
+- The side menu scrolls when it is taller than the screen.
+
 ## [0.3.0] - 2026-11-18
 
 Phase 3: Bank data.

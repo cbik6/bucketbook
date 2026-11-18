@@ -311,3 +311,103 @@ the journal entry it becomes. Server actions accept bodies up to 11 MB for this.
 Entries gained an optional payee (versioned like the memo) because bank data has one and
 reports will group by it. The `ledger_lines` view adds `entry_payee` at the end, so
 existing queries keep working.
+
+### D40. Buckets are child accounts; the real account stops taking postings
+
+Turning on buckets adds an Unassigned bucket, moves the account's balance into it with a
+`bucket` entry, and sets the account to take no postings of its own (the database refuses
+them). From then on its balance is exactly the sum of its buckets. Bank data still maps
+to the real account; the bank line lands in a bucket: deposits in Unassigned unless you
+pick another, withdrawals in the bucket you pick in review (rules can pre-fill it).
+Reconciliation, bank balance checks and transfer or entry matching all count the real
+account and its buckets together. Buckets can't be turned off in v1.
+
+### D41. Allocation rules
+
+Per real account, in priority order: a percentage of each deposit (rounded down to the
+cent), a fixed amount from each deposit (optionally only for deposits above a minimum),
+or a fixed amount each month. Deposit rules never move more than the deposit, and run in
+the same database transaction as the approval that brought the deposit in, as one
+`bucket` entry. Monthly rules run from a daily job on the first day they can, from what
+Unassigned holds; a rule with nothing available waits, one partly filled counts as done
+for the month. Moving money by hand never takes a bucket below zero.
+
+### D42. Goals
+
+A bucket can have a target amount and an optional date. Progress is the balance over the
+target; the suggested monthly amount is what is left divided by the months remaining,
+counting a partial month, rounded up so the date is met.
+
+### D43. Reconciliation
+
+QuickBooks style, per real account: statement date and ending balance (typed as the
+statement shows it; cards as what you owe), beginning balance from the last finished
+statement, check off entries until the difference is zero. Cleared items are stored per
+entry and account with the amount at the time, so later edits don't rewrite history.
+Only the most recent statement can be undone. Editing or reversing an entry that is in a
+finished reconciliation needs a confirming tick, enforced by the server.
+
+### D44. Loans
+
+A loan records the liability account, the interest expense account, principal, annual
+rate (stored in millionths, so 6.125% is exact), term, first payment date and payment
+(the standard level payment unless you enter your lender's). Interest is a month of the
+current balance at the rate, rounded half up to the cent; the schedule's last payment
+takes whatever is left. In review, choosing the loan account for a payment splits it into
+principal and interest from what the books say is owed, editable before approval. Tests
+check the math against an independent decimal calculation.
+
+### D45. Balance updates for manual accounts
+
+For cash, a car's value, or a loan no bank reports: "Record a new balance" posts the
+difference on that date against an account you choose. It is an ordinary entry, so it
+can be edited or reversed like any other.
+
+### D46. Budgets
+
+One amount per income or expense account per month, typed on the accounts that take
+postings; parents show the sum of their children so nothing counts twice. Copy last month
+replaces the month with the previous month's amounts.
+
+### D47. Reports
+
+Every report reads the current ledger (`ledger_lines`) and shows amounts in each
+account's natural direction. The Balance Sheet closes income and expense into Retained
+earnings (before the calendar year) and Net income (this year), so it always balances;
+tests check that, and that Profit and Loss net income equals the change in equity. Any
+account line links to its register for the same dates. CSV exports use plain numbers
+with two decimals, and text cells that start like a formula are prefixed with an
+apostrophe so spreadsheets don't run them.
+
+### D48. Charts
+
+Hand-written SVG instead of a chart library, to keep the bundle and the look under our
+control. Categorical colors come in a fixed order (never cycled), validated for
+color-vision deficiency and contrast against both page surfaces; past five categories the
+rest fold into Other. Every chart has a legend, a hover and keyboard readout, and a table
+view with the same numbers, because three light-mode colors sit under 3:1 contrast.
+
+### D49. Installable app (PWA)
+
+A web app manifest, icons, and a service worker that only provides an offline notice: it
+never caches pages or data, so nothing financial is left on a device. Browsers require
+HTTPS for the service worker (localhost excepted). Behind Caddy that works with either
+certificate approach: a public DNS-challenge certificate works on every device as is; an
+internal CA works once its root certificate is installed and trusted on each phone.
+Without HTTPS the app still works in the browser, just without install.
+
+### D50. Demo book
+
+"Try a demo book" (Books page) and `npm run seed:demo` build the same "Demo Household":
+three months of bank activity imported through the real CSV path and approved through the
+real review code (rules, transfers, loan splits, bucket allocations), budgets, and the
+last ten days left in For review. It exercises the same invariants as real data, and a
+test checks them.
+
+### D51. Continuous integration
+
+GitHub Actions runs lint, types, formatting, and Vitest against a Postgres service on
+every push and pull request, then the Docker-based Playwright suite. A second workflow
+builds multi-architecture images (amd64 and arm64) and publishes them to the GitHub
+Container Registry on pushes to main and version tags. `BUCKETBOOK_IMAGE` in `.env` lets
+an install use a published image instead of building.

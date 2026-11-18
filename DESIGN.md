@@ -31,12 +31,21 @@ colors:
   negative-fill: "#c4513e"
   on-negative-fill: "#ffffff"
   scrim: "rgb(12 24 18 / 0.45)"
-  # Reserved for buckets (Phase 4). Defined in globals.css, not used on any screen yet.
+  # Reserved for bucket cards; used nowhere else.
   bucket-pink: "#f8d6e0"
   bucket-yellow: "#f8ecaa"
   bucket-green: "#d4ebc6"
   bucket-blue: "#d3e6f5"
   on-bucket: "#1c2620"
+  on-rail-focus: "#1c2620"
+  # Chart series, fixed order, validated for color-vision deficiency on both surfaces.
+  series-1: "#2a78d6"
+  series-2: "#eb6834"
+  series-3: "#1baf7a"
+  series-4: "#eda100"
+  series-5: "#e87ba4"
+  series-other: "#a3aaa5"
+  chart-grid: "#e8ede9"
 typography:
   headline:
     fontFamily: "Figtree, ui-sans-serif, system-ui, sans-serif"
@@ -255,9 +264,9 @@ A cool, green-cast neutral set on white, held inside a felt-green frame, with th
 - **Brick Wash** (negative-soft): background of the form-level error box.
 - **Brick Fill** (negative-fill) with **On Brick** (on-negative-fill): the sweep that fills a danger hold button while it is held, and its label.
 
-### Reserved for buckets (not yet used)
+### Reserved for buckets
 
-- **Bucket Pink** (bucket-pink), **Bucket Yellow** (bucket-yellow), **Bucket Green** (bucket-green), **Bucket Blue** (bucket-blue), with **On Bucket** (on-bucket) for text on them. Defined in light and dark and exposed as utilities, but no screen uses them. They are held for bucket cards when buckets arrive; until then they appear nowhere.
+- **Bucket Pink** (bucket-pink), **Bucket Yellow** (bucket-yellow), **Bucket Green** (bucket-green), **Bucket Blue** (bucket-blue), with **On Bucket** (on-bucket) for text on them. Defined in light and dark. They fill bucket cards and nothing else, so a pastel always means "a bucket".
 
 ### Neutral
 
@@ -419,6 +428,40 @@ Shortcuts are shown where they apply, as small keys in Figtree at 0.6875rem with
 ### Notices and Toasts
 
 An inline notice (the welcome message) is a Green Wash block with 12px corners and Body Small Ink text, its action link in Felt Ink. Toasts sit at the bottom right on white with a Rule border, 12px corners, and the Float shadow; their action button is Felt Green.
+
+### Review Rows
+
+The review queue is one row per bank transaction: checkbox, date, payee with the bank's
+description and small Sunken badges (Rule, Transfer match, Already recorded, CSV), the
+signed amount, the category picker (with a "Matches" group above the chart of accounts),
+and Approve. Only the active row's Approve is filled; the rest are secondary pills, so
+there is one primary action in view. The active row carries a 3px Felt Green inset bar,
+also while focus is inside it. Details open in a bordered panel below the row. On phones
+the row stacks: payee and amount, then date and account, then picker beside Approve.
+
+### Bucket Cards
+
+Buckets are 12px-radius cards filled with their pastel (green, blue, yellow, pink, in
+that order unless chosen), On Bucket ink, the balance in Title size, and a Fill Line for
+goal progress with plain words under it ("$2,000 to go of $4,000 by Jun 1. Set aside $286
+a month."). Unassigned is the one card on Sunken, never a pastel. Pastels appear nowhere
+else in the app.
+
+### Charts
+
+Hand-drawn SVG on the page surface: hairline grid in Chart Grid, axis text in Ink Muted
+at 11px, columns at most 24px wide with a 4px rounded top and a 2px gap between stacked
+segments, lines 2px in Felt Green with a 10% wash and a ringed end dot. Categorical
+series use the five validated chart colors in fixed order, then Other in gray. Every
+chart has a legend for two or more series, a hover and keyboard readout (value first,
+then the series name), and a table view below with the same numbers.
+
+### Summary Bars
+
+Screens that work toward a number (reconciliation, the review toolbar) keep it in a
+sticky bar under the page header on the page surface with a Rule Strong hairline below.
+The deciding number says what it means in words ("Matches the statement.") as well as
+color.
 
 ## Do's and Don'ts
 
