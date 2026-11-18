@@ -93,14 +93,16 @@ async function ReviewContent({ params, searchParams }: PageProps<"/books/[bookId
         }
         actions={
           <>
-            <ButtonLink href={`/connections?book=${book.id}`} variant="ghost">
-              <Link2 size={15} aria-hidden />
-              Bank connections
-            </ButtonLink>
-            <ButtonLink href={`/books/${book.id}/rules`} variant="ghost">
-              <Wand2 size={15} aria-hidden />
-              Rules
-            </ButtonLink>
+            <span className="hidden gap-2 sm:flex">
+              <ButtonLink href={`/connections?book=${book.id}`} variant="ghost">
+                <Link2 size={15} aria-hidden />
+                Bank connections
+              </ButtonLink>
+              <ButtonLink href={`/books/${book.id}/rules`} variant="ghost">
+                <Wand2 size={15} aria-hidden />
+                Rules
+              </ButtonLink>
+            </span>
             {canEdit ? (
               <ButtonLink href={`/books/${book.id}/import`} variant="secondary">
                 <FileUp size={15} aria-hidden />

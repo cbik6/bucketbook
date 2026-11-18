@@ -73,40 +73,59 @@ export function RecWorkspace({
 
   return (
     <div className="flex flex-col gap-4">
-      <dl className="sticky top-0 z-10 grid grid-cols-2 gap-x-6 gap-y-2 border-b border-rule-strong bg-paper py-3 text-sm sm:grid-cols-4">
-        <div>
-          <dt className="text-xs text-ink-muted">Beginning balance</dt>
-          <dd>
-            <Money cents={sign * rec.beginningCents} className="font-medium" />
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-ink-muted">Cleared balance</dt>
-          <dd>
-            <Money cents={sign * clearedCents} className="font-medium" />
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-ink-muted">Statement ending balance</dt>
-          <dd>
-            <Money cents={sign * rec.statementCents} className="font-medium" />
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-ink-muted">Difference</dt>
-          <dd
-            aria-live="polite"
-            className={
-              difference === 0 ? "font-semibold text-positive" : "font-semibold text-negative"
+      <div className="sticky top-0 z-10 flex flex-col gap-3 border-b border-rule-strong bg-paper py-3 sm:flex-row sm:items-center">
+        <dl className="grid flex-1 grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
+          <div>
+            <dt className="text-xs text-ink-muted">Beginning balance</dt>
+            <dd>
+              <Money cents={sign * rec.beginningCents} className="font-medium" />
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-ink-muted">Cleared balance</dt>
+            <dd>
+              <Money cents={sign * clearedCents} className="font-medium" />
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-ink-muted">Statement ending balance</dt>
+            <dd>
+              <Money cents={sign * rec.statementCents} className="font-medium" />
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-ink-muted">Difference</dt>
+            <dd
+              aria-live="polite"
+              className={
+                difference === 0 ? "font-semibold text-positive" : "font-semibold text-ink"
+              }
+            >
+              {formatCents(Math.abs(difference))}
+              <span className="block text-xs font-normal">
+                {difference === 0 ? "Matches the statement." : "Keep checking off items."}
+              </span>
+            </dd>
+          </div>
+        </dl>
+        {open ? (
+          <Button
+            variant="primary"
+            disabled={difference !== 0 || pending}
+            onClick={() =>
+              start(async () => {
+                const r = await finishAction(bookId, rec.id);
+                if (r.ok) {
+                  toast.success("Reconciled.");
+                  router.refresh();
+                } else toast.error(r.error);
+              })
             }
           >
-            {formatCents(Math.abs(difference))}
-            <span className="block text-xs font-normal">
-              {difference === 0 ? "Matches the statement." : "Keep checking off items."}
-            </span>
-          </dd>
-        </div>
-      </dl>
+            Finish
+          </Button>
+        ) : null}
+      </div>
 
       {rec.status === "finished" ? (
         <p className="rounded-xl bg-signal-soft px-4 py-3 text-sm">
@@ -198,21 +217,6 @@ export function RecWorkspace({
       <div className="flex flex-wrap items-center gap-3 border-t border-rule pt-4">
         {open ? (
           <>
-            <Button
-              variant="primary"
-              disabled={difference !== 0 || pending}
-              onClick={() =>
-                start(async () => {
-                  const r = await finishAction(bookId, rec.id);
-                  if (r.ok) {
-                    toast.success("Reconciled.");
-                    router.refresh();
-                  } else toast.error(r.error);
-                })
-              }
-            >
-              Finish
-            </Button>
             <Link href={base} className="text-sm text-ink-muted hover:text-ink">
               Save and leave
             </Link>

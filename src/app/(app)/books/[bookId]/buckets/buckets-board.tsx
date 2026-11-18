@@ -1,12 +1,13 @@
 "use client";
 
-import { ArrowDown, ArrowLeftRight, ArrowUp, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowUp, Pencil, Plus } from "lucide-react";
 import { useId, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Money } from "@/components/money";
 import { Button } from "@/components/ui/button";
 import { Field, FormError, SelectInput, TextInput } from "@/components/ui/field";
 import { FillLine } from "@/components/ui/fill-line";
+import { HoldButton } from "@/components/ui/hold-button";
 import { BUCKET_COLORS, goalProgress } from "@/lib/buckets";
 import { formatDay } from "@/lib/dates";
 import { formatCents } from "@/lib/money";
@@ -32,7 +33,7 @@ const COLOR_LABEL: Record<string, string> = {
 };
 
 const cardColor = (b: BucketView) =>
-  b.isUnassigned ? "var(--surface-sunken)" : `var(--bucket-${b.color ?? "green"})`;
+  b.isUnassigned ? "var(--unassigned-card)" : `var(--bucket-${b.color ?? "green"})`;
 
 function useAction() {
   const [pending, start] = useTransition();
@@ -125,7 +126,7 @@ function BucketAccount({
               <ArrowLeftRight size={15} aria-hidden />
               Move money
             </Button>
-            <Button variant="secondary" onClick={() => setPanel(panel === "new" ? null : "new")}>
+            <Button variant="primary" onClick={() => setPanel(panel === "new" ? null : "new")}>
               <Plus size={15} aria-hidden />
               New bucket
             </Button>
@@ -531,15 +532,11 @@ function AllocationRules({
                   >
                     <ArrowDown size={14} aria-hidden />
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    aria-label={`Remove rule: ${ruleText(r, name(r.bucketAccountId))}`}
+                  <HoldButton
+                    label="Remove"
                     disabled={pending}
-                    onClick={() => run(() => deleteBucketRuleAction(bookId, r.id))}
-                  >
-                    <Trash2 size={14} aria-hidden />
-                  </Button>
+                    onConfirm={() => run(() => deleteBucketRuleAction(bookId, r.id))}
+                  />
                 </span>
               ) : null}
             </li>
@@ -690,21 +687,8 @@ function EnableList({ bookId, eligible }: { bookId: string; eligible: Eligible[]
             {choosing === a.id ? (
               <form
                 className="flex flex-col gap-3"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  run(
-                    () =>
-                      enableBucketsAction(
-                        bookId,
-                        a.id,
-                        names
-                          .split(",")
-                          .map((n) => n.trim())
-                          .filter(Boolean),
-                      ),
-                    () => setChoosing(null),
-                  );
-                }}
+                // Only the hold button turns buckets on; Enter does nothing here.
+                onSubmit={(e) => e.preventDefault()}
               >
                 <Field
                   label="Start with these buckets"
@@ -719,9 +703,27 @@ function EnableList({ bookId, eligible }: { bookId: string; eligible: Eligible[]
                   />
                 </Field>
                 <div className="flex gap-2">
-                  <Button type="submit" variant="primary" disabled={pending}>
-                    {pending ? "Turning on" : `Turn on buckets for ${a.name}`}
-                  </Button>
+                  {/* Can't be undone, so it takes a deliberate hold. */}
+                  <HoldButton
+                    tone="signal"
+                    size="md"
+                    label={`Turn on buckets for ${a.name}`}
+                    disabled={pending}
+                    onConfirm={() =>
+                      run(
+                        () =>
+                          enableBucketsAction(
+                            bookId,
+                            a.id,
+                            names
+                              .split(",")
+                              .map((n) => n.trim())
+                              .filter(Boolean),
+                          ),
+                        () => setChoosing(null),
+                      )
+                    }
+                  />
                   <Button variant="ghost" onClick={() => setChoosing(null)}>
                     Cancel
                   </Button>

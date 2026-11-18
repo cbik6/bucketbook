@@ -8,7 +8,16 @@ import { getDb } from "@/server/db/client";
 import { loadBookForPage } from "@/server/guards";
 import { serverToday } from "@/server/ledger/page-data";
 import { balanceSheet } from "@/server/reports/service";
-import { CsvButton, LineRows, SectionHead, TotalRow, csvHref, one } from "../report-kit";
+import {
+  CsvButton,
+  EmptyToggle,
+  LineRows,
+  SectionHead,
+  TotalRow,
+  csvHref,
+  one,
+  withoutEmpty,
+} from "../report-kit";
 
 export const metadata: Metadata = { title: "Balance Sheet" };
 
@@ -24,6 +33,13 @@ async function Content({
   const asOf = isIsoDate(requested) ? requested : serverToday();
   const bs = await balanceSheet(getDb(), book.id, asOf);
   const base = `/books/${book.id}`;
+  const showEmpty = one(sp.empty) === "1";
+  const lines = withoutEmpty(bs.lines, showEmpty);
+  const hiddenCount = bs.lines.length - withoutEmpty(bs.lines, false).length;
+  const emptyHref = `${base}/reports/balance-sheet?${new URLSearchParams({
+    asOf,
+    ...(showEmpty ? {} : { empty: "1" }),
+  })}`;
   return (
     <>
       <PageHeader
@@ -49,6 +65,9 @@ async function Content({
             Show
           </button>
         </form>
+        <div>
+          <EmptyToggle href={emptyHref} hidden={hiddenCount} showing={showEmpty} />
+        </div>
         {bs.outOfBalanceCents !== 0 ? (
           <p
             role="alert"
@@ -71,26 +90,24 @@ async function Content({
           </thead>
           <tbody>
             <SectionHead label="Assets" span={2} />
-            <LineRows lines={bs.lines.filter((l) => l.type === "asset")} base={base} to={asOf} />
+            <LineRows lines={lines.filter((l) => l.type === "asset")} base={base} to={asOf} />
             <TotalRow label="Total assets" cents={bs.assetsCents} strong />
             <SectionHead label="Liabilities" span={2} />
-            <LineRows
-              lines={bs.lines.filter((l) => l.type === "liability")}
-              base={base}
-              to={asOf}
-            />
+            <LineRows lines={lines.filter((l) => l.type === "liability")} base={base} to={asOf} />
             <TotalRow label="Total liabilities" cents={bs.liabilitiesCents} />
             <SectionHead label="Equity" span={2} />
-            <LineRows lines={bs.lines.filter((l) => l.type === "equity")} base={base} to={asOf} />
-            <tr className="border-b border-rule">
-              <td className="py-2 pr-3 text-ink">
-                Retained earnings{" "}
-                <span className="text-ink-muted">(before {asOf.slice(0, 4)})</span>
-              </td>
-              <td className="py-2 pr-3 text-right">
-                <Money cents={bs.retainedEarningsCents} />
-              </td>
-            </tr>
+            <LineRows lines={lines.filter((l) => l.type === "equity")} base={base} to={asOf} />
+            {bs.retainedEarningsCents !== 0 || showEmpty ? (
+              <tr className="border-b border-rule">
+                <td className="py-2 pr-3 text-ink">
+                  Retained earnings{" "}
+                  <span className="text-ink-muted">(before {asOf.slice(0, 4)})</span>
+                </td>
+                <td className="py-2 pr-3 text-right">
+                  <Money cents={bs.retainedEarningsCents} />
+                </td>
+              </tr>
+            ) : null}
             <tr className="border-b border-rule">
               <td className="py-2 pr-3 text-ink">
                 Net income <span className="text-ink-muted">({asOf.slice(0, 4)} so far)</span>

@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/app-shell";
 import { monthLabel } from "@/components/charts/chart-utils";
 import { LineChart } from "@/components/charts/line-chart";
 import { Money } from "@/components/money";
+import { formatCents } from "@/lib/money";
 import { RangePicker } from "@/components/range-picker";
 import { getDb } from "@/server/db/client";
 import { loadBookForPage } from "@/server/guards";
@@ -47,12 +48,12 @@ async function Content({ params, searchParams }: PageProps<"/books/[bookId]/repo
             {first && first !== latest ? (
               <div>
                 <div className="text-[0.8125rem] text-ink-muted">
-                  Change since {monthLabel(first.month, true)}
+                  Since {monthLabel(first.month, true)}
                 </div>
-                <Money
-                  cents={latest.netWorthCents - first.netWorthCents}
-                  className="text-xl font-semibold"
-                />
+                <div className="tabular text-xl font-semibold">
+                  {latest.netWorthCents >= first.netWorthCents ? "Up " : "Down "}
+                  {formatCents(Math.abs(latest.netWorthCents - first.netWorthCents))}
+                </div>
               </div>
             ) : null}
           </div>

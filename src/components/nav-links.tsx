@@ -28,21 +28,40 @@ export function NavLinks({
   reviewCount?: number;
 }) {
   const pathname = usePathname();
-  const links: Array<{ href: string; label: string; Icon: typeof Inbox; count?: number }> = [
-    { href: `/books/${bookId}/review`, label: "For review", Icon: Inbox, count: reviewCount },
-    { href: `/books/${bookId}/buckets`, label: "Buckets", Icon: PiggyBank },
-    { href: `/books/${bookId}/accounts`, label: "Chart of accounts", Icon: ListTree },
-    { href: `/books/${bookId}/journal`, label: "Journal entries", Icon: NotebookPen },
-    { href: `/books/${bookId}/ledger`, label: "General ledger", Icon: BookOpenText },
-    { href: `/books/${bookId}/reports`, label: "Reports", Icon: BarChart3 },
-    { href: `/books/${bookId}/budget`, label: "Budget", Icon: Gauge },
-    { href: `/books/${bookId}/reconcile`, label: "Reconcile", Icon: CheckCheck },
-    { href: `/books/${bookId}/loans`, label: "Loans", Icon: HandCoins },
-    { href: `/books/${bookId}/rules`, label: "Rules", Icon: Wand2 },
-    { href: `/books/${bookId}/opening-balances`, label: "Opening balances", Icon: Landmark },
-    { href: `/books/${bookId}/activity`, label: "Activity", Icon: History },
-    { href: `/books/${bookId}/settings`, label: "Book settings", Icon: Settings2 },
+  type NavLink = { href: string; label: string; Icon: typeof Inbox; count?: number };
+  const b = `/books/${bookId}`;
+  // Grouped by how often you reach for them.
+  const groups: Array<{ label: string; links: NavLink[] }> = [
+    {
+      label: "Every week",
+      links: [
+        { href: `${b}/review`, label: "For review", Icon: Inbox, count: reviewCount },
+        { href: `${b}/buckets`, label: "Buckets", Icon: PiggyBank },
+        { href: `${b}/budget`, label: "Budget", Icon: Gauge },
+        { href: `${b}/reports`, label: "Reports", Icon: BarChart3 },
+      ],
+    },
+    {
+      label: "Books",
+      links: [
+        { href: `${b}/journal`, label: "Journal entries", Icon: NotebookPen },
+        { href: `${b}/ledger`, label: "General ledger", Icon: BookOpenText },
+        { href: `${b}/accounts`, label: "Chart of accounts", Icon: ListTree },
+        { href: `${b}/reconcile`, label: "Reconcile", Icon: CheckCheck },
+      ],
+    },
+    {
+      label: "Setup",
+      links: [
+        { href: `${b}/loans`, label: "Loans", Icon: HandCoins },
+        { href: `${b}/rules`, label: "Rules", Icon: Wand2 },
+        { href: `${b}/opening-balances`, label: "Opening balances", Icon: Landmark },
+        { href: `${b}/activity`, label: "Activity", Icon: History },
+        { href: `${b}/settings`, label: "Book settings", Icon: Settings2 },
+      ],
+    },
   ];
+  const links = groups.flatMap((g) => g.links);
   // The rail has its own Bank connections link at the bottom; the phone bar needs one here.
   const barLinks = [
     ...links,
@@ -72,35 +91,42 @@ export function NavLinks({
     );
   }
 
+  const railLink = ({ href, label, Icon, count }: NavLink) => {
+    const active = pathname.startsWith(href);
+    return (
+      <Link
+        key={href}
+        href={href}
+        aria-current={active ? "page" : undefined}
+        className={`relative flex h-8 items-center gap-2.5 rounded-lg px-3 text-sm transition-colors duration-150 ${
+          active
+            ? "bg-rail-active font-medium text-rail-ink"
+            : "text-rail-muted hover:bg-rail-raised hover:text-rail-ink"
+        }`}
+      >
+        {active ? (
+          <span
+            aria-hidden
+            className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-[var(--rail-focus)]"
+          />
+        ) : null}
+        <Icon size={16} strokeWidth={1.75} aria-hidden />
+        {label}
+        <span className="ml-auto">
+          <CountBadge count={count} />
+        </span>
+      </Link>
+    );
+  };
+
   return (
-    <nav aria-label="Book" className="flex flex-col gap-0.5">
-      {links.map(({ href, label, Icon, count }) => {
-        const active = pathname.startsWith(href);
-        return (
-          <Link
-            key={href}
-            href={href}
-            aria-current={active ? "page" : undefined}
-            className={`relative flex h-9 items-center gap-2.5 rounded-lg px-3 text-sm transition-colors duration-150 ${
-              active
-                ? "bg-rail-active font-medium text-rail-ink"
-                : "text-rail-muted hover:bg-rail-raised hover:text-rail-ink"
-            }`}
-          >
-            {active ? (
-              <span
-                aria-hidden
-                className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-[var(--rail-focus)]"
-              />
-            ) : null}
-            <Icon size={16} strokeWidth={1.75} aria-hidden />
-            {label}
-            <span className="ml-auto">
-              <CountBadge count={count} />
-            </span>
-          </Link>
-        );
-      })}
+    <nav aria-label="Book" className="flex flex-col gap-4">
+      {groups.map((g) => (
+        <div key={g.label} className="flex flex-col gap-0.5">
+          <h2 className="px-3 pb-1 text-xs font-medium text-rail-muted">{g.label}</h2>
+          {g.links.map(railLink)}
+        </div>
+      ))}
     </nav>
   );
 }

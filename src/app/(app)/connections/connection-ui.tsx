@@ -101,7 +101,7 @@ export function ConnectForm({ first }: { first: boolean }) {
             spellCheck={false}
             autoComplete="off"
             className={`${inputClass} h-auto break-all py-2 text-[0.8125rem]`}
-            placeholder="aHR0cHM6Ly9iZXRhLWJyaWRnZS5zaW1wbGVmaW4ub3JnL3NpbXBsZWZpbi9jbGFpbS8..."
+            placeholder="Paste your setup token here"
           />
         </Field>
         <div className="flex flex-wrap items-center gap-2">

@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatCents } from "@/lib/money";
-import { SERIES_VARS, axisLabel, monthLabel, niceTicks } from "./chart-utils";
+import { SERIES_VARS, axisLabel, monthLabel, niceTicks, observeWidth } from "./chart-utils";
 
 export type ColumnSeries = { name: string; values: number[] };
 
-const W = 800;
 const H = 280;
 const PAD = { top: 16, right: 12, bottom: 28, left: 64 };
 
@@ -25,6 +24,9 @@ export function StackedColumns({
   label: string;
 }) {
   const [active, setActive] = useState<number | null>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [W, setW] = useState(800);
+  useEffect(() => observeWidth(boxRef.current, setW), []);
   const totals = months.map((_, i) =>
     series.reduce((n, s) => n + Math.max(0, s.values[i] ?? 0), 0),
   );
@@ -54,7 +56,7 @@ export function StackedColumns({
           </li>
         ))}
       </ul>
-      <div className="relative">
+      <div className="relative" ref={boxRef}>
         <svg
           viewBox={`0 0 ${W} ${H}`}
           className="block h-auto w-full"

@@ -65,7 +65,7 @@ async function Content({ params, searchParams }: PageProps<"/books/[bookId]/repo
                     <th scope="col" className="py-2 pr-3 text-right font-medium">
                       End
                     </th>
-                    <th scope="col" className="w-48 py-2 font-medium">
+                    <th scope="col" className="min-w-[14rem] py-2 font-medium">
                       Goal
                     </th>
                   </tr>
@@ -104,9 +104,11 @@ async function Content({ params, searchParams }: PageProps<"/books/[bookId]/repo
                                 instant
                               />
                               <span className="text-xs text-ink-muted">
-                                {Math.round(b.goal.fraction * 100)}% of {formatCents(b.goalCents)}
-                                {b.goal.monthlyCents
-                                  ? `, ${formatCents(b.goal.monthlyCents)} a month to go`
+                                {b.goal.reached
+                                  ? `Goal of ${formatCents(b.goalCents)} reached.`
+                                  : `${formatCents(b.goal.remainingCents)} to go of ${formatCents(b.goalCents)}.`}
+                                {b.goal.monthlyCents && !b.goal.reached
+                                  ? ` Set aside ${formatCents(b.goal.monthlyCents)} a month.`
                                   : ""}
                               </span>
                             </div>

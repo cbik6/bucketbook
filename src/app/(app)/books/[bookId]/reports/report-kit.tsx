@@ -98,7 +98,7 @@ export function SectionHead({ label, span }: { label: string; span: number }) {
       <th
         colSpan={span}
         scope="colgroup"
-        className="pb-1 pt-5 text-left text-[0.8125rem] font-semibold uppercase tracking-[0.04em] text-ink-muted"
+        className="border-b border-rule-strong pb-1.5 pt-6 text-left text-[0.9375rem] font-semibold text-ink"
       >
         {label}
       </th>
@@ -134,5 +134,36 @@ export function TotalRow({
       </td>
       {extra}
     </tr>
+  );
+}
+
+/** Accounts with nothing to show are hidden unless asked for. */
+export function withoutEmpty<L extends ReportLine>(lines: L[], showEmpty: boolean): L[] {
+  if (showEmpty) return lines;
+  return lines.filter(
+    (l) => l.totalCents !== 0 || Object.values(l.columns ?? {}).some((v) => v !== 0),
+  );
+}
+
+export function EmptyToggle({
+  href,
+  hidden,
+  showing,
+}: {
+  href: string;
+  hidden: number;
+  showing: boolean;
+}) {
+  if (!showing && hidden === 0) return null;
+  return (
+    <Link
+      href={href}
+      className="text-sm font-medium text-signal-ink underline"
+      aria-pressed={showing}
+    >
+      {showing
+        ? "Hide empty accounts"
+        : `Show ${hidden} empty ${hidden === 1 ? "account" : "accounts"}`}
+    </Link>
   );
 }

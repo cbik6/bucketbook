@@ -292,6 +292,8 @@ table {
   --series-5: #e87ba4;
   --series-other: #a3aaa5;
   --chart-grid: #e8ede9;
+  /* Unassigned is the one bucket card without a pastel. */
+  --unassigned-card: #eef2ef;
 }
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
@@ -302,6 +304,7 @@ table {
     --series-5: #d55181;
     --series-other: #66706a;
     --chart-grid: #243129;
+    --unassigned-card: #1e2b23;
   }
 }
 :root[data-theme="dark"] {
@@ -312,4 +315,5 @@ table {
   --series-5: #d55181;
   --series-other: #66706a;
   --chart-grid: #243129;
+  --unassigned-card: #1e2b23;
 }

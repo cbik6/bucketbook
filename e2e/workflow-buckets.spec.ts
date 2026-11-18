@@ -30,7 +30,12 @@ test("buckets: turn on, allocate a deposit, move money", async ({ page }) => {
     .filter({ visible: true });
   await savings.getByRole("button", { name: "Turn on buckets" }).click();
   await label(page, "Start with these buckets").fill("Car, Trip");
-  await page.getByRole("button", { name: "Turn on buckets for Savings" }).click();
+  // Turning on buckets can't be undone, so it is press and hold.
+  const hold = page.getByRole("button", { name: /Turn on buckets for Savings/ });
+  await hold.focus();
+  await page.keyboard.down("Space");
+  await page.waitForTimeout(1500);
+  await page.keyboard.up("Space");
   await expect(page.getByText("Buckets are on.")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Car", exact: true })).toBeVisible();
 

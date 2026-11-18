@@ -1,10 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatCents } from "@/lib/money";
-import { axisLabel, monthLabel, niceTicks } from "./chart-utils";
+import { axisLabel, monthLabel, niceTicks, observeWidth } from "./chart-utils";
 
-const W = 800;
 const H = 260;
 const PAD = { top: 16, right: 16, bottom: 28, left: 64 };
 
@@ -22,6 +21,9 @@ export function LineChart({
   seriesName: string;
 }) {
   const [active, setActive] = useState<number | null>(null);
+  const boxRef = useRef<HTMLElement>(null);
+  const [W, setW] = useState(800);
+  useEffect(() => observeWidth(boxRef.current, setW), []);
   const svgRef = useRef<SVGSVGElement>(null);
   const values = points.map((p) => p.value);
   const min = Math.min(0, ...values);
@@ -54,7 +56,7 @@ export function LineChart({
 
   const last = points.length - 1;
   return (
-    <figure className="relative">
+    <figure className="relative" ref={boxRef}>
       <svg
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
@@ -135,7 +137,7 @@ export function LineChart({
           />
         ) : null}
       </svg>
-      {points.length ? (
+      {points.length && active !== null ? (
         <div
           role="status"
           className="pointer-events-none absolute top-2 rounded-lg border border-rule bg-surface px-3 py-2 text-[0.8125rem] shadow-[var(--shadow-float)]"

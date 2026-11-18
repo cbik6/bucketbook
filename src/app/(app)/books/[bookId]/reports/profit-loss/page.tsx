@@ -11,12 +11,14 @@ import { serverToday } from "@/server/ledger/page-data";
 import { profitAndLoss } from "@/server/reports/service";
 import {
   CsvButton,
+  EmptyToggle,
   LineRows,
   SectionHead,
   TotalRow,
   csvHref,
   one,
   reportRange,
+  withoutEmpty,
 } from "../report-kit";
 
 export const metadata: Metadata = { title: "Profit and Loss" };
@@ -32,11 +34,22 @@ async function Content({ params, searchParams }: PageProps<"/books/[bookId]/repo
   const base = `/books/${book.id}`;
   const cols = monthly ? pl.months : undefined;
   const span = 2 + (cols?.length ?? 0);
-  const keep = { monthly: monthly ? "1" : undefined };
+  const showEmpty = one(sp.empty) === "1";
+  const keep = { monthly: monthly ? "1" : undefined, empty: showEmpty ? "1" : undefined };
+  const rangeQ: Record<string, string> =
+    range.preset === "custom" ? { from, to } : { range: range.preset };
   const toggle = new URLSearchParams({
-    ...(range.preset === "custom" ? { from, to } : { range: range.preset }),
+    ...rangeQ,
     ...(monthly ? {} : { monthly: "1" }),
+    ...(showEmpty ? { empty: "1" } : {}),
   });
+  const emptyHref = `${base}/reports/profit-loss?${new URLSearchParams({
+    ...rangeQ,
+    ...(monthly ? { monthly: "1" } : {}),
+    ...(showEmpty ? {} : { empty: "1" }),
+  })}`;
+  const lines = withoutEmpty(pl.lines, showEmpty);
+  const hiddenCount = pl.lines.length - withoutEmpty(pl.lines, false).length;
   return (
     <>
       <PageHeader
@@ -59,6 +72,9 @@ async function Content({ params, searchParams }: PageProps<"/books/[bookId]/repo
             {monthly ? "Totals only" : "Show monthly columns"}
           </Link>
         </div>
+        <div>
+          <EmptyToggle href={emptyHref} hidden={hiddenCount} showing={showEmpty} />
+        </div>
         <div className="overflow-x-auto">
           <table className={`w-full text-sm ${cols ? "min-w-[48rem]" : "max-w-[48rem]"}`}>
             <thead>
@@ -79,7 +95,7 @@ async function Content({ params, searchParams }: PageProps<"/books/[bookId]/repo
             <tbody>
               <SectionHead label="Income" span={span} />
               <LineRows
-                lines={pl.lines.filter((l) => l.type === "income")}
+                lines={lines.filter((l) => l.type === "income")}
                 base={base}
                 from={from}
                 to={to}
@@ -92,7 +108,7 @@ async function Content({ params, searchParams }: PageProps<"/books/[bookId]/repo
               />
               <SectionHead label="Expenses" span={span} />
               <LineRows
-                lines={pl.lines.filter((l) => l.type === "expense")}
+                lines={lines.filter((l) => l.type === "expense")}
                 base={base}
                 from={from}
                 to={to}

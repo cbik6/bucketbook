@@ -27,9 +27,23 @@ export function monthLabel(month: string, withYear = false): string {
   const [y, m] = month.split("-").map(Number) as [number, number];
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
-    year: withYear ? "2-digit" : undefined,
+    year: withYear ? "numeric" : undefined,
     timeZone: "UTC",
   }).format(new Date(Date.UTC(y, m - 1, 1)));
 }
 
 export const SERIES_VARS = ["--series-1", "--series-2", "--series-3", "--series-4", "--series-5"];
+
+/**
+ * Tracks an element's width so a chart draws at its real size: text stays at
+ * its true pixel size on a phone instead of shrinking with a scaled viewBox.
+ */
+export function observeWidth(el: HTMLElement | null, onWidth: (w: number) => void) {
+  if (!el || typeof ResizeObserver === "undefined") return () => {};
+  const ro = new ResizeObserver(([entry]) => {
+    const w = Math.round(entry?.contentRect.width ?? 0);
+    if (w > 0) onWidth(w);
+  });
+  ro.observe(el);
+  return () => ro.disconnect();
+}

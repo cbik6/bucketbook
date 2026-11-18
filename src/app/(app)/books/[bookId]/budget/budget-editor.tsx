@@ -99,7 +99,7 @@ export function BudgetEditor({
           <th
             colSpan={4}
             scope="colgroup"
-            className="pb-1 pt-5 text-left text-[0.8125rem] font-semibold uppercase tracking-[0.04em] text-ink-muted"
+            className="border-b border-rule-strong pb-1.5 pt-6 text-left text-[0.9375rem] font-semibold text-ink"
           >
             {title}
           </th>
@@ -114,6 +114,11 @@ export function BudgetEditor({
                 style={{ paddingLeft: `${l.depth * 1.25}rem` }}
               >
                 <label htmlFor={l.hasChildren ? undefined : `budget-${l.id}`}>{l.name}</label>
+                {l.actualCents ? (
+                  <div className="tabular text-xs font-normal text-ink-muted sm:hidden">
+                    Actual {formatCents(l.actualCents)}
+                  </div>
+                ) : null}
               </td>
               <td className="py-1.5 pr-3">
                 {l.hasChildren ? (
@@ -135,12 +140,12 @@ export function BudgetEditor({
                   />
                 )}
               </td>
-              <td className="py-1.5 pr-3 text-right">
+              <td className="hidden py-1.5 pr-3 text-right sm:table-cell">
                 <Money cents={l.actualCents} blankZero />
               </td>
-              <td className="py-1.5 text-right text-[0.8125rem]">
+              <td className="hidden py-1.5 text-right text-[0.8125rem] sm:table-cell">
                 {b === 0 ? null : left < 0 ? (
-                  <span className="text-negative">
+                  <span className={type === "expense" ? "text-negative" : "text-ink-muted"}>
                     {formatCents(-left)} {type === "expense" ? "over" : "short"}
                   </span>
                 ) : (
@@ -157,10 +162,10 @@ export function BudgetEditor({
           <td className="py-2.5 pr-6 text-right">
             <Money cents={budget} />
           </td>
-          <td className="py-2.5 pr-3 text-right">
+          <td className="hidden py-2.5 pr-3 text-right sm:table-cell">
             <Money cents={actual} />
           </td>
-          <td />
+          <td className="hidden sm:table-cell" />
         </tr>
       </>
     );
@@ -227,19 +232,19 @@ export function BudgetEditor({
       </div>
       <FormError message={error} />
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[34rem] text-sm">
+        <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-rule-strong text-left text-xs text-ink-muted">
               <th scope="col" className="py-2 pr-3 font-medium">
                 Account
               </th>
-              <th scope="col" className="w-40 py-2 pr-6 text-right font-medium">
+              <th scope="col" className="w-32 py-2 pr-6 text-right font-medium sm:w-40">
                 Budget
               </th>
-              <th scope="col" className="py-2 pr-3 text-right font-medium">
+              <th scope="col" className="hidden py-2 pr-3 text-right font-medium sm:table-cell">
                 Actual
               </th>
-              <th scope="col" className="py-2 text-right font-medium">
+              <th scope="col" className="hidden py-2 text-right font-medium sm:table-cell">
                 <span className="sr-only">Difference</span>
               </th>
             </tr>
