@@ -1,12 +1,12 @@
 "use client";
 
-import { useActionState, useId, useTransition } from "react";
+import { useActionState, useId, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Field, TextInput } from "@/components/ui/field";
+import { Field, FormError, TextInput } from "@/components/ui/field";
 import { HoldButton } from "@/components/ui/hold-button";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { renameBookAction, setBookArchivedAction } from "../../actions";
+import { deleteBookAction, renameBookAction, setBookArchivedAction } from "../../actions";
 
 export function RenameBookForm({ bookId, name }: { bookId: string; name: string }) {
   const [state, formAction] = useActionState(renameBookAction.bind(null, bookId), {});
@@ -61,5 +61,45 @@ export function ArchiveBookControl({ bookId, archived }: { bookId: string; archi
       onConfirm={() => run(true)}
       size="md"
     />
+  );
+}
+
+/**
+ * Permanent removal of an archived book. Two deliberate steps: type the book's
+ * name, then hold the button.
+ */
+export function DeleteBookControl({ bookId, name }: { bookId: string; name: string }) {
+  const uid = useId();
+  const [typed, setTyped] = useState("");
+  const [error, setError] = useState<string>();
+  const [pending, startTransition] = useTransition();
+  const matches = typed.trim() === name;
+  return (
+    <div className="flex max-w-md flex-col gap-4">
+      <FormError message={error} />
+      <Field label={`Type ${name} to confirm`} htmlFor={`${uid}-confirm`}>
+        <TextInput
+          id={`${uid}-confirm`}
+          value={typed}
+          onChange={(e) => setTyped(e.target.value)}
+          autoComplete="off"
+          spellCheck={false}
+        />
+      </Field>
+      <div>
+        <HoldButton
+          label="Delete book forever"
+          holdingLabel="Keep holding to delete"
+          size="md"
+          disabled={!matches || pending}
+          onConfirm={() =>
+            startTransition(async () => {
+              const result = await deleteBookAction(bookId, typed);
+              if (result?.error) setError(result.error);
+            })
+          }
+        />
+      </div>
+    </div>
   );
 }

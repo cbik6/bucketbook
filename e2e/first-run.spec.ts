@@ -22,7 +22,6 @@ test("first run: create the owner and a book, then manage the chart of accounts"
   await expect(page.getByRole("heading", { name: "Start your first book" })).toBeVisible();
   await page.getByLabel("Book name").fill("Example Family");
   await page.getByText("Household", { exact: true }).click();
-  await page.getByLabel("Start date").fill("2026-01-01");
   await page.getByRole("button", { name: "Create book and continue" }).click();
 
   // Step 3: bank connection is "connect later" in Phase 1.

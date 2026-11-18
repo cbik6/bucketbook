@@ -135,6 +135,8 @@ export function describeAudit(
         return { summary: "Archived this book", details: [] };
       case "unarchive":
         return { summary: "Restored this book", details: [] };
+      case "delete":
+        return { summary: `Deleted book ${str(before.name)}`, details: [] };
       default: {
         const details: string[] = [];
         if (before.name !== after.name)

@@ -1,11 +1,32 @@
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { rm } from "node:fs/promises";
+import path from "node:path";
+import { and, asc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { BOOK_TEMPLATES, type BookRole, type BookTemplate } from "@/lib/account-types";
 import { insertTemplateAccounts } from "../accounts/service";
 import { CHART_TEMPLATES } from "../accounts/templates";
 import { recordAudit } from "../audit/record";
 import type { Database, DbOrTx } from "../db/client";
-import { bookMembers, books } from "../db/schema";
+import {
+  accounts,
+  attachments,
+  bankFeeds,
+  bankRules,
+  bankTransactions,
+  bookCounterparts,
+  bookMembers,
+  books,
+  bucketRules,
+  budgets,
+  csvPresets,
+  journalEntries,
+  journalEntryVersions,
+  journalLines,
+  loans,
+  reconciliationItems,
+  reconciliations,
+} from "../db/schema";
+import { getEnv } from "../env";
 import { ForbiddenError, NotFoundError, UserFacingError } from "../errors";
 
 export type BookRow = typeof books.$inferSelect;
@@ -159,4 +180,85 @@ export async function setBookArchived(
     });
     return after!;
   });
+}
+
+/**
+ * Permanently deletes an archived book and everything in it: entries, accounts,
+ * bank transactions, rules, reconciliations, receipts. Owners only, and only
+ * once the book is archived, so it always takes two deliberate steps. Bank
+ * accounts linked to it stay connected and go back to waiting for setup.
+ *
+ * The ledger guards refuse to delete posted history; this is the one place that
+ * opens them, by naming this book in a transaction-local setting they check.
+ */
+export async function deleteBook(
+  db: Database,
+  actor: { userId: string },
+  bookId: string,
+  confirmName: unknown,
+): Promise<{ name: string }> {
+  const name = await db.transaction(async (tx) => {
+    const book = await requireBookAccess(tx, actor.userId, bookId, "owner");
+    if (!book.archivedAt) {
+      throw new UserFacingError("Archive the book first. Only archived books can be deleted.");
+    }
+    if (typeof confirmName !== "string" || confirmName.trim() !== book.name) {
+      throw new UserFacingError("Type the book's name exactly to delete it.", "confirmName");
+    }
+    // Lock the book row so nothing else writes to it while it is removed.
+    await tx.execute(sql`select id from ${books} where ${books.id} = ${bookId} for update`);
+    await tx.execute(sql`select set_config('bucketbook.deleting_book', ${bookId}, true)`);
+
+    await tx
+      .update(bankFeeds)
+      .set({
+        bookId: null,
+        accountId: null,
+        importFrom: null,
+        syncedFrom: null,
+        syncedThrough: null,
+      })
+      .where(eq(bankFeeds.bookId, bookId));
+    await tx.delete(attachments).where(eq(attachments.bookId, bookId));
+    await tx.delete(bankTransactions).where(eq(bankTransactions.bookId, bookId));
+    const recs = tx
+      .select({ id: reconciliations.id })
+      .from(reconciliations)
+      .where(eq(reconciliations.bookId, bookId));
+    await tx.delete(reconciliationItems).where(inArray(reconciliationItems.reconciliationId, recs));
+    await tx.delete(reconciliations).where(eq(reconciliations.bookId, bookId));
+    await tx.delete(loans).where(eq(loans.bookId, bookId));
+    await tx.delete(bucketRules).where(eq(bucketRules.bookId, bookId));
+    await tx.delete(bankRules).where(eq(bankRules.bookId, bookId));
+    await tx.delete(csvPresets).where(eq(csvPresets.bookId, bookId));
+    await tx.delete(budgets).where(eq(budgets.bookId, bookId));
+    await tx
+      .delete(bookCounterparts)
+      .where(or(eq(bookCounterparts.bookId, bookId), eq(bookCounterparts.otherBookId, bookId)));
+    await tx.delete(journalLines).where(eq(journalLines.bookId, bookId));
+    const entries = tx
+      .select({ id: journalEntries.id })
+      .from(journalEntries)
+      .where(eq(journalEntries.bookId, bookId));
+    await tx.delete(journalEntryVersions).where(inArray(journalEntryVersions.entryId, entries));
+    await tx.delete(journalEntries).where(eq(journalEntries.bookId, bookId));
+    await tx.delete(accounts).where(eq(accounts.bookId, bookId));
+    await tx.delete(bookMembers).where(eq(bookMembers.bookId, bookId));
+    await tx.delete(books).where(eq(books.id, bookId));
+
+    await recordAudit(tx, {
+      bookId: null,
+      userId: actor.userId,
+      entityType: "book",
+      entityId: bookId,
+      action: "delete",
+      before: { name: book.name, startDate: book.startDate, template: book.template },
+    });
+    return book.name;
+  });
+
+  // Receipt files live outside the database; remove them once the rows are gone.
+  const dir = path.join(path.resolve(getEnv().RECEIPTS_DIR), bookId);
+  await rm(dir, { recursive: true, force: true }).catch(() => undefined);
+  return { name };
 }

@@ -6,6 +6,18 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-18
+
+### Added
+
+- Delete an archived book for good from its Book settings (owners only). You type the
+  book's name and hold the button; its bank accounts stay connected and wait to be set
+  up again.
+
+### Changed
+
+- The new book form no longer asks for a start date: a book starts the day it is created.
+
 ## [1.5.0] - 2026-11-18
 
 ### Added

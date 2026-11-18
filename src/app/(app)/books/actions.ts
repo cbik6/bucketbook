@@ -4,8 +4,9 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { type ActionState, actionError, formValues } from "@/server/action-state";
 import { requireUser } from "@/server/auth/session";
-import { createBook, renameBook, setBookArchived } from "@/server/books/service";
+import { createBook, deleteBook, renameBook, setBookArchived } from "@/server/books/service";
 import { getDb } from "@/server/db/client";
+import { serverToday } from "@/server/ledger/page-data";
 import { createDemoBook } from "@/server/demo/seed";
 import { todayIso } from "@/lib/dates";
 
@@ -13,11 +14,15 @@ export async function createBookAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const values = formValues(formData, ["name", "template", "startDate"]);
+  const values = formValues(formData, ["name", "template"]);
   let bookId: string;
   try {
     const user = await requireUser();
-    const { book } = await createBook(getDb(), { userId: user.id }, values);
+    const { book } = await createBook(
+      getDb(),
+      { userId: user.id },
+      { ...values, startDate: serverToday() },
+    );
     bookId = book.id;
   } catch (err) {
     return actionError(err, values);
@@ -53,6 +58,20 @@ export async function setBookArchivedAction(
   } catch (err) {
     return { error: actionError(err).error };
   }
+}
+
+/** Permanently deletes an archived book, then returns to the list of books. */
+export async function deleteBookAction(
+  bookId: string,
+  confirmName: string,
+): Promise<{ error?: string }> {
+  try {
+    const user = await requireUser();
+    await deleteBook(getDb(), { userId: user.id }, bookId, confirmName);
+  } catch (err) {
+    return { error: actionError(err).error };
+  }
+  redirect("/books");
 }
 
 /** Creates the sample "Demo Household" book and opens its review queue. */

@@ -7,6 +7,7 @@ import { getAuth } from "@/server/auth/auth";
 import { getCurrentUser } from "@/server/auth/session";
 import { createBook, listBooksForUser } from "@/server/books/service";
 import { getDb } from "@/server/db/client";
+import { serverToday } from "@/server/ledger/page-data";
 import { UserFacingError } from "@/server/errors";
 import { getSetupState, markSetupComplete } from "@/server/setup/service";
 
@@ -40,12 +41,13 @@ export async function createFirstBookAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const values = formValues(formData, ["name", "template", "startDate"]);
+  const values = formValues(formData, ["name", "template"]);
   try {
     const user = await getCurrentUser();
     if (!user) throw new UserFacingError("Your session ended. Sign in to continue setup.");
     const existing = await listBooksForUser(getDb(), user.id, { includeArchived: true });
-    if (existing.length === 0) await createBook(getDb(), { userId: user.id }, values);
+    if (existing.length === 0)
+      await createBook(getDb(), { userId: user.id }, { ...values, startDate: serverToday() });
   } catch (err) {
     return actionError(err, values);
   }

@@ -9,19 +9,15 @@ import { SubmitButton } from "./ui/submit-button";
 type Props = {
   action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
   templates: TemplateSummary[];
-  defaultStartDate: string;
   submitLabel: string;
   namePlaceholder?: string;
 };
 
-/** Name, starting chart of accounts, and start date. Used by setup and "New book". */
-export function BookForm({
-  action,
-  templates,
-  defaultStartDate,
-  submitLabel,
-  namePlaceholder,
-}: Props) {
+/**
+ * Name and starting chart of accounts. Used by setup and "New book". A book
+ * starts the day it is created, so there is no start date to pick.
+ */
+export function BookForm({ action, templates, submitLabel, namePlaceholder }: Props) {
   const [state, formAction] = useActionState(action, {});
   const v = state.values ?? {};
   const groupId = useId();
@@ -92,23 +88,6 @@ export function BookForm({
           Everything stays editable: rename, add, nest, or archive accounts afterward.
         </p>
       </fieldset>
-
-      <Field
-        label="Start date"
-        htmlFor={`${uid}-book-start`}
-        hint="Usually today, the day you start these books. Opening balances are as of this date."
-        error={state.field === "startDate" ? state.error : undefined}
-      >
-        <TextInput
-          id={`${uid}-book-start`}
-          name="startDate"
-          type="date"
-          required
-          defaultValue={v.startDate || defaultStartDate}
-          invalid={state.field === "startDate"}
-          className="tabular max-w-48"
-        />
-      </Field>
 
       <div className="text-[0.8125rem] text-ink-muted">Currency: US dollars (USD)</div>
 

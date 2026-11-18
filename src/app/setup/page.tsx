@@ -1,4 +1,3 @@
-import { serverToday } from "@/server/ledger/page-data";
 import { connection } from "next/server";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -52,11 +51,6 @@ function StepHeader({
   );
 }
 
-/** Books start the day you start keeping them; opening balances are as of today. */
-function defaultStartDate(): string {
-  return serverToday();
-}
-
 async function SetupContent() {
   // Per-user page: always render at request time, never at build time.
   await connection();
@@ -98,7 +92,6 @@ async function SetupContent() {
         <BookForm
           action={createFirstBookAction}
           templates={templateSummaries()}
-          defaultStartDate={defaultStartDate()}
           submitLabel="Create book and continue"
         />
       </PlainShell>

@@ -78,6 +78,13 @@
       "when": 1794974684151,
       "tag": "0010_import_from",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794978404995,
+      "tag": "0011_delete_book_guards",
+      "breakpoints": true
     }
   ]
 }

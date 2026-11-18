@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { CHART_TEMPLATES } from "@/server/accounts/templates";
 import { loadBookForPage } from "@/server/guards";
-import { ArchiveBookControl, RenameBookForm } from "./settings-forms";
+import { ArchiveBookControl, DeleteBookControl, RenameBookForm } from "./settings-forms";
 
 export const metadata: Metadata = { title: "Book settings" };
 
@@ -64,6 +64,21 @@ async function SettingsContent({ params }: PageProps<"/books/[bookId]/settings">
             <ArchiveBookControl bookId={book.id} archived={Boolean(book.archivedAt)} />
           ) : null}
         </section>
+
+        {book.archivedAt && isOwner ? (
+          <section className="py-8" aria-labelledby="delete-heading">
+            <h2 id="delete-heading" className="mb-1 text-base font-semibold">
+              Delete this book
+            </h2>
+            <p className="mb-4 max-w-prose text-sm text-ink-muted">
+              Permanently erases the book and everything in it: entries, accounts, buckets, rules,
+              reconciliations, and receipts. This can&apos;t be undone, so export any reports you
+              want to keep first. Bank accounts linked to it stay connected and wait to be set up
+              again.
+            </p>
+            <DeleteBookControl bookId={book.id} name={book.name} />
+          </section>
+        ) : null}
       </div>
     </>
   );

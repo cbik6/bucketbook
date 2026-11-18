@@ -474,3 +474,16 @@ value updates. A book's start date is fixed when the book is created (it default
 day): opening balances and import dates hang off it, and moving it would quietly change
 what they mean. The connect form shows SimpleFIN's terms and a no-warranty notice, and
 the server requires the agreement box.
+
+### D58. Deleting a book
+
+Archiving stays the everyday way to put a book away. Deleting is permanent, so it needs
+both: the book must already be archived, and the owner types its name and holds the
+button. The ledger guards (D26) still refuse to delete posted lines,
+versions, or entries; the delete runs in one transaction that first names the book in a
+transaction-local setting (`bucketbook.deleting_book`), and the guards allow deletes only
+for rows of that book. Naming another book, or deleting without the setting, is refused as
+before. Bank feeds mapped to the book are unmapped (and their import window cleared)
+rather than removed, so the SimpleFIN link survives. Receipt files are removed after the
+rows. One audit row records the deletion with the book's name. The new book form drops its
+start date field: a book starts the day it is created (D57).
