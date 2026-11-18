@@ -144,7 +144,8 @@ function Step({
   const existing = free.find((a) => a.id === accountId);
   const isInvestment =
     choice === "new" ? kind === "investment" : existing?.label.toLowerCase().includes("invest");
-  const owed = kind === "credit_card" || kind === "loan" || existing?.type === "liability";
+  const owed =
+    choice === "new" ? kind === "credit_card" || kind === "loan" : existing?.type === "liability";
   const balance = feed.balanceCents;
 
   const submit = () =>
@@ -203,17 +204,23 @@ function Step({
       ) : null}
 
       <fieldset className="flex min-w-0 flex-col gap-2">
-        <legend className="mb-1 text-[0.8125rem] font-medium">Where should it go?</legend>
+        <legend className="mb-1 text-[0.8125rem] font-medium">
+          How should Bucketbook track it?
+        </legend>
         {(
           [
-            ["new", "A new account"],
-            ["existing", "An account I already have"],
-            ["ignore", "Don't bring this account in"],
+            ["new", "Create a new account for it", "The usual choice."],
+            [
+              "existing",
+              "Link it to an account already in Bucketbook",
+              "Only if you added this account by hand before connecting.",
+            ],
+            ["ignore", "Skip it", "Leave this account out of Bucketbook."],
           ] as const
-        ).map(([value, label]) => (
+        ).map(([value, label, hint]) => (
           <label
             key={value}
-            className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm ${
+            className={`flex items-start gap-2 rounded-lg border px-3 py-2.5 text-sm ${
               choice === value ? "border-signal bg-signal-soft/50" : "border-rule"
             } ${value === "existing" && free.length === 0 ? "opacity-50" : ""}`}
           >
@@ -224,9 +231,12 @@ function Step({
               checked={choice === value}
               disabled={value === "existing" && free.length === 0}
               onChange={() => setChoice(value)}
-              className="size-4 accent-[var(--signal)]"
+              className="mt-0.5 size-4 shrink-0 accent-[var(--signal)]"
             />
-            {label}
+            <span className="flex min-w-0 flex-col">
+              {label}
+              <span className="text-[0.8125rem] text-ink-muted">{hint}</span>
+            </span>
           </label>
         ))}
       </fieldset>
@@ -258,7 +268,7 @@ function Step({
 
       {choice === "existing" ? (
         <label className="flex flex-col gap-1.5 text-[0.8125rem] font-medium">
-          Account
+          Bucketbook account
           <SelectInput value={accountId} onChange={(e) => setAccountId(e.target.value)}>
             {free.map((a) => (
               <option key={a.id} value={a.id}>

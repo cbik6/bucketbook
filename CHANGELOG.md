@@ -6,6 +6,19 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-11-18
+
+### Changed
+
+- Clearer choices in the bank setup guide: "Create a new account for it" (the usual
+  choice), "Link it to an account already in Bucketbook", or "Skip it", each with a short
+  hint.
+
+### Fixed
+
+- Linking a card or loan to an existing asset account no longer shows its opening balance
+  as owed.
+
 ## [1.6.0] - 2026-11-18
 
 ### Added
