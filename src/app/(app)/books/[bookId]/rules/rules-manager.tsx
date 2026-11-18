@@ -9,7 +9,15 @@ import { Field, FormError, SelectInput, TextInput } from "@/components/ui/field"
 import { HoldButton } from "@/components/ui/hold-button";
 import type { AccountOptionGroup } from "@/lib/account-options";
 import { formatCents, parseCents } from "@/lib/money";
-import { DIRECTIONS, TEXT_FIELDS, TEXT_OPS, TEXT_OP_LABELS, describeConditions } from "@/lib/rules";
+import {
+  DIRECTIONS,
+  type RuleActions,
+  type RuleConditions,
+  TEXT_FIELDS,
+  TEXT_OPS,
+  TEXT_OP_LABELS,
+  describeConditions,
+} from "@/lib/rules";
 import type { RuleRow } from "@/server/bank/rules-service";
 import { deleteRuleAction, moveRuleAction, saveRuleAction } from "./actions";
 
@@ -179,9 +187,16 @@ export function RulesManager({
 const centsText = (c: number | null | undefined) =>
   c == null ? "" : formatCents(c, { showSymbol: false });
 
-function RuleEditor({
+export type RulePrefill = {
+  name: string;
+  conditions: Partial<RuleConditions>;
+  actions: Partial<RuleActions>;
+};
+
+export function RuleEditor({
   bookId,
   rule,
+  prefill,
   groups,
   bankAccounts,
   buckets,
@@ -189,6 +204,8 @@ function RuleEditor({
 }: {
   bookId: string;
   rule?: RuleRow;
+  /** Starting values for a new rule, for example from a transaction in review. */
+  prefill?: RulePrefill;
   groups: AccountOptionGroup[];
   bankAccounts: BankAccount[];
   buckets: { id: string; label: string }[];
@@ -197,9 +214,9 @@ function RuleEditor({
   const uid = useId();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
-  const c = rule?.conditions;
-  const a = rule?.actions;
-  const [name, setName] = useState(rule?.name ?? "");
+  const c = rule?.conditions ?? prefill?.conditions;
+  const a = rule?.actions ?? prefill?.actions;
+  const [name, setName] = useState(rule?.name ?? prefill?.name ?? "");
   const [field, setField] = useState<string>(c?.text?.field ?? "any");
   const [op, setOp] = useState<string>(c?.text?.op ?? "contains");
   const [value, setValue] = useState(c?.text?.value ?? "");
@@ -282,7 +299,7 @@ function RuleEditor({
       noValidate
     >
       <h2 className="text-[0.9375rem] font-semibold text-ink">
-        {rule ? `Edit ${rule.name}` : "New rule"}
+        {rule ? `Edit ${rule.name}` : prefill ? "New rule from this transaction" : "New rule"}
       </h2>
       <FormError message={error} />
       <Field label="Name" htmlFor={`${uid}-name`} hint="Leave blank to use the text it looks for.">

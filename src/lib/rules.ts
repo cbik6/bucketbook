@@ -221,3 +221,20 @@ export function describeConditions(c: RuleConditions, accountName: (id: string) 
 export function payeeKey(subject: Pick<RuleSubject, "payee" | "description">): string {
   return (subject.payee ?? subject.description).replace(/\s+/g, " ").trim().slice(0, 200);
 }
+
+/**
+ * Text for a new rule to look for, from a bank description: store numbers
+ * ("#204"), long reference digits and dates are dropped so the rule also
+ * matches the next visit ("FRESH MARKET #204 03/11" becomes "FRESH MARKET").
+ */
+export function suggestRuleText(text: string): string {
+  const cleaned = text
+    .replace(/#\s*\d+/g, " ")
+    .replace(/\b\d{1,2}[/-]\d{1,2}([/-]\d{2,4})?\b/g, " ")
+    .replace(/\b[\d-]{3,}\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 60)
+    .trim();
+  return cleaned.length >= 3 ? cleaned : text.trim().slice(0, 60);
+}

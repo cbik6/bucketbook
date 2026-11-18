@@ -144,7 +144,8 @@ a small paid service that connects to most US banks and credit cards.
 
 New transactions wait in **For review** in each book. Approve each with a category (or
 split it), match transfers between your accounts, or exclude it. Rules fill in the
-category for you, and nothing posts until you approve it.
+category for you (open a transaction's details and choose **Create a rule from this** to
+make one from it), and nothing posts until you approve it.
 
 To try it without a bank, press **Use the demo bank** on the Bank connections page; it
 connects SimpleFIN's public demo account.

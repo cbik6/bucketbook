@@ -14,8 +14,10 @@ import { formatDay } from "@/lib/dates";
 import { formatEntryNumber } from "@/lib/ledger-math";
 import { splitPayment } from "@/lib/loans";
 import { formatCents, parseCents } from "@/lib/money";
+import { suggestRuleText } from "@/lib/rules";
 import type { Decision, QueueItem } from "@/server/bank/review-service";
 import { type AttachmentInfo, Attachments } from "../attachments";
+import { RuleEditor } from "../rules/rules-manager";
 import {
   type ReviewResult,
   approveAction,
@@ -30,6 +32,11 @@ import {
 } from "./actions";
 
 export type { AttachmentInfo };
+
+type RuleOptions = {
+  bankAccounts: { id: string; name: string }[];
+  buckets: { id: string; label: string }[];
+};
 
 export type LoanHint = {
   accountId: string;
@@ -101,9 +108,12 @@ export function ReviewQueue({
   attachments,
   buckets,
   loans,
+  ruleOptions,
   canEdit,
 }: {
   bookId: string;
+  /** What the rule editor offers: bank accounts to limit to, and buckets. */
+  ruleOptions: RuleOptions;
   loans: LoanHint[];
   buckets: Record<string, { id: string; name: string; isUnassigned: boolean }[]>;
   items: QueueItem[];
@@ -402,6 +412,7 @@ export function ReviewQueue({
             files={attachments[item.id] ?? []}
             buckets={buckets[item.accountId]}
             loans={loans}
+            ruleOptions={ruleOptions}
             active={item.id === activeId}
             selected={selected.has(item.id)}
             expanded={expanded === item.id}
@@ -459,6 +470,7 @@ type RowProps = {
   files: AttachmentInfo[];
   buckets?: { id: string; name: string; isUnassigned: boolean }[];
   loans: LoanHint[];
+  ruleOptions: RuleOptions;
   active: boolean;
   selected: boolean;
   expanded: boolean;
@@ -738,6 +750,7 @@ function Details(
   const { item, draft } = p;
   const choice = draft.choice;
   const plainAccount = choice && !choice.includes(":") && choice !== "split";
+  const [ruleOpen, setRuleOpen] = useState(false);
   return (
     <div
       id={`${p.base}-details`}
@@ -856,6 +869,46 @@ function Details(
             </span>
           </span>
         </label>
+      ) : null}
+
+      {p.canEdit ? (
+        ruleOpen ? (
+          <RuleEditor
+            bookId={p.bookId}
+            groups={p.groups}
+            bankAccounts={p.ruleOptions.bankAccounts}
+            buckets={p.ruleOptions.buckets}
+            prefill={{
+              name: draft.payee || p.title,
+              conditions: {
+                text: {
+                  field: "any",
+                  op: "contains",
+                  value: suggestRuleText(item.payee ?? item.description),
+                },
+                direction: item.amountCents < 0 ? "outflow" : "inflow",
+                accountId: item.accountId,
+              },
+              actions: {
+                offsetAccountId: plainAccount ? choice : null,
+                bucketAccountId: draft.bucketId || null,
+                payee:
+                  draft.payee && draft.payee !== (item.payee ?? item.description)
+                    ? draft.payee
+                    : null,
+                transfer: choice.startsWith("transfer:"),
+              },
+            }}
+            onDone={() => setRuleOpen(false)}
+          />
+        ) : (
+          <div>
+            <Button size="sm" variant="secondary" onClick={() => setRuleOpen(true)}>
+              <Wand2 size={14} aria-hidden />
+              Create a rule from this
+            </Button>
+          </div>
+        )
       ) : null}
 
       <Attachments

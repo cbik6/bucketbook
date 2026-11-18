@@ -100,6 +100,15 @@ test("review: CSV import, transfer match, approve, save a rule, rule suggests", 
   await expect(next.getByText("Rule: LOCAL GROCER #12")).toBeVisible();
   await expect(next.getByLabel(/Category for/)).toHaveValue(groceries!);
 
+  // Create a rule straight from a transaction, prefilled from it.
+  await next.getByRole("button", { name: "LOCAL GROCER #12", exact: true }).click();
+  await next.getByRole("button", { name: "Create a rule from this" }).click();
+  await expect(next.getByRole("heading", { name: "New rule from this transaction" })).toBeVisible();
+  await expect(next.getByLabel("Text to look for")).toHaveValue("LOCAL GROCER");
+  await next.getByLabel("Name", { exact: true }).fill("Local Grocer, any store");
+  await next.getByRole("button", { name: "Create rule" }).click();
+  await expect(page.getByText(/Rule created/)).toBeVisible();
+
   // Select all and approve together.
   await page.getByLabel("Select all").check();
   await page.getByRole("button", { name: "Approve 2" }).click();

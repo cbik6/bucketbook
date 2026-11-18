@@ -46,6 +46,7 @@ async function ReviewContent({ params, searchParams }: PageProps<"/books/[bookId
   let body: React.ReactNode;
   if (tab === "review") {
     const groups = await entryFormAccounts(book.id);
+    const buckets = await bucketChoices(db, book.id);
     // Account choices for the other book of any transfer between books.
     const partnerGroups: Record<string, AccountOptionGroup[]> = {};
     for (const otherId of new Set(
@@ -72,7 +73,13 @@ async function ReviewContent({ params, searchParams }: PageProps<"/books/[bookId
         groups={groups}
         partnerGroups={partnerGroups}
         attachments={attachments}
-        buckets={await bucketChoices(db, book.id)}
+        buckets={buckets}
+        ruleOptions={{
+          bankAccounts: bankAccounts.map((a) => ({ id: a.id, name: a.name })),
+          buckets: bankAccounts.flatMap((a) =>
+            (buckets[a.id] ?? []).map((b) => ({ id: b.id, label: `${a.name}: ${b.name}` })),
+          ),
+        }}
         loans={await loanHints(db, book.id)}
         canEdit={canEdit}
       />

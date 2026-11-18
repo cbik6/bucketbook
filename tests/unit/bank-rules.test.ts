@@ -165,3 +165,14 @@ describe("transfer matching", () => {
     expect(cross.get("o")?.bookId).toBe("LLC");
   });
 });
+
+describe("rule text from a transaction", () => {
+  it("drops store numbers, dates and reference digits", async () => {
+    const { suggestRuleText } = await import("@/lib/rules");
+    expect(suggestRuleText("FRESH MARKET #204 03/11")).toBe("FRESH MARKET");
+    expect(suggestRuleText("SHELL OIL 57412345")).toBe("SHELL OIL");
+    expect(suggestRuleText("NETFLIX.COM")).toBe("NETFLIX.COM");
+    expect(suggestRuleText("7-ELEVEN 1234")).toBe("7-ELEVEN");
+    expect(suggestRuleText("123")).toBe("123");
+  });
+});

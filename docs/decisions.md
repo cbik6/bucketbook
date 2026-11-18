@@ -443,3 +443,12 @@ group related accounts (several Marcus savings accounts under "Marcus"), use "Su
 of" in the chart of accounts, which keeps the bank connection. The old
 "Bank" detail type split into Checking and Savings; existing accounts were converted, with
 names containing "sav" becoming Savings.
+
+### D55. Rules from the review queue
+
+Like QuickBooks' "Create rule" on a bank transaction, each transaction's details offer
+"Create a rule from this". It opens the same rule editor as the Rules page, prefilled:
+payee or description contains the bank text with store numbers, dates and long
+reference digits removed, the direction, the bank account, and the category, bucket and
+payee chosen on that row. Saving re-applies rules to the queue. The quick "Always use
+this category" tick remains for the common case.

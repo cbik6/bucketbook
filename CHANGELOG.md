@@ -6,6 +6,14 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-18
+
+### Added
+
+- "Create a rule from this" on any transaction in For review: the rule editor opens filled
+  in from the transaction (text to look for without store numbers, money in or out, the
+  account, the chosen category, bucket and payee), ready to adjust and save.
+
 ## [1.2.1] - 2026-11-18
 
 ### Changed
