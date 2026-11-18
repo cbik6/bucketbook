@@ -27,7 +27,8 @@ export async function GET(
         "Content-Length": String(bytes.length),
         "Content-Disposition": `${download ? "attachment" : "inline"}; filename*=UTF-8''${encodeURIComponent(row.fileName)}`,
         "X-Content-Type-Options": "nosniff",
-        "Content-Security-Policy": "sandbox; default-src 'none'; img-src 'self'; style-src 'unsafe-inline'",
+        "Content-Security-Policy":
+          "sandbox; default-src 'none'; img-src 'self'; style-src 'unsafe-inline'",
         "Cache-Control": "private, max-age=3600",
       },
     });

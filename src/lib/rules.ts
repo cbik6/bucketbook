@@ -197,10 +197,10 @@ export function describeConditions(c: RuleConditions, accountName: (id: string) 
   if (c.text) {
     const where =
       c.text.field === "any"
-        ? "Payee or description"
+        ? "payee or description"
         : c.text.field === "payee"
-          ? "Payee"
-          : "Description";
+          ? "payee"
+          : "description";
     parts.push(`${where} ${TEXT_OP_LABELS[c.text.op]} "${c.text.value}"`);
   }
   if (c.direction === "outflow") parts.push("money out");

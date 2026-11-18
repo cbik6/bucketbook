@@ -42,7 +42,7 @@ describe("SimpleFIN protocol helpers", () => {
   it("decodes setup tokens and refuses junk", () => {
     const token = Buffer.from("https://bridge.example/simplefin/claim/abc").toString("base64");
     expect(decodeSetupToken(` ${token}\n`)).toBe("https://bridge.example/simplefin/claim/abc");
-    expect(() => decodeSetupToken("hello")).toThrow(/valid Setup Token/);
+    expect(() => decodeSetupToken("hello")).toThrow(/valid setup token/);
     expect(() => decodeSetupToken("")).toThrow();
     expect(looksLikeAccessUrl(DEMO)).toBe(true);
     expect(looksLikeAccessUrl(token)).toBe(false);

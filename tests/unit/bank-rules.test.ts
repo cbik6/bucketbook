@@ -107,7 +107,7 @@ describe("rules engine", () => {
       accountId: A,
     });
     expect(describeConditions(c, () => "Checking")).toBe(
-      'Payee is exactly "Shell", money out, amount is $10.00, on Checking',
+      'payee is exactly "Shell", money out, amount is $10.00, on Checking',
     );
   });
 });

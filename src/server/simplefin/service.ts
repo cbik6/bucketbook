@@ -115,7 +115,7 @@ export async function connectSimplefin(
   fetchImpl: FetchLike = fetch,
 ) {
   const text = tokenOrUrl.trim();
-  if (!text) throw new UserFacingError("Paste your SimpleFIN Setup Token.", "token");
+  if (!text) throw new UserFacingError("Paste your SimpleFIN setup token.", "token");
   const accessUrl = looksLikeAccessUrl(text) ? text : await claimSetupToken(text, fetchImpl);
   const set = await fetchAccountSet(accessUrl, null, fetchImpl);
   const label = set.accounts.find((a) => a.institution)?.institution ?? "SimpleFIN";
@@ -586,7 +586,11 @@ export async function runSync(
     } else {
       // Log the cause only: a failed query's text carries transaction details.
       const e = err as Error & { cause?: Error };
-      const detail = e?.cause?.message ?? String(e?.message ?? err).split("\n")[0]!.slice(0, 200);
+      const detail =
+        e?.cause?.message ??
+        String(e?.message ?? err)
+          .split("\n")[0]!
+          .slice(0, 200);
       console.error("[simplefin] sync failed:", redactSecrets(detail));
       result.messages = ["The sync failed unexpectedly. Check the server logs and try again."];
     }

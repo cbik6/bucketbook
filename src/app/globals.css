@@ -32,6 +32,7 @@
   --focus: #1f5b3f;
 
   --rail-focus: #f8ecaa;
+  --on-rail-focus: #1c2620;
   --mark-fill: #f8ecaa;
   --bucket-pink: #f8d6e0;
   --bucket-yellow: #f8ecaa;
@@ -82,6 +83,7 @@
     --focus: #7fd0a2;
 
     --rail-focus: #f8ecaa;
+    --on-rail-focus: #1c2620;
     --mark-fill: #f8ecaa;
     --bucket-pink: #4a2a35;
     --bucket-yellow: #4a4422;
@@ -128,6 +130,7 @@
   --focus: #7fd0a2;
 
   --rail-focus: #f8ecaa;
+  --on-rail-focus: #1c2620;
   --mark-fill: #f8ecaa;
   --bucket-pink: #4a2a35;
   --bucket-yellow: #4a4422;

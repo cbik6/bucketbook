@@ -24,6 +24,7 @@ import {
   assertDateAllowed,
   createEntry,
   loadBookForPosting,
+  reverseEntry,
   validateLines,
 } from "../ledger/service";
 import { applyRules } from "./rules-service";
@@ -871,4 +872,45 @@ export async function entryBankContext(
         )
     : [];
   return { bankTransactions: bank, partners };
+}
+
+/**
+ * Undoes an approval made moments ago from review: reverses the entry (and the
+ * other book's side of a transfer between books), which sends the bank
+ * transactions back to For review. Posted entries are never deleted, so the
+ * undo is an honest reversal dated on the same day.
+ */
+export async function undoApproval(db: Database, actor: Actor, bookId: string, entryId: string) {
+  if (!z.uuid().safeParse(entryId).success) throw new NotFoundError("That journal entry");
+  const [entry] = await db
+    .select()
+    .from(journalEntries)
+    .where(and(eq(journalEntries.id, entryId), eq(journalEntries.bookId, bookId)));
+  if (!entry) throw new NotFoundError("That journal entry");
+  if (entry.kind !== "bank" && entry.kind !== "transfer") {
+    throw new UserFacingError("Only approvals from review can be undone here.");
+  }
+  const targets = [{ bookId, id: entry.id, date: entry.entryDate }];
+  if (entry.transferGroupId) {
+    const partners = await db
+      .select()
+      .from(journalEntries)
+      .where(
+        and(
+          eq(journalEntries.transferGroupId, entry.transferGroupId),
+          ne(journalEntries.id, entry.id),
+        ),
+      );
+    for (const p of partners) {
+      await requireBookAccess(db, actor.userId, p.bookId, "editor");
+      targets.push({ bookId: p.bookId, id: p.id, date: p.entryDate });
+    }
+  }
+  for (const t of targets) {
+    await reverseEntry(db, actor, t.bookId, t.id, {
+      entryDate: t.date,
+      memo: "Undo of an approval",
+    });
+  }
+  return { books: [...new Set(targets.map((t) => t.bookId))] };
 }

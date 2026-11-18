@@ -75,7 +75,7 @@ export function ConnectForm({ first }: { first: boolean }) {
             >
               SimpleFIN Bridge
             </a>
-            , connect your banks, then create a Setup Token for Bucketbook.
+            , connect your banks, then create a setup token for Bucketbook.
           </li>
           <li>Paste the token below. It works once, so make a new one if this fails.</li>
           <li>Choose which book and account each bank account feeds.</li>
@@ -89,7 +89,7 @@ export function ConnectForm({ first }: { first: boolean }) {
           </p>
         ) : null}
         <Field
-          label="Setup Token"
+          label="Setup token"
           htmlFor={`${id}-token`}
           hint="Bucketbook trades it for an access key, stores that encrypted, and never shows it again."
         >
@@ -100,7 +100,7 @@ export function ConnectForm({ first }: { first: boolean }) {
             ref={tokenRef}
             spellCheck={false}
             autoComplete="off"
-            className={`${inputClass} h-auto py-2 font-mono text-[0.8125rem]`}
+            className={`${inputClass} h-auto break-all py-2 text-[0.8125rem]`}
             placeholder="aHR0cHM6Ly9iZXRhLWJyaWRnZS5zaW1wbGVmaW4ub3JnL3NpbXBsZWZpbi9jbGFpbS8..."
           />
         </Field>
@@ -159,9 +159,9 @@ export function ConnectionCard({
             {connection.label}
           </h2>
           <p className="mt-0.5 text-sm text-ink-muted">
-            Last synced {when(connection.lastSyncAt, timeZone)}.{" "}
-            <span className="tabular">{connection.requestsToday}</span> of about 24 daily requests
-            used.
+            Last synced {when(connection.lastSyncAt, timeZone)}. SimpleFIN allows about 24 requests
+            a day; <span className="tabular">{connection.requestsToday}</span> used in the last 24
+            hours.
           </p>
         </div>
         <Button variant="primary" onClick={syncNow} aria-disabled={busy} disabled={busy}>
@@ -283,31 +283,34 @@ function FeedStatus({ feed }: { feed: FeedView }) {
   if (!feed.syncedThrough) {
     return <p className="text-[0.8125rem] text-ink-muted">Waiting for the first sync.</p>;
   }
-  const parts: React.ReactNode[] = [
-    <span key="b">
-      Books <Money cents={feed.ledgerCents} />
-    </span>,
-  ];
-  if (feed.reviewCount > 0) {
-    parts.push(
-      <span key="r">
-        {feed.reviewCount} in review (<Money cents={feed.reviewCents} />)
-      </span>,
-    );
-  }
-  if (feed.pendingCount > 0) parts.push(<span key="p">{feed.pendingCount} pending</span>);
   const diff = feed.unexplainedCents ?? 0;
   return (
-    <div className="flex flex-col gap-0.5 text-[0.8125rem] text-ink-muted">
-      <p className="flex flex-wrap gap-x-3">{parts}</p>
+    <div className="flex flex-col gap-1 text-[0.8125rem] text-ink-muted">
+      <p>
+        In your books: <Money cents={feed.ledgerCents} />.
+        {feed.reviewCount > 0 ? (
+          <>
+            {" "}
+            Waiting for review: {feed.reviewCount} (<Money cents={feed.reviewCents} />
+            ).
+          </>
+        ) : null}
+        {feed.pendingCount > 0 ? ` Pending at the bank: ${feed.pendingCount}.` : null}
+      </p>
       {diff === 0 ? (
         <p className="text-positive">Matches the bank.</p>
       ) : (
-        <p className="text-negative">
-          Differs from the bank by <Money cents={Math.abs(diff)} className="text-negative" />.{" "}
-          <span className="text-ink-muted">
-            Check opening balances, then anything dated before the book&apos;s start date.
-          </span>
+        // Normal until opening balances are in, so this is a note, not an alarm.
+        <p className="rounded-lg bg-sunken px-2.5 py-2 text-ink">
+          Your books don&apos;t match the bank yet; the difference is{" "}
+          <Money cents={Math.abs(diff)} />.{" "}
+          <Link
+            href={`/books/${feed.bookId}/opening-balances`}
+            className="text-signal-ink underline underline-offset-2"
+          >
+            Check opening balances
+          </Link>
+          , then anything dated before the book&apos;s start date.
         </p>
       )}
       {feed.backfilling ? <p>Older history is still coming in, a few weeks per sync.</p> : null}
@@ -443,7 +446,7 @@ function MappingForm({
         </SelectInput>
       </div>
       <div className="flex flex-wrap gap-2">
-        <SubmitButton size="sm" pendingLabel="Saving">
+        <SubmitButton size="sm" variant="secondary" pendingLabel="Saving">
           Save
         </SubmitButton>
         {!feed.ignored ? (

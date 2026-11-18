@@ -285,7 +285,7 @@ function RuleEditor({
 
       <fieldset className="flex min-w-0 flex-col gap-3">
         <legend className="mb-2 text-[0.8125rem] font-semibold text-ink">When</legend>
-        <div className="grid gap-2 sm:grid-cols-[11rem_10rem_minmax(0,1fr)]">
+        <div className="grid gap-2 sm:grid-cols-[13rem_10rem_minmax(0,1fr)]">
           <SelectInput
             aria-label="Look in"
             value={field}
@@ -314,7 +314,7 @@ function RuleEditor({
             className={op === "regex" ? "font-mono" : ""}
           />
         </div>
-        <div className="grid gap-2 sm:grid-cols-[11rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)]">
+        <div className="grid gap-2 sm:grid-cols-[13rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)]">
           <SelectInput
             aria-label="Direction"
             value={direction}
@@ -355,6 +355,9 @@ function RuleEditor({
             ))}
           </SelectInput>
         </div>
+        <p className="text-[0.8125rem] text-ink-muted">
+          At least and at most compare the size of the amount, whether money goes in or out.
+        </p>
       </fieldset>
 
       <fieldset className="flex min-w-0 flex-col gap-3">
@@ -396,9 +399,9 @@ function RuleEditor({
               onChange={(e) => setTransfer(e.target.checked)}
             />
             <span>
-              It&apos;s a transfer
+              Money moving between your own accounts
               <span className="block text-[0.8125rem] text-ink-muted">
-                Prefer matching the other side over a category.
+                Bucketbook looks for the matching transaction instead of a category.
               </span>
             </span>
           </label>

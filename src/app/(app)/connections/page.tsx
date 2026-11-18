@@ -5,6 +5,7 @@ import { AppShell, AppShellFallback, PageHeader } from "@/components/app-shell";
 import { accountPath } from "@/lib/account-tree";
 import { listAccounts } from "@/server/accounts/service";
 import { requireUser } from "@/server/auth/session";
+import { queueCounts } from "@/server/bank/review-service";
 import { listBooksForUser } from "@/server/books/service";
 import { getDb } from "@/server/db/client";
 import { editableBooks, listConnections } from "@/server/simplefin/service";
@@ -12,9 +13,10 @@ import { ConnectForm, ConnectionCard, type MappingTarget } from "./connection-ui
 
 export const metadata: Metadata = { title: "Bank connections" };
 
-async function ConnectionsContent() {
+async function ConnectionsContent({ searchParams }: PageProps<"/connections">) {
   await connection();
   const user = await requireUser();
+  const sp = await searchParams;
   const db = getDb();
   const [books, connections, editable] = await Promise.all([
     listBooksForUser(db, user.id),
@@ -40,9 +42,15 @@ async function ConnectionsContent() {
     });
   }
   const timeZone = process.env.TZ || "UTC";
+  // Opened from a book: keep that book's navigation so the way back is one tap.
+  const fromBook =
+    typeof sp.book === "string"
+      ? books.find((b) => b.id === sp.book && b.role !== "viewer")
+      : undefined;
+  const reviewCount = fromBook ? (await queueCounts(db, fromBook.id)).review : undefined;
 
   return (
-    <AppShell user={user} books={books}>
+    <AppShell user={user} books={books} currentBookId={fromBook?.id} reviewCount={reviewCount}>
       <PageHeader
         title="Bank connections"
         maxWidthClass="max-w-[60rem]"
@@ -58,10 +66,10 @@ async function ConnectionsContent() {
   );
 }
 
-export default function ConnectionsPage() {
+export default function ConnectionsPage(props: PageProps<"/connections">) {
   return (
     <Suspense fallback={<AppShellFallback />}>
-      <ConnectionsContent />
+      <ConnectionsContent {...props} />
     </Suspense>
   );
 }

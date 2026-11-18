@@ -33,12 +33,17 @@ export function NavLinks({
     { href: `/books/${bookId}/activity`, label: "Activity", Icon: History },
     { href: `/books/${bookId}/settings`, label: "Book settings", Icon: Settings2 },
   ];
+  // The rail has its own Bank connections link at the bottom; the phone bar needs one here.
+  const barLinks = [
+    ...links,
+    { href: `/connections?book=${bookId}`, label: "Bank connections", Icon: Inbox },
+  ];
 
   if (layout === "bar") {
     return (
       <nav aria-label="Book" className="flex gap-1 overflow-x-auto">
-        {links.map(({ href, label, count }) => {
-          const active = pathname.startsWith(href);
+        {barLinks.map(({ href, label, count }) => {
+          const active = pathname.startsWith(href.split("?")[0]!);
           return (
             <Link
               key={href}
@@ -94,7 +99,7 @@ export function NavLinks({
 function CountBadge({ count }: { count?: number }) {
   if (!count) return null;
   return (
-    <span className="tabular rounded-full bg-[var(--rail-focus)] px-1.5 text-[0.75rem] font-semibold leading-5 text-[var(--on-bucket)]">
+    <span className="tabular rounded-full bg-[var(--rail-focus)] px-1.5 text-[0.75rem] font-semibold leading-5 text-[var(--on-rail-focus)]">
       {count > 999 ? "999+" : count}
       <span className="sr-only"> waiting</span>
     </span>

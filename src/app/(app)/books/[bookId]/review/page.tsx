@@ -81,10 +81,15 @@ async function ReviewContent({ params, searchParams }: PageProps<"/books/[bookId
     <>
       <PageHeader
         title="For review"
-        description="Bank transactions wait here until you approve them. Nothing reaches the books before that."
+        description={
+          <span className="hidden sm:inline">
+            Bank transactions wait here until you approve them. Nothing reaches the books before
+            that.
+          </span>
+        }
         actions={
           <>
-            <ButtonLink href="/connections" variant="ghost">
+            <ButtonLink href={`/connections?book=${book.id}`} variant="ghost">
               <Link2 size={15} aria-hidden />
               Bank connections
             </ButtonLink>

@@ -23,7 +23,9 @@ import {
   excludeManyAction,
   keepBothAction,
   linkAction,
+  restoreAction,
   transferAction,
+  undoApproveAction,
 } from "./actions";
 
 export type { AttachmentInfo };
@@ -125,7 +127,7 @@ export function ReviewQueue({
     rowRefs.current.get(id)?.focus();
   };
 
-  const finish = (item: QueueItem, r: ReviewResult) => {
+  const finish = (item: QueueItem, r: ReviewResult, undo?: "approve" | "exclude") => {
     setBusyId(null);
     if (!r.ok) {
       setErrors((e) => ({ ...e, [item.id]: r.error ?? "That didn't work." }));
@@ -140,11 +142,25 @@ export function ReviewQueue({
     const next = items[index + 1] ?? items[index - 1];
     if (next) setActiveId(next.id);
     if (expanded === item.id) setExpanded(null);
+    const entryId = r.entryId;
+    const undoIt = async () => {
+      const u =
+        undo === "exclude"
+          ? await restoreAction(bookId, item.id)
+          : await undoApproveAction(bookId, entryId!);
+      if (u.ok) toast.success(u.message);
+      else toast.error(u.error);
+    };
     toast.success(r.message ?? "Done.", {
-      action: r.entryId
+      // A linked match added nothing to the books, so there is nothing to reverse.
+      action:
+        undo === "exclude" || (undo === "approve" && entryId && !r.message?.startsWith("Matched"))
+          ? { label: "Undo", onClick: () => void undoIt() }
+          : undefined,
+      cancel: entryId
         ? {
             label: "View entry",
-            onClick: () => router.push(`/books/${bookId}/journal/${r.entryId}`),
+            onClick: () => router.push(`/books/${bookId}/journal/${entryId}`),
           }
         : undefined,
     });
@@ -180,14 +196,14 @@ export function ReviewQueue({
           saveRule: d.saveRule,
         });
       }
-      finish(item, r);
+      finish(item, r, "approve");
     });
   };
 
   const exclude = (item: QueueItem) => {
     if (!canEdit) return;
     setBusyId(item.id);
-    startRow(async () => finish(item, await excludeAction(bookId, item.id)));
+    startRow(async () => finish(item, await excludeAction(bookId, item.id), "exclude"));
   };
 
   const selectedItems = items.filter((i) => selected.has(i.id));
@@ -338,7 +354,7 @@ export function ReviewQueue({
         ) : (
           <span className="text-[0.8125rem] text-ink-muted">{items.length} waiting</span>
         )}
-        <span className="ml-auto hidden text-xs text-ink-faint lg:inline">
+        <span className="ml-auto hidden text-xs text-ink-muted lg:inline">
           <Kbd>J</Kbd> <Kbd>K</Kbd> move, <Kbd>Enter</Kbd> details, <Kbd>A</Kbd> approve,{" "}
           <Kbd>X</Kbd> select, <Kbd>E</Kbd> exclude
         </span>
@@ -470,21 +486,24 @@ function Row({ refCallback, ...p }: RowProps) {
       }}
       onClickCapture={p.onFocus}
       aria-label={`${formatDay(item.postedDate)}, ${title}, ${formatCents(item.amountCents)}`}
-      className={`group border-b border-rule outline-none focus-visible:bg-sunken focus-visible:shadow-[inset_3px_0_0_var(--focus)] ${
+      className={`group border-b border-rule outline-none focus-visible:bg-sunken focus-visible:shadow-[inset_3px_0_0_var(--focus)] focus-within:shadow-[inset_3px_0_0_var(--focus)] ${
         p.selected ? "bg-signal-soft/60" : ""
       }`}
     >
       <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_auto] gap-x-3 gap-y-2 py-3 lg:grid-cols-[1.75rem_6rem_minmax(0,1fr)_8rem_minmax(14rem,20rem)_7.5rem] lg:items-center lg:py-2.5">
         <div className="row-span-2 pt-0.5 lg:row-span-1 lg:pt-0">
           {p.canEdit ? (
-            <input
-              type="checkbox"
-              aria-label={`Select ${title}`}
-              className="size-4 accent-[var(--signal)]"
-              checked={p.selected}
-              onChange={p.onToggleSelect}
-              tabIndex={-1}
-            />
+            // The label pads the checkbox to a finger-sized target without moving it.
+            <label className="-m-3 inline-flex p-3">
+              <input
+                type="checkbox"
+                aria-label={`Select ${title}`}
+                className="size-4 accent-[var(--signal)]"
+                checked={p.selected}
+                onChange={p.onToggleSelect}
+                tabIndex={-1}
+              />
+            </label>
           ) : null}
         </div>
         <div className="tabular hidden whitespace-nowrap text-sm text-ink-muted lg:block">
@@ -510,7 +529,10 @@ function Row({ refCallback, ...p }: RowProps) {
             <span className="tabular lg:hidden">{formatDay(item.postedDate)}</span>
             <span>{item.accountName}</span>
             {title !== item.description ? (
-              <span className="truncate">{item.description}</span>
+              <span className="truncate">
+                <span aria-hidden>· </span>
+                {item.description}
+              </span>
             ) : null}
             <Badges item={item} />
           </div>
@@ -567,8 +589,9 @@ function Row({ refCallback, ...p }: RowProps) {
         <div className="col-start-3 row-start-2 flex items-center justify-end gap-1 lg:col-start-auto lg:row-start-auto">
           {p.canEdit ? (
             <Button
-              size="sm"
-              variant="primary"
+              // One filled button at a time: the row you're on.
+              variant={p.active ? "primary" : "secondary"}
+              className="lg:h-8 lg:px-3 lg:text-[0.8125rem]"
               onClick={p.onApprove}
               disabled={p.busy}
               aria-label={`Approve ${title}`}

@@ -35,7 +35,7 @@ export function splitAccessUrl(accessUrl: string): AccessUrlParts {
   }
   if (!url.username || !url.password) {
     throw new UserFacingError(
-      "That Access URL has no credentials in it. Paste the full URL or a Setup Token.",
+      "That Access URL has no credentials in it. Paste the full URL or a setup token.",
       "token",
     );
   }
@@ -53,7 +53,7 @@ export function splitAccessUrl(accessUrl: string): AccessUrlParts {
 /** Decodes a Setup Token into its claim URL. */
 export function decodeSetupToken(token: string): string {
   const cleaned = token.trim().replace(/\s+/g, "");
-  if (!cleaned) throw new UserFacingError("Paste your SimpleFIN Setup Token.", "token");
+  if (!cleaned) throw new UserFacingError("Paste your SimpleFIN setup token.", "token");
   let decoded: string;
   try {
     decoded = Buffer.from(cleaned, "base64").toString("utf8").trim();
@@ -68,7 +68,7 @@ export function decodeSetupToken(token: string): string {
   }
   if (!url || (url.protocol !== "https:" && url.protocol !== "http:")) {
     throw new UserFacingError(
-      "That isn't a valid Setup Token. Copy the whole token from SimpleFIN Bridge and try again.",
+      "That isn't a valid setup token. Copy the whole token from SimpleFIN Bridge and try again.",
       "token",
     );
   }
@@ -275,7 +275,7 @@ export async function claimSetupToken(
   });
   if (res.status === 403) {
     throw new UserFacingError(
-      "SimpleFIN says this Setup Token was already used or doesn't exist. Create a new token in SimpleFIN Bridge. If you didn't use it yourself, someone else may have, so disconnect that token there.",
+      "SimpleFIN says this setup token was already used or doesn't exist. Create a new token in SimpleFIN Bridge. If you didn't use it yourself, someone else may have, so disconnect that token there.",
       "token",
     );
   }
@@ -311,7 +311,7 @@ export async function fetchAccountSet(
   });
   if (res.status === 403) {
     throw new UserFacingError(
-      "SimpleFIN rejected the saved credentials. The access may have been revoked; connect again with a new Setup Token.",
+      "SimpleFIN rejected the saved credentials. The access may have been revoked; connect again with a new setup token.",
     );
   }
   if (res.status === 402) {

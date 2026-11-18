@@ -13,6 +13,7 @@ import {
   keepBoth,
   linkToEntry,
   restoreItem,
+  undoApproval,
 } from "@/server/bank/review-service";
 import { requireBookAccess } from "@/server/books/service";
 import { getDb } from "@/server/db/client";
@@ -118,5 +119,13 @@ export async function keepBothAction(bookId: string, itemId: string) {
   return run(bookId, async (actor) => {
     await keepBoth(getDb(), actor, bookId, itemId);
     return { message: "Kept as a separate transaction." };
+  });
+}
+
+export async function undoApproveAction(bookId: string, entryId: string) {
+  return run(bookId, async (actor) => {
+    const { books } = await undoApproval(getDb(), actor, bookId, entryId);
+    for (const b of books) refresh(b);
+    return { message: "Undone. It's back in For review." };
   });
 }

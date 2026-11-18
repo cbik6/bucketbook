@@ -73,7 +73,7 @@ export function AppShell({
         ) : null}
         <div className="mt-auto flex flex-col gap-3 border-t border-rail-rule px-1 pt-4">
           <Link
-            href="/connections"
+            href={currentBookId ? `/connections?book=${currentBookId}` : "/connections"}
             className="flex h-9 items-center gap-2.5 rounded-lg px-2 text-sm text-rail-muted transition-colors duration-150 hover:bg-rail-raised hover:text-rail-ink"
           >
             <Link2 size={16} strokeWidth={1.75} aria-hidden />
