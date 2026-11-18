@@ -32,12 +32,14 @@ export function RulesManager({
   rules,
   groups,
   bankAccounts,
+  buckets,
   canEdit,
 }: {
   bookId: string;
   rules: RuleRow[];
   groups: AccountOptionGroup[];
   bankAccounts: BankAccount[];
+  buckets: { id: string; label: string }[];
   canEdit: boolean;
 }) {
   const [editing, setEditing] = useState<string | "new" | null>(null);
@@ -50,6 +52,11 @@ export function RulesManager({
     const parts: string[] = [];
     if (r.actions.transfer) parts.push("treat as a transfer");
     if (r.actions.offsetAccountId) parts.push(`category ${accountName(r.actions.offsetAccountId)}`);
+    if (r.actions.bucketAccountId) {
+      parts.push(
+        `bucket ${buckets.find((b) => b.id === r.actions.bucketAccountId)?.label ?? "removed"}`,
+      );
+    }
     if (r.actions.payee) parts.push(`payee "${r.actions.payee}"`);
     if (r.actions.memo) parts.push(`memo "${r.actions.memo}"`);
     return parts.join(", ");
@@ -76,6 +83,7 @@ export function RulesManager({
           bookId={bookId}
           groups={groups}
           bankAccounts={bankAccounts}
+          buckets={buckets}
           onDone={() => setEditing(null)}
         />
       ) : null}
@@ -102,6 +110,7 @@ export function RulesManager({
                     rule={r}
                     groups={groups}
                     bankAccounts={bankAccounts}
+                    buckets={buckets}
                     onDone={() => setEditing(null)}
                   />
                 </li>
@@ -175,12 +184,14 @@ function RuleEditor({
   rule,
   groups,
   bankAccounts,
+  buckets,
   onDone,
 }: {
   bookId: string;
   rule?: RuleRow;
   groups: AccountOptionGroup[];
   bankAccounts: BankAccount[];
+  buckets: { id: string; label: string }[];
   onDone: () => void;
 }) {
   const uid = useId();
@@ -197,6 +208,7 @@ function RuleEditor({
   const [max, setMax] = useState(centsText(c?.amount?.maxCents));
   const [accountId, setAccountId] = useState(c?.accountId ?? "");
   const [offset, setOffset] = useState(a?.offsetAccountId ?? "");
+  const [bucket, setBucket] = useState(a?.bucketAccountId ?? "");
   const [payee, setPayee] = useState(a?.payee ?? "");
   const [memo, setMemo] = useState(a?.memo ?? "");
   const [transfer, setTransfer] = useState(a?.transfer ?? false);
@@ -230,6 +242,7 @@ function RuleEditor({
       },
       actions: {
         offsetAccountId: offset || null,
+        bucketAccountId: bucket || null,
         payee: payee.trim() || null,
         memo: memo.trim() || null,
         transfer,
@@ -373,6 +386,22 @@ function RuleEditor({
               <AccountSelectOptions groups={groups} value={offset} />
             </SelectInput>
           </Field>
+          {buckets.length ? (
+            <Field label="Bucket" htmlFor={`${uid}-bucket`} optional>
+              <SelectInput
+                id={`${uid}-bucket`}
+                value={bucket}
+                onChange={(e) => setBucket(e.target.value)}
+              >
+                <option value="">No bucket</option>
+                {buckets.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.label}
+                  </option>
+                ))}
+              </SelectInput>
+            </Field>
+          ) : null}
           <Field label="Rename payee to" htmlFor={`${uid}-payee`} optional>
             <TextInput
               id={`${uid}-payee`}

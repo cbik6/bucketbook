@@ -723,6 +723,7 @@ export type QueueItem = {
   entryNumber: number | null;
   postMethod: string | null;
   suggestedAccountId: string | null;
+  suggestedBucketId: string | null;
   suggestedPayee: string | null;
   suggestedMemo: string | null;
   suggestedTransfer: boolean;
@@ -840,6 +841,7 @@ export async function listQueue(
       entryNumber: entryNumber ?? null,
       postMethod: item.postMethod,
       suggestedAccountId: item.suggestedAccountId,
+      suggestedBucketId: item.suggestedBucketId,
       suggestedPayee: item.suggestedPayee,
       suggestedMemo: item.suggestedMemo,
       suggestedTransfer: item.suggestedTransfer,

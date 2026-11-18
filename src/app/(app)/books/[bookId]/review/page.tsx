@@ -9,6 +9,7 @@ import type { AccountOptionGroup } from "@/lib/account-options";
 import { bankableAccounts } from "@/server/bank/accounts";
 import { listAttachments } from "@/server/bank/attachments-service";
 import { type QueueTab, listQueue, queueCounts } from "@/server/bank/review-service";
+import { bucketChoices } from "@/server/buckets/service";
 import { getDb } from "@/server/db/client";
 import { loadBookForPage } from "@/server/guards";
 import { entryFormAccounts } from "@/server/ledger/page-data";
@@ -70,6 +71,7 @@ async function ReviewContent({ params, searchParams }: PageProps<"/books/[bookId
         groups={groups}
         partnerGroups={partnerGroups}
         attachments={attachments}
+        buckets={await bucketChoices(db, book.id)}
         canEdit={canEdit}
       />
     );

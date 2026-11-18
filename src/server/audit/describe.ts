@@ -94,7 +94,9 @@ export function describeAudit(
               ? "reversal"
               : kind === "transfer"
                 ? "transfer"
-                : "entry";
+                : kind === "bucket"
+                  ? "bucket move"
+                  : "entry";
         return {
           summary: `Posted ${what} ${label}`,
           details: [after.payee, after.memo].filter(Boolean).map(String),
@@ -175,6 +177,18 @@ export function describeAudit(
       default:
         return { summary: "Changed a bank transaction", details: [] };
     }
+  }
+
+  if (row.entityType === "bucket_rule") {
+    return {
+      summary:
+        row.action === "create"
+          ? "Added a bucket allocation rule"
+          : row.action === "delete"
+            ? "Removed a bucket allocation rule"
+            : "Changed bucket allocation rules",
+      details: [],
+    };
   }
 
   if (row.entityType === "bank_rule") {

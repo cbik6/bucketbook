@@ -41,6 +41,8 @@ type Draft = {
   splits: Split[];
   counterpart: string;
   partnerCounterpart: string;
+  /** For an account with buckets: which bucket the money comes from or goes to. */
+  bucketId: string;
 };
 
 let splitKey = 1;
@@ -64,6 +66,7 @@ function defaultDraft(item: QueueItem): Draft {
     memo: item.suggestedMemo ?? "",
     saveRule: false,
     splits: [],
+    bucketId: item.suggestedBucketId ?? "",
     counterpart: item.transfer?.counterpartAccountId ?? "",
     partnerCounterpart: item.transfer?.partnerCounterpartAccountId ?? "",
   };
@@ -88,9 +91,11 @@ export function ReviewQueue({
   groups,
   partnerGroups,
   attachments,
+  buckets,
   canEdit,
 }: {
   bookId: string;
+  buckets: Record<string, { id: string; name: string; isUnassigned: boolean }[]>;
   items: QueueItem[];
   groups: AccountOptionGroup[];
   partnerGroups: Record<string, AccountOptionGroup[]>;
@@ -177,12 +182,14 @@ export function ReviewQueue({
           splits: d.splits.map(({ accountId, amount, memo }) => ({ accountId, amount, memo })),
           payee: d.payee,
           memo: d.memo,
+          bucketId: d.bucketId || undefined,
         });
       } else if (d.choice.startsWith("transfer:")) {
         r = await transferAction(bookId, item.id, {
           partnerId: d.choice.slice(9),
           counterpartAccountId: d.counterpart || undefined,
           partnerCounterpartAccountId: d.partnerCounterpart || undefined,
+          bucketId: d.bucketId || undefined,
         });
       } else if (d.choice.startsWith("link:")) {
         r = await linkAction(bookId, item.id, d.choice.slice(5));
@@ -194,6 +201,7 @@ export function ReviewQueue({
           payee: d.payee,
           memo: d.memo,
           saveRule: d.saveRule,
+          bucketId: d.bucketId || undefined,
         });
       }
       finish(item, r, "approve");
@@ -382,6 +390,7 @@ export function ReviewQueue({
             groups={groups}
             partnerGroups={item.transfer ? partnerGroups[item.transfer.bookId] : undefined}
             files={attachments[item.id] ?? []}
+            buckets={buckets[item.accountId]}
             active={item.id === activeId}
             selected={selected.has(item.id)}
             expanded={expanded === item.id}
@@ -437,6 +446,7 @@ type RowProps = {
   groups: AccountOptionGroup[];
   partnerGroups?: AccountOptionGroup[];
   files: AttachmentInfo[];
+  buckets?: { id: string; name: string; isUnassigned: boolean }[];
   active: boolean;
   selected: boolean;
   expanded: boolean;
@@ -541,7 +551,22 @@ function Row({ refCallback, ...p }: RowProps) {
           <Money cents={item.amountCents} className="font-medium" />
         </div>
 
-        <div className="col-start-2 row-start-2 min-w-0 lg:col-start-auto lg:row-start-auto">
+        <div className="col-start-2 row-start-2 flex min-w-0 flex-col gap-1.5 lg:col-start-auto lg:row-start-auto">
+          {p.buckets && p.buckets.length > 0 ? (
+            <SelectInput
+              aria-label={`${item.amountCents < 0 ? "Bucket it comes from" : "Bucket it goes to"} for ${title}`}
+              value={draft.bucketId || p.buckets.find((b) => b.isUnassigned)?.id || ""}
+              onChange={(e) => p.setDraft({ bucketId: e.target.value })}
+              disabled={!p.canEdit}
+              className="h-9 text-[0.8125rem]"
+            >
+              {p.buckets.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {item.amountCents < 0 ? "From" : "Into"} {b.name}
+                </option>
+              ))}
+            </SelectInput>
+          ) : null}
           {isSplit ? (
             <button
               type="button"

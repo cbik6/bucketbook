@@ -7,6 +7,7 @@ import {
   Landmark,
   ListTree,
   NotebookPen,
+  PiggyBank,
   Settings2,
   Wand2,
 } from "lucide-react";
@@ -25,6 +26,7 @@ export function NavLinks({
   const pathname = usePathname();
   const links: Array<{ href: string; label: string; Icon: typeof Inbox; count?: number }> = [
     { href: `/books/${bookId}/review`, label: "For review", Icon: Inbox, count: reviewCount },
+    { href: `/books/${bookId}/buckets`, label: "Buckets", Icon: PiggyBank },
     { href: `/books/${bookId}/accounts`, label: "Chart of accounts", Icon: ListTree },
     { href: `/books/${bookId}/journal`, label: "Journal entries", Icon: NotebookPen },
     { href: `/books/${bookId}/ledger`, label: "General ledger", Icon: BookOpenText },

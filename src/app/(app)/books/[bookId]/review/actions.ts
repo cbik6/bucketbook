@@ -65,7 +65,12 @@ export async function approveAction(bookId: string, itemId: string, input: Appro
 export async function transferAction(
   bookId: string,
   itemId: string,
-  input: { partnerId: string; counterpartAccountId?: string; partnerCounterpartAccountId?: string },
+  input: {
+    partnerId: string;
+    counterpartAccountId?: string;
+    partnerCounterpartAccountId?: string;
+    bucketId?: string;
+  },
 ) {
   return run(bookId, async (actor) => {
     const { entries } = await approveTransfer(getDb(), actor, bookId, itemId, input);

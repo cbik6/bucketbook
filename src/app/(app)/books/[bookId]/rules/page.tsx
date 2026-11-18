@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { bankableAccounts } from "@/server/bank/accounts";
 import { listRules } from "@/server/bank/rules-service";
+import { bucketChoices } from "@/server/buckets/service";
 import { getDb } from "@/server/db/client";
 import { loadBookForPage } from "@/server/guards";
 import { entryFormAccounts } from "@/server/ledger/page-data";
@@ -16,11 +17,15 @@ async function RulesContent({ params }: PageProps<"/books/[bookId]/rules">) {
   const { bookId } = await params;
   const { book } = await loadBookForPage(bookId);
   const db = getDb();
-  const [rules, groups, bank] = await Promise.all([
+  const [rules, groups, bank, buckets] = await Promise.all([
     listRules(db, book.id),
     entryFormAccounts(book.id),
     bankableAccounts(db, book.id),
+    bucketChoices(db, book.id),
   ]);
+  const bucketOptions = bank.flatMap((a) =>
+    (buckets[a.id] ?? []).map((b) => ({ id: b.id, label: `${a.name}: ${b.name}` })),
+  );
   return (
     <>
       <PageHeader
@@ -34,6 +39,7 @@ async function RulesContent({ params }: PageProps<"/books/[bookId]/rules">) {
           rules={rules}
           groups={groups}
           bankAccounts={bank.map((a) => ({ id: a.id, name: a.name }))}
+          buckets={bucketOptions}
           canEdit={book.role !== "viewer"}
         />
       </div>
