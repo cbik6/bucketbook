@@ -128,7 +128,9 @@ async function LedgerContent({ params, searchParams }: PageProps<"/books/[bookId
                               {formatEntryNumber(l.entryNumber)}
                             </Link>
                           </td>
-                          <td className="py-2 pr-3">{l.lineMemo || l.entryMemo || ""}</td>
+                          <td className="py-2 pr-3">
+                            {[l.entryPayee, l.lineMemo || l.entryMemo].filter(Boolean).join(": ")}
+                          </td>
                           <td className="py-2 pr-3 text-right">
                             <Money cents={l.debitCents} blankZero />
                           </td>

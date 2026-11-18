@@ -815,3 +815,60 @@ async function transferPool(db: DbOrTx, userId: string) {
     info: new Map(rows.map((r) => [r.id, { bookName: r.bookName, accountName: r.accountName }])),
   };
 }
+
+export type EntryBankContext = {
+  bankTransactions: {
+    id: string;
+    accountName: string;
+    postedDate: string;
+    description: string;
+    amountCents: number;
+    postMethod: string | null;
+  }[];
+  /** The other side of a transfer between books, when this user can see that book. */
+  partners: { entryId: string; entryNumber: number; bookId: string; bookName: string }[];
+};
+
+/** The bank transactions an entry records, and its partner entries in other books. */
+export async function entryBankContext(
+  db: DbOrTx,
+  userId: string,
+  bookId: string,
+  entry: { id: string; transferGroupId: string | null },
+): Promise<EntryBankContext> {
+  const bank = await db
+    .select({
+      id: bankTransactions.id,
+      accountName: accounts.name,
+      postedDate: bankTransactions.postedDate,
+      description: bankTransactions.description,
+      amountCents: bankTransactions.amountCents,
+      postMethod: bankTransactions.postMethod,
+    })
+    .from(bankTransactions)
+    .innerJoin(accounts, eq(accounts.id, bankTransactions.accountId))
+    .where(and(eq(bankTransactions.bookId, bookId), eq(bankTransactions.entryId, entry.id)))
+    .orderBy(asc(bankTransactions.postedDate));
+  const partners = entry.transferGroupId
+    ? await db
+        .select({
+          entryId: journalEntries.id,
+          entryNumber: journalEntries.entryNumber,
+          bookId: books.id,
+          bookName: books.name,
+        })
+        .from(journalEntries)
+        .innerJoin(books, eq(books.id, journalEntries.bookId))
+        .innerJoin(
+          bookMembers,
+          and(eq(bookMembers.bookId, books.id), eq(bookMembers.userId, userId)),
+        )
+        .where(
+          and(
+            eq(journalEntries.transferGroupId, entry.transferGroupId),
+            ne(journalEntries.id, entry.id),
+          ),
+        )
+    : [];
+  return { bankTransactions: bank, partners };
+}

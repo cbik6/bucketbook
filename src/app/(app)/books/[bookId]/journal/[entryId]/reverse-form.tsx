@@ -15,10 +15,13 @@ export function ReverseForm({
   action,
   entryLabel,
   minDate,
+  notes = [],
 }: {
   action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
   entryLabel: string;
   minDate: string;
+  /** Consequences worth knowing first, such as bank transactions going back to review. */
+  notes?: string[];
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(action, {});
@@ -50,6 +53,11 @@ export function ReverseForm({
         Posts a new entry with every debit and credit swapped, cancelling {entryLabel} as of the
         date you pick. The original stays in the journal.
       </p>
+      {notes.map((n) => (
+        <p key={n} className="text-sm font-medium">
+          {n}
+        </p>
+      ))}
       <FormError message={state.field ? undefined : state.error} />
       <Field
         label="Reversal date"

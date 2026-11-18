@@ -105,11 +105,15 @@ async function JournalContent({ params, searchParams }: PageProps<"/books/[bookI
                   </td>
                   <td className="min-w-0 py-3 pr-3">
                     <Link href={`${base}/${e.id}`} className="font-medium text-ink hover:underline">
-                      {e.memo || e.accountNames.join(", ") || formatEntryNumber(e.entryNumber)}
+                      {e.payee ||
+                        e.memo ||
+                        e.accountNames.join(", ") ||
+                        formatEntryNumber(e.entryNumber)}
                     </Link>
                     <KindBadge kind={e.kind} reversed={e.reversed} version={e.currentVersion} />
-                    {e.memo ? (
+                    {e.payee || e.memo ? (
                       <div className="mt-0.5 truncate text-[0.8125rem] text-ink-muted">
+                        {e.payee && e.memo ? `${e.memo} · ` : ""}
                         {e.accountNames.join(", ")}
                       </div>
                     ) : null}

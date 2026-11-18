@@ -17,7 +17,7 @@ type Line = DraftLine & { key: number };
 type Props = {
   action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
   groups: AccountOptionGroup[];
-  initial?: { entryDate: string; memo: string | null; lines: DraftLine[] };
+  initial?: { entryDate: string; payee?: string | null; memo: string | null; lines: DraftLine[] };
   defaultDate: string;
   minDate: string;
   cancelHref: string;
@@ -48,6 +48,7 @@ export function EntryForm({
   const uid = useId();
   const [entryDate, setEntryDate] = useState(initial?.entryDate ?? defaultDate);
   const [dateTouched, setDateTouched] = useState(Boolean(initial));
+  const [payee, setPayee] = useState(initial?.payee ?? "");
   const [memo, setMemo] = useState(initial?.memo ?? "");
   const [lines, setLines] = useState<Line[]>(() => {
     const start = (initial?.lines ?? []).map((l) => ({ ...l, key: nextKey++ }));
@@ -127,6 +128,7 @@ export function EntryForm({
 
   const payload = JSON.stringify({
     entryDate,
+    payee,
     memo,
     lines: lines.map(({ accountId, debit, credit, memo: m }) => ({
       accountId,
@@ -152,7 +154,7 @@ export function EntryForm({
       <input type="hidden" name="payload" value={payload} />
       <FormError message={state.field === "entryDate" ? undefined : state.error} />
 
-      <div className="grid gap-4 sm:grid-cols-[12rem_minmax(0,1fr)]">
+      <div className="grid gap-4 sm:grid-cols-[12rem_minmax(0,1fr)_minmax(0,1fr)]">
         <Field
           label="Date"
           htmlFor={`${uid}-date`}
@@ -170,6 +172,16 @@ export function EntryForm({
             className="tabular"
             invalid={state.field === "entryDate"}
             required
+          />
+        </Field>
+        <Field label="Payee" htmlFor={`${uid}-payee`} optional>
+          <TextInput
+            id={`${uid}-payee`}
+            value={payee}
+            maxLength={200}
+            onChange={(e) => setPayee(e.target.value)}
+            placeholder="Who was paid, or who paid you"
+            autoComplete="off"
           />
         </Field>
         <Field label="Memo" htmlFor={`${uid}-memo`} optional>

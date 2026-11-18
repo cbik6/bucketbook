@@ -38,7 +38,11 @@ async function EditContent({ params }: PageProps<"/books/[bookId]/journal/[entry
       <PageHeader
         title={`Edit ${formatEntryNumber(detail.entry.entryNumber)}`}
         maxWidthClass="max-w-[60rem]"
-        description="Saving keeps the current version in the entry's history."
+        description={
+          detail.entry.kind === "bank"
+            ? "Saving keeps the current version in the entry's history. The bank account line must still match the bank."
+            : "Saving keeps the current version in the entry's history."
+        }
       />
       <div className="box-content max-w-[60rem] px-5 pb-16 pt-6 lg:px-10">
         <EntryForm
@@ -50,6 +54,7 @@ async function EditContent({ params }: PageProps<"/books/[bookId]/journal/[entry
           cancelHref={detailHref}
           initial={{
             entryDate: detail.entry.entryDate,
+            payee: detail.entry.payee,
             memo: detail.entry.memo,
             lines: detail.lines.map((l) => ({
               accountId: l.accountId,

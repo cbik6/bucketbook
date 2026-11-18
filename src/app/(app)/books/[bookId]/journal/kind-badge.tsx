@@ -11,6 +11,8 @@ export function KindBadge({
   const badges: string[] = [];
   if (kind === "opening_balance") badges.push("Opening balances");
   if (kind === "reversal") badges.push("Reversal");
+  if (kind === "bank") badges.push("From the bank");
+  if (kind === "transfer") badges.push("Transfer");
   if (reversed) badges.push("Reversed");
   if (version && version > 1) badges.push(`Edited, v${version}`);
   return (

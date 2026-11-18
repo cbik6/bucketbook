@@ -176,7 +176,9 @@ async function RegisterContent({
                       <div className="tabular text-xs text-ink-muted sm:hidden">
                         {formatDay(r.entryDate)}
                       </div>
-                      <div className="text-ink">{r.lineMemo || r.entryMemo || "No memo"}</div>
+                      <div className="text-ink">
+                        {r.entryPayee || r.lineMemo || r.entryMemo || "No memo"}
+                      </div>
                       <div className="text-[0.8125rem] text-ink-muted">
                         {includeSubs && r.accountId !== account.id
                           ? `${names.get(r.accountId)} · `
