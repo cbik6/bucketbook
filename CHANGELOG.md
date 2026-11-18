@@ -6,6 +6,36 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-18
+
+Phase 3: Bank data.
+
+### Added
+
+- Bank connections page: connect SimpleFIN with a Setup Token (or the demo bank), choose
+  which book and account each bank account feeds, sync daily at a chosen hour or with
+  Sync now, and compare each bank balance with the books.
+- SimpleFIN sync that backfills from each book's start date in small windows within the
+  bridge's daily request limit, dedupes by transaction id, holds pending charges until
+  they clear, and flags likely duplicates for you to confirm.
+- For review queue: approve with a category, split one transaction across accounts,
+  match transfers between your accounts (including between books, posting a linked
+  entry in each), match transactions to entries you already typed, exclude, and approve
+  many at once. Keyboard: J and K to move, A to approve, X to select, E to exclude.
+- Rules that suggest a category, payee and memo from the payee or description, amount,
+  direction and account, in priority order, plus "Always use this category" while
+  approving.
+- CSV import with a column mapping saved per account, a preview, and duplicate checks.
+- Receipts (photos and PDFs) on bank transactions and journal entries.
+- Payee on journal entries.
+
+### Changed
+
+- Bank and transfer entries can be edited only in ways that keep the bank account's
+  amount; reversing one sends its bank transactions back to review.
+
+## [0.2.0] - 2026-11-17
+
 Phase 2: Ledger.
 
 ### Added

@@ -220,3 +220,94 @@ type, and can be archived only when their balance is zero, so history stays mean
 Entries are numbered per book (JE 1, JE 2, ...), assigned inside the posting
 transaction while the book row is locked, so numbers never collide.
 
+### D31. Bank data waits in a review queue
+
+Every bank transaction (SimpleFIN or CSV) lands in `bank_transactions` and stays there
+until you approve it. Approving posts a journal entry of kind `bank`: one line on the
+bank or card account for the bank's amount, and one line per category (several for a
+split, which must add up exactly). The bank's sign is kept: positive means the account
+went up, which is always a debit to that account, for checking and for credit cards
+alike. A posted transaction points at its entry, and the database refuses `posted`
+without one.
+
+### D32. Entries that record bank transactions stay tied to them
+
+Editing a `bank` or `transfer` entry is allowed (to recategorize), but the lines on the
+bank account must still add up to the bank's amount, so the books and the bank can't
+drift apart by accident. Reversing such an entry sends its bank transactions back to For
+review, which is the "undo" for an approval.
+
+### D33. Transfers: one entry in a book, a linked pair across books
+
+Two transactions on different accounts with equal and opposite amounts no more than four
+days apart are suggested as a transfer. Closest dates pair first; on a tie a partner in
+the same book wins. Within one book a match posts a single `transfer` entry between the
+two accounts, dated on the day the money left. Across books (Clark's choice: "matched
+pair"), each book posts its own side against an account that stands for the other book
+(for example Investment in the LLC at home, Owner Contributions in the LLC). Both entries
+share a `transfer_group_id`, each entry page links to the other, and reversing one says
+to reverse the other too. The two counterpart accounts are remembered per pair of books.
+
+### D34. Matching an entry that already exists
+
+When a bank transaction's amount already appears on that account in an entry a few days
+away (typed by hand, or the other side of a transfer you categorized from one account),
+the review queue offers "Already recorded". Matching links the bank transaction to that
+entry without posting anything new. An entry can account for one bank transaction per
+account.
+
+### D35. SimpleFIN sync
+
+- Protocol 2.0 (`version=2`, `errlist`, `connections`), still reading the older
+  `errors` and `org` fields. Bridge messages are shown on the Bank connections page.
+- The Access URL is AES-256-GCM encrypted at rest. Requests send it as a Basic auth
+  header, never in the URL, and error messages are scrubbed of credentials.
+- A Setup Token is claimed once. A full Access URL is also accepted, which is how the
+  public demo connects and how a connection moves between installs.
+- Each mapped account remembers the range already fetched. A sync re-reads the last five
+  days (plus back to the oldest pending charge), then fetches older history back to the
+  book's start date. Windows are 45 days, because the bridge warns above that even
+  though it allows 90.
+- The bridge expects about 24 requests a day. Every request is logged, a sync stops at 20
+  in 24 hours, and one sync makes at most 8 requests, so a long backfill continues over
+  the next syncs, newest history first.
+- One scheduled sync a day per connection at a chosen hour (server time zone, `TZ`) and a
+  random minute, plus Sync now. A lock column keeps two syncs of one connection from
+  overlapping.
+
+### D36. Pending charges and duplicates
+
+Dedupe is by SimpleFIN account plus transaction id first. Pending charges are stored and
+shown but can't be approved. When a pending charge posts under the same id it moves to
+For review with the posted amount (tips change it). When the bank stops reporting a
+pending charge (dropped, or replaced by a posted one with a new id) it is marked removed.
+A new posted transaction with the same amount on the same account within three days of
+one already in review or posted is flagged as a possible duplicate; you choose "It's a
+duplicate" (exclude) or "Keep both". Nothing is skipped silently. CSV rows are
+fingerprinted (date, amount, description, and position among identical rows) so
+re-importing a file skips what is already there, and rows that match a SimpleFIN
+transaction are flagged the same way.
+
+### D37. Rules suggest, they never post
+
+Conditions: text in the payee, description or either (contains, is exactly, starts with,
+or a regular expression, with obviously slow patterns refused), money in or out, an
+amount range, and the bank account. Actions: category, payee name, memo, and "treat as a
+transfer"; a bucket action is stored for Phase 4. Rules run top to bottom and, for each
+action, the first matching rule that sets it wins. Suggestions are recomputed whenever
+rules change. Approving with "Always use this category" saves a rule matching that
+payee exactly.
+
+### D38. Receipts
+
+Photos (JPEG, PNG, HEIC, WebP, GIF) and PDFs up to 10 MB, identified by their first bytes
+rather than the file name. Files live on the receipts volume under the book's id and are
+served only to members of that book, inline, with `nosniff` and a sandbox policy so a
+file can never run as a page. A receipt added to a bank transaction in review shows on
+the journal entry it becomes. Server actions accept bodies up to 11 MB for this.
+
+### D39. Payee on journal entries
+
+Entries gained an optional payee (versioned like the memo) because bank data has one and
+reports will group by it. The `ledger_lines` view adds `entry_payee` at the end, so
+existing queries keep working.

@@ -3,11 +3,11 @@
 Double-entry books for households and small businesses, with savings "buckets" inside
 your real bank accounts, running on your own server.
 
-> **Status: early development (Phase 2 of 7).** Today you can install it, run the
-> setup wizard, build your chart of accounts, enter opening balances, and post, edit
-> and reverse journal entries with registers and a general ledger. Bank sync, buckets,
-> reconciliation and reports come in later phases (see [Roadmap](#roadmap)). Not ready
-> for real money yet.
+> **Status: early development (Phase 3 of 7).** Today you can install it, run the
+> setup wizard, build your chart of accounts, enter opening balances, post, edit and
+> reverse journal entries, and bring in bank transactions through SimpleFIN or CSV files
+> to review, categorize with rules, and match as transfers. Buckets, reconciliation and
+> reports come in later phases (see [Roadmap](#roadmap)). Not ready for real money yet.
 
 "Bucketbook" is a working name.
 
@@ -20,7 +20,8 @@ your real bank accounts, running on your own server.
   the sum of its buckets.
 - **Multiple books.** Keep your household and each business separate.
 - **Your data, your server.** Plain Postgres with readable table names. Bank data comes
-  in through [SimpleFIN](https://www.simplefin.org/) (coming in Phase 3).
+  in through [SimpleFIN](https://www.simplefin.org/) or CSV files, and nothing reaches
+  the books until you approve it.
 
 ## Install with Docker Compose
 
@@ -86,6 +87,30 @@ docker compose up -d --build
 ```
 
 Back up first (see [docs/backup-restore.md](docs/backup-restore.md)).
+
+## Connecting your banks
+
+Bucketbook reads bank transactions through [SimpleFIN Bridge](https://beta-bridge.simplefin.org/),
+a small paid service that connects to most US banks and credit cards.
+
+1. In SimpleFIN Bridge, connect your banks and create a Setup Token.
+2. In Bucketbook, open **Bank connections** (bottom of the side menu), paste the token,
+   and press Connect. The token works once; Bucketbook trades it for an access key and
+   stores that encrypted with `APP_ENCRYPTION_KEY`.
+3. For each bank account, choose the book and account it feeds, or ignore it.
+4. Press **Sync now**. History comes in from each book's start date, a few weeks per
+   sync, to stay within SimpleFIN's limit of about 24 requests a day. After that it syncs
+   once a day at the hour you pick (in the server's `TZ`).
+
+New transactions wait in **For review** in each book. Approve each with a category (or
+split it), match transfers between your accounts, or exclude it. Rules fill in the
+category for you, and nothing posts until you approve it.
+
+To try it without a bank, press **Use the demo bank** on the Bank connections page; it
+connects SimpleFIN's public demo account.
+
+For banks SimpleFIN can't reach, export a CSV from the bank and use **Import CSV** on the
+For review page. The column mapping is remembered per account.
 
 ## Querying your books with SQL
 
@@ -167,7 +192,7 @@ restore them with `npx skills experimental_install` (from `skills-lock.json`).
 
 1. **Foundation** (done): install, setup wizard, books, chart of accounts.
 2. **Ledger** (done): journal entries, opening balances, registers, general ledger, activity log.
-3. Bank data: SimpleFIN, CSV import, review queue, rules, transfer matching, receipts.
+3. **Bank data** (done): SimpleFIN, CSV import, review queue, rules, transfer matching, receipts.
 4. Buckets: bucket setup, allocation rules, goals.
 5. Reconciliation, loans, and credit cards.
 6. Budgets and reports.
