@@ -20,7 +20,12 @@ import { accounts } from "./accounts";
 import { books } from "./books";
 import { inList } from "./sql-helpers";
 
-export const ENTRY_KINDS = ["manual", "opening_balance", "reversal"] as const;
+/**
+ * manual: typed on the journal screen. opening_balance: the one opening entry.
+ * reversal: cancels another entry. bank: approved from the review queue.
+ * transfer: money moving between two of your own accounts (one entry per book).
+ */
+export const ENTRY_KINDS = ["manual", "opening_balance", "reversal", "bank", "transfer"] as const;
 export type EntryKind = (typeof ENTRY_KINDS)[number];
 
 /**
@@ -39,10 +44,17 @@ export const journalEntries = pgTable(
     entryNumber: integer("entry_number").notNull(),
     kind: text("kind").notNull(),
     entryDate: date("entry_date", { mode: "string" }).notNull(),
+    /** Who the money went to or came from, when there is one. */
+    payee: text("payee"),
     memo: text("memo"),
     currentVersion: integer("current_version").notNull().default(1),
     /** Set on a reversal: the entry it cancels out. */
     reversesEntryId: uuid("reverses_entry_id"),
+    /**
+     * Shared by the two entries of a transfer between books (one entry in each
+     * book), so either side can find and warn about the other.
+     */
+    transferGroupId: uuid("transfer_group_id"),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -65,6 +77,9 @@ export const journalEntries = pgTable(
       .on(t.bookId)
       .where(sql`${t.kind} = 'opening_balance'`),
     index("journal_entries_book_date_idx").on(t.bookId, t.entryDate),
+    index("journal_entries_transfer_group_idx")
+      .on(t.transferGroupId)
+      .where(sql`${t.transferGroupId} is not null`),
     check("journal_entries_kind_check", inList(t.kind, ENTRY_KINDS)),
     check("journal_entries_version_positive", sql`${t.currentVersion} >= 1`),
     check("journal_entries_number_positive", sql`${t.entryNumber} >= 1`),
@@ -84,6 +99,7 @@ export const journalEntryVersions = pgTable(
       .references(() => journalEntries.id, { onDelete: "cascade" }),
     version: integer("version").notNull(),
     entryDate: date("entry_date", { mode: "string" }).notNull(),
+    payee: text("payee"),
     memo: text("memo"),
     /** Why this version exists, for example "Edited" or "Created". */
     changeNote: text("change_note"),
