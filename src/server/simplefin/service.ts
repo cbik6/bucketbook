@@ -105,8 +105,12 @@ async function upsertFeeds(
               name: values.name,
               institution: values.institution,
               currency: values.currency,
-              balanceCents: values.balanceCents,
-              availableBalanceCents: values.availableBalanceCents,
+              // Accounts the bank reports backwards are stored the usual way round.
+              balanceCents: sql`case when ${bankFeeds.reversedSign} then -${values.balanceCents}::bigint else ${values.balanceCents}::bigint end`,
+              availableBalanceCents:
+                values.availableBalanceCents === null
+                  ? null
+                  : sql`case when ${bankFeeds.reversedSign} then -${values.availableBalanceCents}::bigint else ${values.availableBalanceCents}::bigint end`,
               balanceAt: values.balanceAt,
             }
           : { name: values.name, institution: values.institution },
@@ -200,6 +204,8 @@ export type FeedView = {
   valueOnly: boolean;
   /** Transactions before this day aren't brought in (the day it was connected). */
   importFrom: string | null;
+  /** The bank reports this account's sign backwards; figures here are already flipped. */
+  reversedSign: boolean;
 };
 
 export type ConnectionView = {
@@ -314,6 +320,7 @@ export async function listConnections(db: DbOrTx, userId: string): Promise<Conne
               ? feed.balanceCents - ledgerCents - reviewCents
               : null,
           valueOnly: accountSubtype === "investment",
+          reversedSign: feed.reversedSign,
           importFrom:
             feed.accountId && bookStart ? effectiveStart(bookStart, feed.importFrom) : null,
           backfilling:
@@ -609,7 +616,8 @@ export async function runSync(
         const acct = set.accounts.find((a) => a.id === feed.externalId);
         if (!acct) continue;
         const day = epochToDay(acct.balanceEpoch, serverTimeZone());
-        const moved = await recordValuation(db, feed, acct.balanceCents, day > today ? today : day);
+        const balance = feed.reversedSign ? -acct.balanceCents : acct.balanceCents;
+        const moved = await recordValuation(db, feed, balance, day > today ? today : day);
         if (moved) result.updatedCount += 1;
       }
     };
@@ -673,7 +681,10 @@ export async function runSync(
           const account = set.accounts.find((a) => a.id === feed.externalId);
           if (!account) continue;
           const startDate = effectiveStart(bookStart, feed.importFrom);
-          const counts = await applyWindow(db, feed, startDate, account.transactions, w, now);
+          const txs = feed.reversedSign
+            ? account.transactions.map((t) => ({ ...t, amountCents: -t.amountCents }))
+            : account.transactions;
+          const counts = await applyWindow(db, feed, startDate, txs, w, now);
           windowNew += counts.newCount;
           windowUpdated += counts.updatedCount;
           result.messages.push(...counts.warnings);
@@ -948,6 +959,51 @@ export async function openingFromBank(
 }
 
 /**
+ * Marks a bank account as one the bank reports backwards (or not). The stored
+ * balances flip right away; transactions flip as they come in. A connected
+ * account's opening balance follows the corrected balance.
+ */
+export async function setFeedReversedSign(
+  db: Database,
+  actor: Actor,
+  feedId: string,
+  reversed: boolean,
+) {
+  if (!z.uuid().safeParse(feedId).success) throw new NotFoundError("That bank account");
+  const [feed] = await db.select().from(bankFeeds).where(eq(bankFeeds.id, feedId));
+  if (!feed) throw new NotFoundError("That bank account");
+  await loadConnection(db, actor.userId, feed.connectionId);
+  if (feed.reversedSign === reversed) return feed;
+  if (feed.bookId) await requireBookAccess(db, actor.userId, feed.bookId, "editor");
+  const after = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(bankFeeds)
+      .set({
+        reversedSign: reversed,
+        balanceCents: sql`-${bankFeeds.balanceCents}`,
+        availableBalanceCents: sql`-${bankFeeds.availableBalanceCents}`,
+      })
+      .where(eq(bankFeeds.id, feedId))
+      .returning();
+    await recordAudit(tx, {
+      bookId: feed.bookId,
+      userId: actor.userId,
+      entityType: "bank_feed",
+      entityId: feedId,
+      action: "update",
+      before: { reversedSign: feed.reversedSign },
+      after: { reversedSign: reversed },
+    });
+    return row!;
+  });
+  // Connected already and nothing imported yet: the opening balance follows.
+  if (after.bookId && after.accountId && !after.syncedThrough) {
+    await openingFromBank(db, actor, after);
+  }
+  return after;
+}
+
+/**
  * One step of guided setup: connect a bank account to a new or existing
  * account (or ignore it); its opening balance comes from the bank.
  */
@@ -961,9 +1017,14 @@ export async function guidedConnect(
     kind?: string;
     name?: string;
     accountId?: string;
+    /** The bank reports this account's sign backwards. */
+    reversedSign?: boolean;
   },
 ) {
   if (raw.choice === "ignore") return mapFeed(db, actor, feedId, { mode: "ignore" });
+  if (raw.reversedSign !== undefined) {
+    await setFeedReversedSign(db, actor, feedId, raw.reversedSign);
+  }
   const mapped =
     raw.choice === "new"
       ? await mapFeed(db, actor, feedId, {

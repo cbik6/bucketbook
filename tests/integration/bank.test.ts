@@ -425,6 +425,62 @@ describe("guided setup", () => {
   });
 });
 
+describe("accounts the bank reports backwards", () => {
+  it("opens a savings account shown as negative at the positive balance", async () => {
+    const ctx = await setupBook();
+    const bridge = fakeBridge({
+      "Student Loan Payoff (5133)": { balance: "-2136.33", transactions: [] },
+    });
+    const { connection } = await connectSimplefin(getDb(), ctx.actor, ACCESS_URL, bridge.impl);
+    const [feed] = await getDb()
+      .select()
+      .from(bankFeeds)
+      .where(eq(bankFeeds.connectionId, connection.id));
+    const { guidedConnect } = await import("@/server/simplefin/service");
+    const mapped = await guidedConnect(getDb(), ctx.actor, feed!.id, {
+      bookId: ctx.bookId,
+      choice: "new",
+      kind: "savings",
+      name: "Student Loan Payoff",
+      reversedSign: true,
+    });
+    expect(mapped.reversedSign).toBe(true);
+    expect(mapped.balanceCents).toBe(213_633);
+    expect(await accountNetCents(getDb(), mapped.accountId!)).toBe(213_633);
+  });
+
+  it("flips balances and transactions on every sync, and can be turned off", async () => {
+    const ctx = await setupBook();
+    const bridge = fakeBridge({
+      SAV: {
+        balance: "-2236.33",
+        transactions: [
+          { id: "dep", day: "2026-03-18", amount: "-100.00", description: "Transfer in" },
+        ],
+      },
+    });
+    const connection = await connectAndMap(bridge, ctx, { SAV: "Savings" });
+    const [feed] = await getDb()
+      .select()
+      .from(bankFeeds)
+      .where(eq(bankFeeds.connectionId, connection.id));
+    const { setFeedReversedSign } = await import("@/server/simplefin/service");
+    await setFeedReversedSign(getDb(), ctx.actor, feed!.id, true);
+    await sync(connection.id, bridge);
+
+    const [tx] = await items(ctx.bookId);
+    expect(tx!.amountCents).toBe(10_000);
+    const [after] = await getDb().select().from(bankFeeds).where(eq(bankFeeds.id, feed!.id));
+    expect(after!.balanceCents).toBe(223_633);
+
+    const off = await setFeedReversedSign(getDb(), ctx.actor, feed!.id, false);
+    expect(off.balanceCents).toBe(-223_633);
+    await sync(connection.id, bridge);
+    const [again] = await getDb().select().from(bankFeeds).where(eq(bankFeeds.id, feed!.id));
+    expect(again!.balanceCents).toBe(-223_633);
+  });
+});
+
 describe("several cards and investments", () => {
   it("gives each card its own new account and explains a clash", async () => {
     const ctx = await setupBook();

@@ -99,7 +99,13 @@ export const bankFeeds = pgTable(
     bookId: uuid("book_id").references(() => books.id, { onDelete: "set null" }),
     accountId: uuid("account_id"),
     ignored: boolean("ignored").notNull().default(false),
-    /** The bank's own figures from the last sync. */
+    /**
+     * The bank reports this account's sign backwards (a savings balance shown as
+     * negative, say). Balances and transaction amounts are flipped as they come
+     * in, so everything stored here reads the usual way.
+     */
+    reversedSign: boolean("reversed_sign").notNull().default(false),
+    /** The bank's own figures from the last sync (flipped when reversedSign). */
     balanceCents: bigint("balance_cents", { mode: "number" }),
     availableBalanceCents: bigint("available_balance_cents", { mode: "number" }),
     balanceAt: timestamp("balance_at", { withTimezone: true }),

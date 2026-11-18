@@ -487,3 +487,14 @@ before. Bank feeds mapped to the book are unmapped (and their import window clea
 rather than removed, so the SimpleFIN link survives. Receipt files are removed after the
 rows. One audit row records the deletion with the book's name. The new book form drops its
 start date field: a book starts the day it is created (D57).
+
+### D59. Bank accounts reported with the wrong sign
+
+Some bridges report a savings account's balance as negative (a Marcus savings goal, for
+one). A per-feed flag, `reversed_sign`, says the bank has it backwards. Balances and
+transaction amounts are flipped as they arrive, so everything stored reads the usual way
+and nothing downstream (opening balances, review, reconciliation, unexplained totals)
+needs to know. Turning the flag on or off flips the stored balances at once and, while
+nothing has been imported yet, resets the opening balance from the corrected figure. The
+guide offers it only for money accounts showing a negative balance, since an overdrawn
+checking account is real and should stay as reported unless the person says otherwise.

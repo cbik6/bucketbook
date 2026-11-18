@@ -143,6 +143,7 @@ export async function guidedConnectAction(
     kind?: string;
     name?: string;
     accountId?: string;
+    reversedSign?: boolean;
   },
 ): Promise<ActionState> {
   try {

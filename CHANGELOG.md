@@ -6,6 +6,14 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-11-18
+
+### Added
+
+- Accounts the bank reports backwards: when a savings or checking account comes in with a
+  negative balance, the setup guide offers "This is money in the account, not money
+  owed". Bucketbook then flips that account's balance and transactions on every sync.
+
 ## [1.6.1] - 2026-11-18
 
 ### Changed

@@ -1,0 +1,1 @@
+ALTER TABLE "bank_feeds" ADD COLUMN "reversed_sign" boolean DEFAULT false NOT NULL;

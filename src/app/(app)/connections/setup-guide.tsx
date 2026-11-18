@@ -146,7 +146,18 @@ function Step({
     choice === "new" ? kind === "investment" : existing?.label.toLowerCase().includes("invest");
   const owed =
     choice === "new" ? kind === "credit_card" || kind === "loan" : existing?.type === "liability";
-  const balance = feed.balanceCents;
+  // What the bank itself reports (stored figures are already flipped when reversed).
+  const bankBalance =
+    feed.balanceCents === null ? null : feed.reversedSign ? -feed.balanceCents : feed.balanceCents;
+  const [reversed, setReversed] = useState(feed.reversedSign);
+  // Money you have, shown negative by the bank: offer to read it the other way round.
+  const holdsMoney =
+    choice === "new"
+      ? ["checking", "savings", "cash", "other_asset"].includes(kind)
+      : existing?.type === "asset" && !isInvestment;
+  const offerReverse = holdsMoney && bankBalance !== null && (bankBalance < 0 || feed.reversedSign);
+  const balance =
+    bankBalance === null ? null : offerReverse && reversed ? -bankBalance : bankBalance;
 
   const submit = () =>
     start(async () => {
@@ -156,6 +167,7 @@ function Step({
         kind,
         name,
         accountId,
+        reversedSign: offerReverse ? reversed : undefined,
       });
       if (r.error) {
         setError(r.error);
@@ -181,9 +193,9 @@ function Step({
       <div className="rounded-xl bg-sunken p-4">
         <div className="font-semibold">{feed.name}</div>
         <div className="text-sm text-ink-muted">{feed.institution ?? "Bank"}</div>
-        {balance !== null ? (
+        {bankBalance !== null ? (
           <div className="mt-2 text-sm">
-            Bank balance today: <Money cents={balance} className="font-semibold" />
+            Bank balance today: <Money cents={bankBalance} className="font-semibold" />
           </div>
         ) : null}
       </div>
@@ -276,6 +288,24 @@ function Step({
               </option>
             ))}
           </SelectInput>
+        </label>
+      ) : null}
+
+      {choice !== "ignore" && offerReverse ? (
+        <label className="flex items-start gap-2 rounded-lg border border-rule px-3 py-2.5 text-sm">
+          <input
+            type="checkbox"
+            checked={reversed}
+            onChange={(e) => setReversed(e.target.checked)}
+            className="mt-0.5 size-4 shrink-0 accent-[var(--signal)]"
+          />
+          <span className="flex min-w-0 flex-col">
+            This is money in the account, not money owed
+            <span className="text-[0.8125rem] text-ink-muted">
+              The bank reports it as negative. Bucketbook will flip this account&apos;s balance and
+              transactions so they read the right way.
+            </span>
+          </span>
         </label>
       ) : null}
 
