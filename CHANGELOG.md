@@ -6,6 +6,12 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-11-18
+
+### Changed
+
+- A new book's start date defaults to the day you create it (it was January 1).
+
 ## [1.4.0] - 2026-11-18
 
 ### Changed

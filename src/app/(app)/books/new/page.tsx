@@ -1,3 +1,4 @@
+import { serverToday } from "@/server/ledger/page-data";
 import { connection } from "next/server";
 import type { Metadata } from "next";
 import { Suspense } from "react";
@@ -26,7 +27,7 @@ async function NewBookContent() {
         <BookForm
           action={createBookAction}
           templates={templateSummaries()}
-          defaultStartDate={`${new Date().getFullYear()}-01-01`}
+          defaultStartDate={serverToday()}
           submitLabel="Create book"
           namePlaceholder="Side business LLC"
         />

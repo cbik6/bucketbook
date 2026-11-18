@@ -96,7 +96,7 @@ export function BookForm({
       <Field
         label="Start date"
         htmlFor={`${uid}-book-start`}
-        hint="Your opening balances are as of this date. Bank transactions before it are ignored."
+        hint="Usually today, the day you start these books. Opening balances are as of this date."
         error={state.field === "startDate" ? state.error : undefined}
       >
         <TextInput
