@@ -2,6 +2,7 @@
 
 import { RefreshCw } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useActionState, useId, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Money } from "@/components/money";
@@ -11,6 +12,8 @@ import { HoldButton } from "@/components/ui/hold-button";
 import { formatDay } from "@/lib/dates";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { ConnectionView, FeedView } from "@/server/simplefin/service";
+import { NEW_KINDS, type NewKind, guessKind, startingName } from "./feed-helpers";
+import { SetupGuide } from "./setup-guide";
 import {
   connectAction,
   disconnectAction,
@@ -49,11 +52,14 @@ function day(date: Date | null, timeZone: string) {
 
 export function ConnectForm({ first }: { first: boolean }) {
   const tokenRef = useRef<HTMLTextAreaElement>(null);
+  const router = useRouter();
   const [state, formAction] = useActionState(
     async (prev: Parameters<typeof connectAction>[0], fd: FormData) => {
       const r = await connectAction(prev, fd);
       // Never leave a pasted token or Access URL sitting on screen.
       if (r.success && tokenRef.current) tokenRef.current.value = "";
+      // Walk through the new accounts straight away.
+      if (r.connectionId) router.replace(`/connections?setup=${r.connectionId}`);
       return r;
     },
     {},
@@ -105,6 +111,43 @@ export function ConnectForm({ first }: { first: boolean }) {
             placeholder="Paste your setup token here"
           />
         </Field>
+        <div className="flex flex-col gap-2 rounded-lg border border-rule bg-sunken p-3 text-[0.8125rem] text-ink">
+          <p>
+            SimpleFIN Bridge is a separate service. By connecting, you agree to its{" "}
+            <a
+              href="https://beta-bridge.simplefin.org/info/terms"
+              target="_blank"
+              rel="noreferrer"
+              className="text-signal-ink underline underline-offset-2"
+            >
+              Terms of Use
+            </a>{" "}
+            and{" "}
+            <a
+              href="https://beta-bridge.simplefin.org/info/privacy"
+              target="_blank"
+              rel="noreferrer"
+              className="text-signal-ink underline underline-offset-2"
+            >
+              Privacy Policy
+            </a>
+            .
+          </p>
+          <p>
+            Bucketbook is provided as is, without warranty of any kind. Its authors aren&apos;t
+            liable for any loss or damage from using it, including mistakes in your books or in bank
+            data. Check important numbers against your bank.
+          </p>
+          <label className="flex items-start gap-2 font-medium">
+            <input
+              type="checkbox"
+              name="accepted"
+              required
+              className="mt-0.5 size-4 accent-[var(--signal)]"
+            />
+            I understand and agree.
+          </label>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <SubmitButton pendingLabel="Connecting">Connect</SubmitButton>
           <Button
@@ -125,10 +168,13 @@ export function ConnectionCard({
   connection,
   targets,
   timeZone,
+  autoSetup = false,
 }: {
   connection: ConnectionView;
   targets: MappingTarget[];
   timeZone: string;
+  /** Open the setup guide straight away (right after connecting). */
+  autoSetup?: boolean;
 }) {
   const [syncing, startSync] = useTransition();
   const [, startOther] = useTransition();
@@ -136,6 +182,7 @@ export function ConnectionCard({
   const mapped = connection.feeds.filter((f) => f.accountId);
   const unmapped = connection.feeds.filter((f) => !f.accountId && !f.ignored);
   const ignored = connection.feeds.filter((f) => f.ignored);
+  const [guideOpen, setGuideOpen] = useState(autoSetup && unmapped.length > 0);
   const busy = syncing || connection.syncing;
 
   const syncNow = () =>
@@ -192,14 +239,26 @@ export function ConnectionCard({
       ) : null}
 
       {unmapped.length > 0 ? (
-        <FeedGroup
-          title="Choose where these go"
-          note="Each bank account feeds one account in one book. Transactions before that book's start date are skipped."
-          feeds={unmapped}
-          targets={targets}
-          timeZone={timeZone}
-        />
+        <div className="flex flex-col gap-3 rounded-xl border border-signal/40 bg-signal-soft/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-[0.9375rem] font-semibold text-ink">
+              {unmapped.length} {unmapped.length === 1 ? "account isn't" : "accounts aren't"} set up
+              yet
+            </h3>
+            <p className="text-sm text-ink-muted">{unmapped.map((f) => f.name).join(", ")}</p>
+          </div>
+          <Button variant="primary" onClick={() => setGuideOpen(true)}>
+            Set up {unmapped.length === 1 ? "this account" : `${unmapped.length} accounts`}
+          </Button>
+        </div>
       ) : null}
+      <SetupGuide
+        connectionId={connection.id}
+        feeds={unmapped}
+        targets={targets}
+        open={guideOpen}
+        onClose={() => setGuideOpen(false)}
+      />
       {mapped.length > 0 ? (
         <FeedGroup
           title="Connected accounts"
@@ -388,34 +447,6 @@ function FeedRow({
       </div>
     </li>
   );
-}
-
-const NEW_KINDS = [
-  { kind: "checking", label: "Checking" },
-  { kind: "savings", label: "Savings" },
-  { kind: "credit_card", label: "Credit card" },
-  { kind: "investment", label: "Investment (value only)" },
-  { kind: "loan", label: "Loan" },
-  { kind: "cash", label: "Cash" },
-  { kind: "other_asset", label: "Other asset" },
-] as const;
-
-type NewKind = (typeof NEW_KINDS)[number]["kind"];
-
-/** A tidy starting name from the bank's ("Costco Anywhere Visa® Card by Citi (8837)"). */
-const startingName = (feedName: string) =>
-  feedName.replace(/[®™]/g, "").replace(/\s+/g, " ").trim().slice(0, 100);
-
-/** A first guess at what kind of account a bank account is, from its name and balance. */
-function guessKind(feed: FeedView): NewKind {
-  const n = feed.name.toLowerCase();
-  if (/(card|visa|mastercard|amex|discover)/.test(n)) return "credit_card";
-  if (/(brokerage|ira\b|401|403|roth|invest|retire|hsa|stock|fund\b.*index)/.test(n))
-    return "investment";
-  if (/(loan|mortgage|auto|heloc)/.test(n)) return "loan";
-  if ((feed.balanceCents ?? 0) < 0) return "credit_card";
-  if (/(sav|fund|reserve|goal|money market|cd\b)/.test(n)) return "savings";
-  return "checking";
 }
 
 function MappingForm({

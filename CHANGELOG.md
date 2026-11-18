@@ -6,6 +6,23 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-18
+
+### Added
+
+- Guided setup for bank accounts: a pop-up walks through each account not yet set up,
+  one at a time (new or existing account, type and name, or skip), and opens on its own
+  right after connecting SimpleFIN.
+- Opening balances come from the bank automatically: connecting an account uses the
+  bank's balance that day as its opening balance (investments take their value from
+  each sync instead).
+- A notice before connecting SimpleFIN: its Terms of Use and Privacy Policy apply, and
+  Bucketbook comes with no warranty or liability. A tick box confirms it.
+
+### Changed
+
+- A book's start date can no longer be changed after the book is created.
+
 ## [1.4.1] - 2026-11-18
 
 ### Changed

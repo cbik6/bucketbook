@@ -23,7 +23,12 @@ import {
 } from "../db/schema";
 import { getEnv } from "../env";
 import { accountHasActivity, accountNetCents } from "../ledger/queries";
-import { createEntry, loadBookForPosting, validateLines } from "../ledger/service";
+import {
+  createEntry,
+  loadBookForPosting,
+  setOpeningBalanceFor,
+  validateLines,
+} from "../ledger/service";
 import { NotFoundError, UserFacingError, pgErrorInfo } from "../errors";
 import { type ExistingRow, addDays, planFeedSync, syncWindows, incomingDay } from "./plan";
 import {
@@ -920,4 +925,58 @@ export async function editableBooks(db: DbOrTx, userId: string) {
     .innerJoin(bookMembers, and(eq(bookMembers.bookId, books.id), eq(bookMembers.userId, userId)))
     .where(and(isNull(books.archivedAt), ne(bookMembers.role, "viewer")))
     .orderBy(asc(books.createdAt));
+}
+
+/**
+ * Uses the bank's balance as the account's opening balance. History is only
+ * brought in from the day an account is connected, so its balance that day is
+ * where its books start. Investments are skipped: each sync sets their value.
+ */
+export async function openingFromBank(
+  db: Database,
+  actor: Actor,
+  feed: { bookId: string | null; accountId: string | null; balanceCents: number | null },
+) {
+  if (!feed.bookId || !feed.accountId || feed.balanceCents === null) return;
+  const [acct] = await db
+    .select({ type: accounts.type, subtype: accounts.subtype })
+    .from(accounts)
+    .where(eq(accounts.id, feed.accountId));
+  if (!acct || acct.subtype === "investment") return;
+  const natural = acct.type === "liability" ? -feed.balanceCents : feed.balanceCents;
+  await setOpeningBalanceFor(db, actor, feed.bookId, feed.accountId, natural);
+}
+
+/**
+ * One step of guided setup: connect a bank account to a new or existing
+ * account (or ignore it); its opening balance comes from the bank.
+ */
+export async function guidedConnect(
+  db: Database,
+  actor: Actor,
+  feedId: string,
+  raw: {
+    bookId: string;
+    choice: "new" | "existing" | "ignore";
+    kind?: string;
+    name?: string;
+    accountId?: string;
+  },
+) {
+  if (raw.choice === "ignore") return mapFeed(db, actor, feedId, { mode: "ignore" });
+  const mapped =
+    raw.choice === "new"
+      ? await mapFeed(db, actor, feedId, {
+          mode: "create",
+          bookId: raw.bookId,
+          kind: raw.kind,
+          name: raw.name,
+        })
+      : await mapFeed(db, actor, feedId, {
+          mode: "map",
+          bookId: raw.bookId,
+          accountId: raw.accountId,
+        });
+  await openingFromBank(db, actor, mapped);
+  return mapped;
 }

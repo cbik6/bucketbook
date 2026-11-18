@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/app-shell";
 import { CHART_TEMPLATES } from "@/server/accounts/templates";
 import { loadBookForPage } from "@/server/guards";
-import { ArchiveBookControl, RenameBookForm, StartDateForm } from "./settings-forms";
+import { ArchiveBookControl, RenameBookForm } from "./settings-forms";
 
 export const metadata: Metadata = { title: "Book settings" };
 
@@ -46,11 +46,9 @@ async function SettingsContent({ params }: PageProps<"/books/[bookId]/settings">
             <dt className="text-ink-muted">Started from</dt>
             <dd>{CHART_TEMPLATES[book.template as keyof typeof CHART_TEMPLATES]?.label}</dd>
           </dl>
-          {isOwner ? (
-            <div className="mt-6">
-              <StartDateForm bookId={book.id} startDate={book.startDate} />
-            </div>
-          ) : null}
+          <p className="mt-4 text-[0.8125rem] text-ink-muted">
+            The start date is fixed once the book is created: opening balances are as of that day.
+          </p>
         </section>
 
         <section className="py-8" aria-labelledby="archive-heading">

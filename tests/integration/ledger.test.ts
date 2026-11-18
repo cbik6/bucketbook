@@ -15,7 +15,6 @@ import { accounts, auditLog, journalLines } from "@/server/db/schema";
 import { UserFacingError } from "@/server/errors";
 import { accountRegister, accountTotals } from "@/server/ledger/queries";
 import {
-  changeStartDate,
   editEntry,
   getEntryDetail,
   listEntries,
@@ -373,22 +372,6 @@ describe("opening balances", () => {
     await expect(saveOpeningBalances(getDb(), actor, bookId, {})).rejects.toThrow(
       /can't all be zero/,
     );
-  });
-
-  it("moves with the start date, and the move is blocked by earlier entries", async () => {
-    const { actor, bookId, id } = await setupBook();
-    await saveOpeningBalances(getDb(), actor, bookId, { [id("Checking")]: "100" });
-    await postEntry(getDb(), actor, bookId, {
-      entryDate: "2026-03-15",
-      lines: [line(id("Groceries"), "5"), line(id("Checking"), "", "5")],
-    });
-    await expect(changeStartDate(getDb(), actor, bookId, "2026-04-01")).rejects.toThrow(
-      /1 entry is dated before/,
-    );
-    await changeStartDate(getDb(), actor, bookId, "2026-03-01");
-    const state = await openingBalanceState(getDb(), bookId);
-    expect(state.entry?.entryDate).toBe("2026-03-01");
-    expect(state.entry?.currentVersion).toBe(2);
   });
 });
 

@@ -15,7 +15,6 @@ import {
   type EntryKind,
   accounts,
   bankTransactions,
-  books,
   journalEntries,
   journalEntryVersions,
   journalLines,
@@ -678,64 +677,6 @@ async function editEntryInTx(
   return { entry: after!, changed: true };
 }
 
-/**
- * Moves the book's start date. The opening balance entry (if any) moves with
- * it as a new version. Entries dated before the new start date block the move.
- */
-export async function changeStartDate(db: Database, actor: Actor, bookId: string, raw: string) {
-  const parsed = isoDate.safeParse(raw);
-  if (!parsed.success) throw new UserFacingError(parsed.error.issues[0]!.message, "startDate");
-  const startDate = parsed.data;
-  return db.transaction(async (tx) => {
-    const book = await loadBookForPosting(tx, bookId);
-    if (startDate === book.startDate) return;
-    const early = await tx.execute<{ n: number }>(sql`
-      select count(*)::int as n from journal_entries
-      where book_id = ${bookId} and kind <> 'opening_balance' and entry_date < ${startDate}
-    `);
-    const count = Number(early.rows[0]?.n ?? 0);
-    if (count > 0) {
-      throw new UserFacingError(
-        `${count} ${count === 1 ? "entry is" : "entries are"} dated before ${formatDate(startDate)}. Move or reverse ${count === 1 ? "it" : "them"} first.`,
-        "startDate",
-      );
-    }
-    const [before] = await tx.select().from(books).where(eq(books.id, bookId));
-    const [after] = await tx
-      .update(books)
-      .set({ startDate })
-      .where(eq(books.id, bookId))
-      .returning();
-    await recordAudit(tx, {
-      bookId,
-      userId: actor.userId,
-      entityType: "book",
-      entityId: bookId,
-      action: "update",
-      before,
-      after,
-    });
-    const [opening] = await tx
-      .select()
-      .from(journalEntries)
-      .where(and(eq(journalEntries.bookId, bookId), eq(journalEntries.kind, "opening_balance")));
-    if (opening) {
-      const lines = await currentLines(tx, opening.id, opening.currentVersion);
-      await editEntryInTx(tx, actor, { id: bookId, startDate }, opening.id, {
-        entryDate: startDate,
-        payee: opening.payee,
-        memo: opening.memo,
-        lines: lines.map((l) => ({
-          accountId: l.accountId,
-          debit: l.debitCents ? centsText(l.debitCents) : "",
-          credit: l.creditCents ? centsText(l.creditCents) : "",
-          memo: l.memo ?? "",
-        })),
-      });
-    }
-  });
-}
-
 // ---------------------------------------------------------------------------
 // Reading entries
 // ---------------------------------------------------------------------------
@@ -913,4 +854,25 @@ export async function getEntryDetail(
     reversedBy: reversedBy ?? null,
     reverses: reverses ?? null,
   };
+}
+
+/**
+ * Sets one account's opening balance (in its natural direction, for example
+ * what a card owes as a positive amount), keeping every other account's.
+ */
+export async function setOpeningBalanceFor(
+  db: Database,
+  actor: Actor,
+  bookId: string,
+  accountId: string,
+  naturalCents: number,
+) {
+  const state = await openingBalanceState(db, bookId);
+  const amounts: Record<string, string> = {};
+  for (const a of state.accounts) {
+    if (a.naturalCents !== 0) amounts[a.id] = centsText(a.naturalCents);
+  }
+  amounts[accountId] = centsText(naturalCents);
+  if (Object.values(amounts).every((v) => v === "0.00")) return null;
+  return saveOpeningBalances(db, actor, bookId, amounts);
 }

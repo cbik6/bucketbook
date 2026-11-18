@@ -4,10 +4,9 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { type ActionState, actionError, formValues } from "@/server/action-state";
 import { requireUser } from "@/server/auth/session";
-import { createBook, renameBook, requireBookAccess, setBookArchived } from "@/server/books/service";
+import { createBook, renameBook, setBookArchived } from "@/server/books/service";
 import { getDb } from "@/server/db/client";
 import { createDemoBook } from "@/server/demo/seed";
-import { changeStartDate } from "@/server/ledger/service";
 import { todayIso } from "@/lib/dates";
 
 export async function createBookAction(
@@ -53,23 +52,6 @@ export async function setBookArchivedAction(
     return {};
   } catch (err) {
     return { error: actionError(err).error };
-  }
-}
-
-export async function changeStartDateAction(
-  bookId: string,
-  _prev: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const values = formValues(formData, ["startDate"]);
-  try {
-    const user = await requireUser();
-    await requireBookAccess(getDb(), user.id, bookId, "owner");
-    await changeStartDate(getDb(), { userId: user.id }, bookId, values.startDate ?? "");
-    refresh();
-    return { success: "Start date updated.", values };
-  } catch (err) {
-    return actionError(err, values);
   }
 }
 

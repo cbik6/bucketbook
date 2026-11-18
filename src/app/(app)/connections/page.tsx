@@ -67,7 +67,13 @@ async function ConnectionsContent({ searchParams }: PageProps<"/connections">) {
       />
       <div className="box-content flex max-w-[60rem] flex-col gap-10 px-5 pb-16 pt-6 lg:px-10">
         {connections.map((c) => (
-          <ConnectionCard key={c.id} connection={c} targets={targets} timeZone={timeZone} />
+          <ConnectionCard
+            key={c.id}
+            connection={c}
+            targets={targets}
+            timeZone={timeZone}
+            autoSetup={sp.setup === c.id}
+          />
         ))}
         <ConnectForm first={connections.length === 0} />
       </div>

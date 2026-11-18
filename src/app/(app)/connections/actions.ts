@@ -10,6 +10,8 @@ import {
   type SyncResult,
   connectSimplefin,
   disconnectSimplefin,
+  guidedConnect,
+  openingFromBank,
   mapFeed,
   runSync,
   setSyncTime,
@@ -27,15 +29,27 @@ async function refreshSchedules() {
   );
 }
 
-export async function connectAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+export async function connectAction(
+  _prev: ActionState & { connectionId?: string },
+  formData: FormData,
+): Promise<ActionState & { connectionId?: string }> {
   try {
     const a = await actor();
+    if (formData.get("accepted") !== "on") {
+      throw new UserFacingError(
+        "Tick the box to agree to SimpleFIN's terms and Bucketbook's no-warranty notice.",
+        "accepted",
+      );
+    }
     const token = String(formData.get("token") ?? "");
-    const { accountCount, messages } = await connectSimplefin(getDb(), a, token);
+    const { connection, accountCount, messages } = await connectSimplefin(getDb(), a, token);
     await refreshSchedules();
     revalidatePath("/connections");
     const found = `Connected. SimpleFIN reports ${accountCount} ${accountCount === 1 ? "account" : "accounts"}.`;
-    return { success: messages.length ? `${found} ${messages.join(" ")}` : found };
+    return {
+      success: messages.length ? `${found} ${messages.join(" ")}` : found,
+      connectionId: connection.id,
+    };
   } catch (err) {
     return actionError(err);
   }
@@ -74,18 +88,19 @@ export async function mapFeedAction(
     const choice = String(formData.get("accountId") ?? "");
     let mode = String(formData.get("mode") ?? "map");
     if (mode === "map" && choice === "new") mode = "create";
-    await mapFeed(getDb(), a, feedId, {
+    const mapped = await mapFeed(getDb(), a, feedId, {
       mode,
       bookId: String(formData.get("bookId") ?? ""),
       accountId: choice,
       kind: String(formData.get("kind") ?? ""),
       name: String(formData.get("name") ?? ""),
     });
+    if (mode === "map" || mode === "create") await openingFromBank(getDb(), a, mapped);
     revalidatePath("/connections");
     return {
       success:
         mode === "map" || mode === "create"
-          ? "Saved. Press Sync now to bring in its transactions."
+          ? "Connected, with the bank's balance today as its opening balance. Press Sync now to bring in today's transactions."
           : mode === "ignore"
             ? "This account will be ignored."
             : "Mapping removed.",
@@ -115,6 +130,26 @@ export async function disconnectAction(connectionId: string): Promise<ActionStat
     await refreshSchedules();
     revalidatePath("/connections");
     return { success: "Disconnected. Transactions already brought in are kept." };
+  } catch (err) {
+    return actionError(err);
+  }
+}
+
+export async function guidedConnectAction(
+  feedId: string,
+  input: {
+    bookId: string;
+    choice: "new" | "existing" | "ignore";
+    kind?: string;
+    name?: string;
+    accountId?: string;
+  },
+): Promise<ActionState> {
+  try {
+    const a = await actor();
+    await guidedConnect(getDb(), a, feedId, input);
+    revalidatePath("/", "layout");
+    return { success: "ok" };
   } catch (err) {
     return actionError(err);
   }

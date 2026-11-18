@@ -375,6 +375,56 @@ describe("import start", () => {
   });
 });
 
+describe("guided setup", () => {
+  it("connects accounts one at a time with the bank's balance as the opening balance", async () => {
+    const ctx = await setupBook();
+    const bridge = fakeBridge({
+      "Costco Visa (8837)": { balance: "-608.28", transactions: [] },
+      "Baby Fund (9454)": { balance: "225.47", transactions: [] },
+      "Brokerage (1111)": { balance: "25618.90", transactions: [] },
+      "Old Card (0000)": { balance: "0", transactions: [] },
+    });
+    const { connection } = await connectSimplefin(getDb(), ctx.actor, ACCESS_URL, bridge.impl);
+    const feeds = await getDb()
+      .select()
+      .from(bankFeeds)
+      .where(eq(bankFeeds.connectionId, connection.id));
+    const feed = (prefix: string) => feeds.find((f) => f.name.startsWith(prefix))!.id;
+    const { guidedConnect } = await import("@/server/simplefin/service");
+    const card = await guidedConnect(getDb(), ctx.actor, feed("Costco"), {
+      bookId: ctx.bookId,
+      choice: "new",
+      kind: "credit_card",
+      name: "Costco Visa",
+    });
+    const baby = await guidedConnect(getDb(), ctx.actor, feed("Baby"), {
+      bookId: ctx.bookId,
+      choice: "new",
+      kind: "savings",
+      name: "Baby Fund",
+    });
+    const broker = await guidedConnect(getDb(), ctx.actor, feed("Brokerage"), {
+      bookId: ctx.bookId,
+      choice: "new",
+      kind: "investment",
+      name: "Brokerage",
+    });
+    const skipped = await guidedConnect(getDb(), ctx.actor, feed("Old"), {
+      bookId: ctx.bookId,
+      choice: "ignore",
+    });
+    // Each new account opens at the bank's balance, and earlier ones are kept.
+    expect(await accountNetCents(getDb(), card.accountId!)).toBe(-60_828);
+    expect(await accountNetCents(getDb(), baby.accountId!)).toBe(22_547);
+    // Investments take their value from the sync instead.
+    expect(await accountNetCents(getDb(), broker.accountId!)).toBe(0);
+    expect(skipped.ignored).toBe(true);
+    const { openingBalanceState } = await import("@/server/ledger/service");
+    const state = await openingBalanceState(getDb(), ctx.bookId);
+    expect(state.entry?.entryDate).toBe("2026-01-01");
+  });
+});
+
 describe("several cards and investments", () => {
   it("gives each card its own new account and explains a clash", async () => {
     const ctx = await setupBook();

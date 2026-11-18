@@ -137,7 +137,9 @@ a small paid service that connects to most US banks and credit cards.
 2. In Bucketbook, open **Bank connections** (bottom of the side menu), paste the token,
    and press Connect. The token works once; Bucketbook trades it for an access key and
    stores that encrypted with `APP_ENCRYPTION_KEY`.
-3. For each bank account, choose the book and account it feeds, or ignore it.
+3. A guide opens and walks through each bank account: make a new account for it (pick the
+   type and name), connect it to one you already have, or skip it. Its opening balance is
+   set from the bank's balance that day.
 4. Press **Sync now**. Each account brings in transactions from the day you connected it,
    so enter its balance on that day as its opening balance (the Bank connections page
    shows the bank's balance). After that it syncs once a day at the hour you pick (in the
@@ -273,6 +275,15 @@ Version 1 is complete:
 
 Ideas for later (the schema leaves room): invoices and bills, multiple currencies,
 sharing a book with another person, importers from other apps.
+
+## No warranty
+
+Bucketbook is provided as is, without warranty of any kind, and its authors aren't liable
+for any loss or damage from using it, including mistakes in your books or in bank data.
+Bank connections go through SimpleFIN Bridge, a separate service with its own
+[Terms of Use](https://beta-bridge.simplefin.org/info/terms) and
+[Privacy Policy](https://beta-bridge.simplefin.org/info/privacy), which you accept when you
+connect.
 
 ## License
 

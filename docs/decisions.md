@@ -462,3 +462,15 @@ before this change); syncs never bring in anything earlier, and never before the
 start date. The opening balance is the account's balance on that day. For older history,
 import a CSV, which is explicit and fingerprinted against duplicates. This supersedes the
 backfill part of D35.
+
+### D57. Guided bank setup, opening balances from the bank, fixed start dates
+
+Connecting SimpleFIN opens a guide that takes each bank account in turn: a new account
+(type and name), an existing one, or skip; "Decide later" leaves it for another time. Every
+connection, guided or not, sets that account's opening balance to the bank's balance at
+that moment, merged into the book's single opening balance entry, because history is
+only imported from the day of connection (D56). Investment accounts are left to their
+value updates. A book's start date is fixed when the book is created (it defaults to that
+day): opening balances and import dates hang off it, and moving it would quietly change
+what they mean. The connect form shows SimpleFIN's terms and a no-warranty notice, and
+the server requires the agreement box.
