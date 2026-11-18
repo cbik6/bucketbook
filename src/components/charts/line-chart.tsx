@@ -22,7 +22,8 @@ export function LineChart({
 }) {
   const [active, setActive] = useState<number | null>(null);
   const boxRef = useRef<HTMLElement>(null);
-  const [W, setW] = useState(800);
+  // 0 until measured: the chart draws once at its real width, never scaled.
+  const [W, setW] = useState(0);
   useEffect(() => observeWidth(boxRef.current, setW), []);
   const svgRef = useRef<SVGSVGElement>(null);
   const values = points.map((p) => p.value);
@@ -57,86 +58,90 @@ export function LineChart({
   const last = points.length - 1;
   return (
     <figure className="relative" ref={boxRef}>
-      <svg
-        ref={svgRef}
-        viewBox={`0 0 ${W} ${H}`}
-        className="block h-auto w-full touch-pan-y outline-none"
-        role="img"
-        aria-label={label}
-        tabIndex={0}
-        onPointerMove={(e) => pick(e.clientX)}
-        onPointerLeave={() => setActive(null)}
-        onFocus={() => setActive(last)}
-        onBlur={() => setActive(null)}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowLeft") setActive((a) => Math.max(0, (a ?? last) - 1));
-          if (e.key === "ArrowRight") setActive((a) => Math.min(last, (a ?? last) + 1));
-        }}
-      >
-        {ticks.map((t) => (
-          <g key={t}>
+      {W > 0 ? (
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${W} ${H}`}
+          className="block h-auto w-full touch-pan-y outline-none"
+          role="img"
+          aria-label={label}
+          tabIndex={0}
+          onPointerMove={(e) => pick(e.clientX)}
+          onPointerLeave={() => setActive(null)}
+          onFocus={() => setActive(last)}
+          onBlur={() => setActive(null)}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowLeft") setActive((a) => Math.max(0, (a ?? last) - 1));
+            if (e.key === "ArrowRight") setActive((a) => Math.min(last, (a ?? last) + 1));
+          }}
+        >
+          {ticks.map((t) => (
+            <g key={t}>
+              <line
+                x1={PAD.left}
+                x2={W - PAD.right}
+                y1={y(t)}
+                y2={y(t)}
+                stroke={t === 0 ? "var(--rule-strong)" : "var(--chart-grid)"}
+                strokeWidth={1}
+              />
+              <text
+                x={PAD.left - 8}
+                y={y(t)}
+                dy="0.32em"
+                textAnchor="end"
+                className="fill-ink-muted text-[11px] tabular-nums"
+              >
+                {axisLabel(t, compact)}
+              </text>
+            </g>
+          ))}
+          {points.map((p, i) =>
+            i % every === 0 || i === last ? (
+              <text
+                key={p.month}
+                x={x(i)}
+                y={H - 8}
+                textAnchor="middle"
+                className="fill-ink-muted text-[11px]"
+              >
+                {monthLabel(p.month, showYear && (i === 0 || p.month.endsWith("-01")))}
+              </text>
+            ) : null,
+          )}
+          <path d={area} fill="var(--signal)" opacity={0.1} />
+          <path
+            d={path}
+            fill="none"
+            stroke="var(--signal)"
+            strokeWidth={2}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+          {active !== null ? (
             <line
-              x1={PAD.left}
-              x2={W - PAD.right}
-              y1={y(t)}
-              y2={y(t)}
-              stroke={t === 0 ? "var(--rule-strong)" : "var(--chart-grid)"}
+              x1={x(active)}
+              x2={x(active)}
+              y1={PAD.top}
+              y2={PAD.top + plotH}
+              stroke="var(--ink-muted)"
               strokeWidth={1}
             />
-            <text
-              x={PAD.left - 8}
-              y={y(t)}
-              dy="0.32em"
-              textAnchor="end"
-              className="fill-ink-muted text-[11px] tabular-nums"
-            >
-              {axisLabel(t, compact)}
-            </text>
-          </g>
-        ))}
-        {points.map((p, i) =>
-          i % every === 0 || i === last ? (
-            <text
-              key={p.month}
-              x={x(i)}
-              y={H - 8}
-              textAnchor="middle"
-              className="fill-ink-muted text-[11px]"
-            >
-              {monthLabel(p.month, showYear && (i === 0 || p.month.endsWith("-01")))}
-            </text>
-          ) : null,
-        )}
-        <path d={area} fill="var(--signal)" opacity={0.1} />
-        <path
-          d={path}
-          fill="none"
-          stroke="var(--signal)"
-          strokeWidth={2}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-        {active !== null ? (
-          <line
-            x1={x(active)}
-            x2={x(active)}
-            y1={PAD.top}
-            y2={PAD.top + plotH}
-            stroke="var(--ink-muted)"
-            strokeWidth={1}
-          />
-        ) : null}
-        {points.length ? (
-          <circle
-            cx={x(active ?? last)}
-            cy={y(points[active ?? last]!.value)}
-            r={4.5}
-            fill="var(--signal)"
-            stroke="var(--paper)"
-            strokeWidth={2}
-          />
-        ) : null}
-      </svg>
+          ) : null}
+          {points.length ? (
+            <circle
+              cx={x(active ?? last)}
+              cy={y(points[active ?? last]!.value)}
+              r={4.5}
+              fill="var(--signal)"
+              stroke="var(--paper)"
+              strokeWidth={2}
+            />
+          ) : null}
+        </svg>
+      ) : (
+        <div aria-hidden style={{ height: H }} />
+      )}
       {points.length && active !== null ? (
         <div
           role="status"

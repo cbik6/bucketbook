@@ -32,6 +32,14 @@ your real bank accounts, running on your own server.
 - **Your data, your server.** Plain Postgres with readable table names, installable on
   your phone's home screen, light and dark mode.
 
+![The review queue: bank transactions with suggested categories, waiting for approval](docs/screenshots/review-queue.png)
+
+| Buckets with goals                                                             | Spending trends                                                                     |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| ![Savings split into buckets with goal progress](docs/screenshots/buckets.png) | ![Monthly spending by category with a hover readout](docs/screenshots/spending.png) |
+
+The screenshots show the built-in demo book; all names in it are made up.
+
 Want to look around first? After setup, press **Try a demo book** on the Books page for
 a household with three months of activity, buckets, a car loan and a budget.
 

@@ -25,7 +25,8 @@ export function StackedColumns({
 }) {
   const [active, setActive] = useState<number | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
-  const [W, setW] = useState(800);
+  // 0 until measured: the chart draws once at its real width, never scaled.
+  const [W, setW] = useState(0);
   useEffect(() => observeWidth(boxRef.current, setW), []);
   const totals = months.map((_, i) =>
     series.reduce((n, s) => n + Math.max(0, s.values[i] ?? 0), 0),
@@ -57,95 +58,99 @@ export function StackedColumns({
         ))}
       </ul>
       <div className="relative" ref={boxRef}>
-        <svg
-          viewBox={`0 0 ${W} ${H}`}
-          className="block h-auto w-full"
-          role="img"
-          aria-label={label}
-        >
-          {ticks.map((t) => (
-            <g key={t}>
-              <line
-                x1={PAD.left}
-                x2={W - PAD.right}
-                y1={y(t)}
-                y2={y(t)}
-                stroke="var(--chart-grid)"
-                strokeWidth={1}
-              />
-              <text
-                x={PAD.left - 8}
-                y={y(t)}
-                dy="0.32em"
-                textAnchor="end"
-                className="fill-ink-muted text-[11px] tabular-nums"
-              >
-                {axisLabel(t, compact)}
-              </text>
-            </g>
-          ))}
-          {months.map((m, i) => {
-            const cx = PAD.left + band * i + band / 2;
-            let base = 0;
-            const segs = series
-              .map((s, si) => ({ s, si, v: Math.max(0, s.values[i] ?? 0) }))
-              .filter((x) => x.v > 0);
-            return (
-              <g
-                key={m}
-                tabIndex={0}
-                role="button"
-                aria-label={`${monthLabel(m, true)}: ${formatCents(totals[i]!)} total`}
-                onPointerEnter={() => setActive(i)}
-                onPointerLeave={() => setActive(null)}
-                onFocus={() => setActive(i)}
-                onBlur={() => setActive(null)}
-                className="outline-none"
-              >
-                <rect
-                  x={cx - band / 2}
-                  y={PAD.top}
-                  width={band}
-                  height={plotH}
-                  fill="transparent"
+        {W > 0 ? (
+          <svg
+            viewBox={`0 0 ${W} ${H}`}
+            className="block h-auto w-full"
+            role="img"
+            aria-label={label}
+          >
+            {ticks.map((t) => (
+              <g key={t}>
+                <line
+                  x1={PAD.left}
+                  x2={W - PAD.right}
+                  y1={y(t)}
+                  y2={y(t)}
+                  stroke="var(--chart-grid)"
+                  strokeWidth={1}
                 />
-                {active === i ? (
+                <text
+                  x={PAD.left - 8}
+                  y={y(t)}
+                  dy="0.32em"
+                  textAnchor="end"
+                  className="fill-ink-muted text-[11px] tabular-nums"
+                >
+                  {axisLabel(t, compact)}
+                </text>
+              </g>
+            ))}
+            {months.map((m, i) => {
+              const cx = PAD.left + band * i + band / 2;
+              let base = 0;
+              const segs = series
+                .map((s, si) => ({ s, si, v: Math.max(0, s.values[i] ?? 0) }))
+                .filter((x) => x.v > 0);
+              return (
+                <g
+                  key={m}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`${monthLabel(m, true)}: ${formatCents(totals[i]!)} total`}
+                  onPointerEnter={() => setActive(i)}
+                  onPointerLeave={() => setActive(null)}
+                  onFocus={() => setActive(i)}
+                  onBlur={() => setActive(null)}
+                  className="outline-none"
+                >
                   <rect
                     x={cx - band / 2}
                     y={PAD.top}
                     width={band}
                     height={plotH}
-                    fill="var(--surface-sunken)"
+                    fill="transparent"
                   />
-                ) : null}
-                {segs.map(({ s, si, v }, k) => {
-                  const y0 = y(base);
-                  base += v;
-                  const y1 = y(base);
-                  // A 2px surface gap between stacked segments.
-                  const h = Math.max(0, y0 - y1 - (k > 0 ? 2 : 0));
-                  const isTop = k === segs.length - 1;
-                  const r = isTop ? Math.min(4, h, barW / 2) : 0;
-                  const x0 = cx - barW / 2;
-                  const yTop = y1;
-                  const d = `M${x0},${yTop + h} V${yTop + r} Q${x0},${yTop} ${x0 + r},${yTop} H${x0 + barW - r} Q${x0 + barW},${yTop} ${x0 + barW},${yTop + r} V${yTop + h} Z`;
-                  return <path key={s.name} d={d} fill={color(si, s)} />;
-                })}
-                <text x={cx} y={H - 8} textAnchor="middle" className="fill-ink-muted text-[11px]">
-                  {monthLabel(m, showYear && (i === 0 || m.endsWith("-01")))}
-                </text>
-              </g>
-            );
-          })}
-          <line
-            x1={PAD.left}
-            x2={W - PAD.right}
-            y1={y(0)}
-            y2={y(0)}
-            stroke="var(--rule-strong)"
-            strokeWidth={1}
-          />
-        </svg>
+                  {active === i ? (
+                    <rect
+                      x={cx - band / 2}
+                      y={PAD.top}
+                      width={band}
+                      height={plotH}
+                      fill="var(--surface-sunken)"
+                    />
+                  ) : null}
+                  {segs.map(({ s, si, v }, k) => {
+                    const y0 = y(base);
+                    base += v;
+                    const y1 = y(base);
+                    // A 2px surface gap between stacked segments.
+                    const h = Math.max(0, y0 - y1 - (k > 0 ? 2 : 0));
+                    const isTop = k === segs.length - 1;
+                    const r = isTop ? Math.min(4, h, barW / 2) : 0;
+                    const x0 = cx - barW / 2;
+                    const yTop = y1;
+                    const d = `M${x0},${yTop + h} V${yTop + r} Q${x0},${yTop} ${x0 + r},${yTop} H${x0 + barW - r} Q${x0 + barW},${yTop} ${x0 + barW},${yTop + r} V${yTop + h} Z`;
+                    return <path key={s.name} d={d} fill={color(si, s)} />;
+                  })}
+                  <text x={cx} y={H - 8} textAnchor="middle" className="fill-ink-muted text-[11px]">
+                    {monthLabel(m, showYear && (i === 0 || m.endsWith("-01")))}
+                  </text>
+                </g>
+              );
+            })}
+            <line
+              x1={PAD.left}
+              x2={W - PAD.right}
+              y1={y(0)}
+              y2={y(0)}
+              stroke="var(--rule-strong)"
+              strokeWidth={1}
+            />
+          </svg>
+        ) : (
+          <div aria-hidden style={{ height: H }} />
+        )}
         {active !== null ? (
           <div
             role="status"
