@@ -8,15 +8,10 @@ export const smallBusinessTemplate: ChartTemplate = {
   description: "A numbered chart for a sole proprietor or single-member LLC, cash basis.",
   accounts: {
     asset: [
-      { code: "1010", name: "Business Checking", subtype: "bank" },
-      { code: "1020", name: "Business Savings", subtype: "bank" },
       { code: "1500", name: "Equipment", subtype: "fixed_asset" },
       { code: "1510", name: "Accumulated Depreciation", subtype: "fixed_asset" },
     ],
-    liability: [
-      { code: "2010", name: "Business Credit Card", subtype: "credit_card" },
-      { code: "2500", name: "Loans Payable", subtype: "loan" },
-    ],
+    liability: [{ code: "2500", name: "Loans Payable", subtype: "loan" }],
     equity: [
       ...systemEquityAccounts({ opening: "3000", retained: "3900" }),
       { code: "3100", name: "Owner Contributions", subtype: "owner_equity" },

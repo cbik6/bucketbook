@@ -6,7 +6,7 @@ import { useActionState, useId, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Money } from "@/components/money";
 import { Button } from "@/components/ui/button";
-import { Field, FormError, SelectInput, inputClass } from "@/components/ui/field";
+import { Field, FormError, SelectInput, TextInput, inputClass } from "@/components/ui/field";
 import { HoldButton } from "@/components/ui/hold-button";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { ConnectionView, FeedView } from "@/server/simplefin/service";
@@ -384,21 +384,31 @@ function FeedRow({
 }
 
 const NEW_KINDS = [
-  { kind: "bank", label: "bank account" },
-  { kind: "credit_card", label: "credit card" },
-  { kind: "investment", label: "investment account" },
-  { kind: "loan", label: "loan" },
+  { kind: "checking", label: "Checking", type: "asset" },
+  { kind: "savings", label: "Savings", type: "asset" },
+  { kind: "credit_card", label: "Credit card", type: "liability" },
+  { kind: "investment", label: "Investment (value only)", type: "asset" },
+  { kind: "loan", label: "Loan", type: "liability" },
+  { kind: "cash", label: "Cash", type: "asset" },
+  { kind: "other_asset", label: "Other asset", type: "asset" },
 ] as const;
 
+type NewKind = (typeof NEW_KINDS)[number]["kind"];
+
+/** A tidy starting name from the bank's ("Costco Anywhere Visa® Card by Citi (8837)"). */
+const startingName = (feedName: string) =>
+  feedName.replace(/[®™]/g, "").replace(/\s+/g, " ").trim().slice(0, 100);
+
 /** A first guess at what kind of account a bank account is, from its name and balance. */
-function guessKind(feed: FeedView): (typeof NEW_KINDS)[number]["kind"] {
+function guessKind(feed: FeedView): NewKind {
   const n = feed.name.toLowerCase();
   if (/(card|visa|mastercard|amex|discover)/.test(n)) return "credit_card";
   if (/(brokerage|ira\b|401|403|roth|invest|retire|hsa|stock|fund\b.*index)/.test(n))
     return "investment";
   if (/(loan|mortgage|auto|heloc)/.test(n)) return "loan";
   if ((feed.balanceCents ?? 0) < 0) return "credit_card";
-  return "bank";
+  if (/(sav|fund|reserve|goal|money market|cd\b)/.test(n)) return "savings";
+  return "checking";
 }
 
 function MappingForm({
@@ -430,11 +440,14 @@ function MappingForm({
       feed.name.toLowerCase().includes(a.label.toLowerCase().split(": ").pop()!),
     )?.id ?? "";
   const [accountId, setAccountId] = useState(
-    feed.accountId ??
-      (guess && !book?.accounts.find((a) => a.id === guess)?.fedBy
-        ? guess
-        : `new:${guessKind(feed)}`),
+    feed.accountId ?? (guess && !book?.accounts.find((a) => a.id === guess)?.fedBy ? guess : "new"),
   );
+  const [kind, setKind] = useState<NewKind>(guessKind(feed));
+  const [name, setName] = useState(startingName(feed.name));
+  const [parent, setParent] = useState("");
+  const [groupName, setGroupName] = useState("");
+  const kindType = NEW_KINDS.find((k) => k.kind === kind)!.type;
+  const parents = (book?.accounts ?? []).filter((a) => a.type === kindType);
   if (targets.length === 0) {
     return <p className="text-sm text-ink-muted">Create a book first, then map this account.</p>;
   }
@@ -469,13 +482,7 @@ function MappingForm({
           invalid={state.field === "accountId"}
         >
           <option value="">Choose an account</option>
-          <optgroup label="Add a new account for it">
-            {NEW_KINDS.map((k) => (
-              <option key={k.kind} value={`new:${k.kind}`}>
-                New {k.label}: {feed.name}
-              </option>
-            ))}
-          </optgroup>
+          <option value="new">New account…</option>
           <optgroup label="Existing accounts">
             {book?.accounts.map((a) => {
               const taken = Boolean(a.fedBy) && a.id !== feed.accountId;
@@ -489,6 +496,72 @@ function MappingForm({
           </optgroup>
         </SelectInput>
       </div>
+      {accountId === "new" && book ? (
+        <div className="grid gap-2 rounded-lg border border-rule bg-sunken p-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-[0.8125rem] font-medium text-ink">
+            Type
+            <SelectInput
+              name="kind"
+              value={kind}
+              onChange={(e) => {
+                setKind(e.target.value as NewKind);
+                setParent("");
+              }}
+            >
+              {NEW_KINDS.map((k) => (
+                <option key={k.kind} value={k.kind}>
+                  {k.label}
+                </option>
+              ))}
+            </SelectInput>
+          </label>
+          <label className="flex flex-col gap-1 text-[0.8125rem] font-medium text-ink">
+            Name
+            <TextInput
+              name="name"
+              value={name}
+              maxLength={100}
+              onChange={(e) => setName(e.target.value)}
+              invalid={state.field === "name"}
+              autoComplete="off"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[0.8125rem] font-medium text-ink">
+            Inside
+            <SelectInput
+              name="parentAccountId"
+              value={parent}
+              onChange={(e) => setParent(e.target.value)}
+            >
+              <option value="">Top level</option>
+              <option value="group">A new group…</option>
+              {parents.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.label}
+                </option>
+              ))}
+            </SelectInput>
+          </label>
+          {parent === "group" ? (
+            <label className="flex flex-col gap-1 text-[0.8125rem] font-medium text-ink">
+              Group name
+              <TextInput
+                name="groupName"
+                value={groupName}
+                maxLength={100}
+                placeholder="For example: Marcus"
+                onChange={(e) => setGroupName(e.target.value)}
+                autoComplete="off"
+              />
+            </label>
+          ) : null}
+          {kind === "investment" ? (
+            <p className="text-[0.8125rem] text-ink-muted sm:col-span-2">
+              The books follow this account&apos;s value for net worth; trades aren&apos;t imported.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         <SubmitButton size="sm" variant="secondary" pendingLabel="Saving">
           Save

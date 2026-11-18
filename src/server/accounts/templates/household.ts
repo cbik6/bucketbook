@@ -8,12 +8,10 @@ export const householdTemplate: ChartTemplate = {
   label: "Household",
   description: "Everyday family finances: paychecks, bills, groceries, and savings.",
   accounts: {
-    asset: [
-      { name: "Checking", subtype: "bank" },
-      { name: "Savings", subtype: "bank" },
-      { name: "Cash on Hand", subtype: "cash" },
-    ],
-    liability: [{ name: "Credit Card", subtype: "credit_card" }],
+    // Bank, savings and card accounts are added by you (or while connecting a
+    // bank), so there are no placeholders to rename or delete.
+    asset: [{ name: "Cash on Hand", subtype: "cash" }],
+    liability: [],
     equity: systemEquityAccounts(),
     income: [
       { name: "Paychecks", subtype: "income" },

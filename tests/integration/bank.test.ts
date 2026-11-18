@@ -27,7 +27,7 @@ import { bankFeeds, bankTransactions, simplefinConnections } from "@/server/db/s
 import { accountNetCents } from "@/server/ledger/queries";
 import { editEntry, getEntryDetail, postEntry, reverseEntry } from "@/server/ledger/service";
 import { connectSimplefin, listConnections, mapFeed, runSync } from "@/server/simplefin/service";
-import { makeUser, setupCleanDatabase } from "./helpers";
+import { addMoneyAccounts, makeUser, setupCleanDatabase } from "./helpers";
 
 setupCleanDatabase();
 
@@ -54,6 +54,7 @@ async function setupBook(
     template,
     startDate,
   });
+  await addMoneyAccounts(actor, book.id, template);
   const rows = await listAccounts(getDb(), book.id);
   const id = (name: string) => {
     const r = rows.find((a) => a.name === name);
@@ -357,14 +358,51 @@ describe("several cards and investments", () => {
       mode: "create",
       bookId: ctx.bookId,
       kind: "credit_card",
+      name: "Chase Freedom",
     });
     const rows = await listAccounts(getDb(), ctx.bookId);
     const created = rows.find((a) => a.id === mapped.accountId)!;
     expect(created).toMatchObject({
-      name: "Freedom Card (1111)",
+      name: "Chase Freedom",
       type: "liability",
       subtype: "credit_card",
     });
+  });
+
+  it("groups new savings accounts under a new or existing parent", async () => {
+    const ctx = await setupBook();
+    const bridge = fakeBridge({
+      "Baby Fund (9454)": { balance: "225.47", transactions: [] },
+      "Emergency Fund (5267)": { balance: "54.79", transactions: [] },
+    });
+    const { connection } = await connectSimplefin(getDb(), ctx.actor, ACCESS_URL, bridge.impl);
+    const feeds = await getDb()
+      .select()
+      .from(bankFeeds)
+      .where(eq(bankFeeds.connectionId, connection.id));
+    const baby = feeds.find((f) => f.name.startsWith("Baby"))!;
+    const emergency = feeds.find((f) => f.name.startsWith("Emergency"))!;
+    const first = await mapFeed(getDb(), ctx.actor, baby.id, {
+      mode: "create",
+      bookId: ctx.bookId,
+      kind: "savings",
+      name: "Baby Fund",
+      groupName: "Marcus",
+    });
+    const second = await mapFeed(getDb(), ctx.actor, emergency.id, {
+      mode: "create",
+      bookId: ctx.bookId,
+      kind: "savings",
+      name: "Emergency Fund",
+      groupName: "marcus",
+    });
+    const rows = await listAccounts(getDb(), ctx.bookId);
+    const marcus = rows.filter((a) => a.name === "Marcus");
+    expect(marcus).toHaveLength(1);
+    const a = rows.find((r) => r.id === first.accountId)!;
+    const b = rows.find((r) => r.id === second.accountId)!;
+    expect(a).toMatchObject({ subtype: "savings", parentAccountId: marcus[0]!.id });
+    expect(b.parentAccountId).toBe(marcus[0]!.id);
   });
 
   it("keeps an investment account at the bank's value without importing trades", async () => {
@@ -387,6 +425,7 @@ describe("several cards and investments", () => {
       mode: "create",
       bookId: ctx.bookId,
       kind: "investment",
+      name: "Brokerage",
     });
     const invest = mapped.accountId!;
     await sync(connection.id, bridge);

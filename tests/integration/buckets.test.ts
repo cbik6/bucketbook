@@ -19,7 +19,7 @@ import { getDb } from "@/server/db/client";
 import { accounts, bankTransactions } from "@/server/db/schema";
 import { accountNetCents } from "@/server/ledger/queries";
 import { postEntry, saveOpeningBalances } from "@/server/ledger/service";
-import { makeUser, setupCleanDatabase } from "./helpers";
+import { addMoneyAccounts, makeUser, setupCleanDatabase } from "./helpers";
 
 setupCleanDatabase();
 
@@ -31,6 +31,7 @@ async function setup() {
     template: "household",
     startDate: "2026-01-01",
   });
+  await addMoneyAccounts(actor, book.id, "household");
   const id = async (name: string) => {
     const rows = await listAccounts(getDb(), book.id);
     const r = rows.find((a) => a.name === name);

@@ -71,15 +71,18 @@ describe("parseAccountInput", () => {
 
   it("rejects a detail type from another account type", () => {
     expectUserError(
-      () => parseAccountInput({ name: "X", type: "expense", subtype: "bank" }),
+      () => parseAccountInput({ name: "X", type: "expense", subtype: "checking" }),
       /doesn't belong/,
     );
   });
 
   it("rejects unknown types and odd account numbers", () => {
-    expectUserError(() => parseAccountInput({ name: "X", type: "cash", subtype: "bank" }), /type/i);
     expectUserError(
-      () => parseAccountInput({ name: "X", type: "asset", subtype: "bank", code: "10 10" }),
+      () => parseAccountInput({ name: "X", type: "cash", subtype: "checking" }),
+      /type/i,
+    );
+    expectUserError(
+      () => parseAccountInput({ name: "X", type: "asset", subtype: "checking", code: "10 10" }),
       /letters, digits/,
     );
   });

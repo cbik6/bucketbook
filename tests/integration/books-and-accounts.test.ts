@@ -204,7 +204,7 @@ describe("chart of accounts service", () => {
     const asset = await createAccount(getDb(), actor, bookId, {
       name: "Checking",
       type: "asset",
-      subtype: "bank",
+      subtype: "checking",
     });
     await expect(
       createAccount(getDb(), actor, bookId, expense("Fees", { parentAccountId: asset.id })),
@@ -253,7 +253,7 @@ describe("chart of accounts service", () => {
       updateAccount(getDb(), actor, bookId, obe.id, {
         name: "Opening Balance Equity",
         type: "asset",
-        subtype: "bank",
+        subtype: "checking",
       }),
     ).rejects.toThrow(/System accounts/);
     const renamed = await updateAccount(getDb(), actor, bookId, obe.id, {

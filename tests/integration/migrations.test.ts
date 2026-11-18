@@ -91,7 +91,7 @@ describe("database-level guards on accounts", () => {
     await expectSqlError(
       getDb()
         .insert(accounts)
-        .values({ bookId: book.id, name: "X", type: "cash", subtype: "bank" }),
+        .values({ bookId: book.id, name: "X", type: "cash", subtype: "checking" }),
       "accounts_type_check",
     );
     await expectSqlError(
@@ -109,7 +109,7 @@ describe("database-level guards on accounts", () => {
         bookId: book.id,
         name: "Savings",
         type: "asset",
-        subtype: "bank",
+        subtype: "checking",
         bucketsEnabled: true,
         allowsPosting: true,
       }),

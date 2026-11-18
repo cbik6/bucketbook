@@ -24,7 +24,7 @@ import {
   reverseEntry,
   saveOpeningBalances,
 } from "@/server/ledger/service";
-import { makeUser, setupCleanDatabase } from "./helpers";
+import { addMoneyAccounts, makeUser, setupCleanDatabase } from "./helpers";
 
 setupCleanDatabase();
 
@@ -36,6 +36,7 @@ async function setupBook(startDate = "2026-01-01") {
     template: "household",
     startDate,
   });
+  await addMoneyAccounts(actor, book.id, "household");
   const rows = await listAccounts(getDb(), book.id);
   const id = (name: string) => {
     const r = rows.find((a) => a.name === name);

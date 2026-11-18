@@ -51,6 +51,14 @@ export async function createDemoBook(db: Database, actor: Actor, today: string) 
     startDate: start,
   });
   const bookId = book.id;
+  // Books start with no bank or card accounts; the demo adds its own.
+  await createAccount(db, actor, bookId, { name: "Checking", type: "asset", subtype: "checking" });
+  await createAccount(db, actor, bookId, { name: "Savings", type: "asset", subtype: "savings" });
+  await createAccount(db, actor, bookId, {
+    name: "Credit Card",
+    type: "liability",
+    subtype: "credit_card",
+  });
   const loan = await createAccount(db, actor, bookId, {
     name: "Car Loan",
     type: "liability",

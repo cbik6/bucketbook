@@ -6,6 +6,17 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-18
+
+### Changed
+
+- Connecting a bank account now offers "New account": pick the type, type the name, and
+  optionally put it inside an existing account or a new group (for example "Marcus"), so
+  several savings accounts at one bank stay together.
+- New books start without Checking, Savings or Credit Card placeholders (household keeps
+  Cash on Hand). Add the accounts you have, by hand or while connecting a bank.
+- The "Bank" detail type is now Checking and Savings; existing accounts were converted.
+
 ## [1.1.0] - 2026-11-18
 
 ### Added

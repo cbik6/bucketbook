@@ -52,6 +52,23 @@ test("first run: create the owner and a book, then manage the chart of accounts"
   await expect(petFood).toBeVisible();
   await expect(panel).toHaveCount(0);
 
+  // Books start without bank or card accounts: add the ones the later specs use.
+  for (const [name, type, detail] of [
+    ["Checking", "Asset", "Checking"],
+    ["Savings", "Asset", "Savings"],
+    ["Credit Card", "Liability", "Credit Card"],
+  ] as const) {
+    await page.keyboard.press("n");
+    const p = page.getByRole("complementary", { name: "New account" });
+    await expect(p.getByRole("heading", { name: "New account" })).toBeVisible();
+    await p.getByLabel("Name").fill(name);
+    await p.getByLabel("Type", { exact: true }).selectOption({ label: type });
+    await p.getByLabel("Detail type").selectOption({ label: detail });
+    await p.getByRole("button", { name: "Create account" }).click();
+    await expect(page.getByRole("link", { name, exact: true })).toBeVisible();
+    await expect(p).toHaveCount(0);
+  }
+
   // Archive it with press-and-hold, then find it under "Show archived".
   // Account names open the register; the pencil opens the editor.
   await page.getByRole("link", { name: "Edit Pet Food" }).click();

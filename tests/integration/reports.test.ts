@@ -14,7 +14,7 @@ import {
   spendingByMonth,
   toCsv,
 } from "@/server/reports/service";
-import { makeUser, setupCleanDatabase } from "./helpers";
+import { addMoneyAccounts, makeUser, setupCleanDatabase } from "./helpers";
 
 setupCleanDatabase();
 
@@ -26,6 +26,7 @@ async function setup() {
     template: "household",
     startDate: "2025-12-01",
   });
+  await addMoneyAccounts(actor, book.id, "household");
   const rows = await listAccounts(getDb(), book.id);
   const id = (name: string) => rows.find((a) => a.name === name)!.id;
   const post = (date: string, debit: string, credit: string, amount: string) =>

@@ -431,3 +431,14 @@ equity account, Unrealized Gains and Losses, created the first time it is needed
 worth and the Balance Sheet follow the account, while Profit and Loss, budgets and
 spending reports are untouched. Accounts without a feed use Record a new balance, which
 defaults to the same equity account.
+
+### D54. Books start without money accounts; you name the accounts you connect
+
+New books (household and small business) no longer come with Checking, Savings or Credit
+Card placeholders; the household chart keeps Cash on Hand, which no bank reports. You add
+money accounts in the chart of accounts, or while connecting a bank account: choose "New
+account", pick the type (Checking, Savings, Credit card, Investment, Loan, Cash, Other
+asset), name it (it starts as the bank's name), and optionally put it inside an existing
+account or a new group such as "Marcus" so related accounts total together. The old
+"Bank" detail type split into Checking and Savings; existing accounts were converted, with
+names containing "sav" becoming Savings.

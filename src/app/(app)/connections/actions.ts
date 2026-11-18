@@ -73,12 +73,23 @@ export async function mapFeedAction(
     const a = await actor();
     const choice = String(formData.get("accountId") ?? "");
     let mode = String(formData.get("mode") ?? "map");
-    if (mode === "map" && choice.startsWith("new:")) mode = "create";
+    if (mode === "map" && choice === "new") mode = "create";
+    const parent = String(formData.get("parentAccountId") ?? "");
+    if (
+      mode === "create" &&
+      parent === "group" &&
+      !String(formData.get("groupName") ?? "").trim()
+    ) {
+      throw new UserFacingError("Name the new group, for example Marcus.", "groupName");
+    }
     await mapFeed(getDb(), a, feedId, {
       mode,
       bookId: String(formData.get("bookId") ?? ""),
       accountId: choice,
-      kind: choice.startsWith("new:") ? choice.slice(4) : undefined,
+      kind: String(formData.get("kind") ?? ""),
+      name: String(formData.get("name") ?? ""),
+      parentAccountId: parent && parent !== "group" ? parent : undefined,
+      groupName: parent === "group" ? String(formData.get("groupName") ?? "") : undefined,
     });
     revalidatePath("/connections");
     return {

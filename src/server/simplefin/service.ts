@@ -326,47 +326,67 @@ const mappingSchema = z.discriminatedUnion("mode", [
   z.object({
     mode: z.literal("create"),
     bookId: z.uuid("Pick a book."),
-    kind: z.enum(["bank", "credit_card", "loan", "investment"]),
+    kind: z.enum(
+      ["checking", "savings", "credit_card", "investment", "loan", "cash", "other_asset"],
+      {
+        message: "Pick the kind of account.",
+      },
+    ),
+    name: z
+      .string()
+      .trim()
+      .min(1, "Name the new account.")
+      .max(100, "Keep the name under 100 characters."),
+    /** Put it inside an existing account... */
+    parentAccountId: z.string().optional(),
+    /** ...or inside a new group with this name (for example "Marcus"). */
+    groupName: z.string().trim().max(100).optional(),
   }),
   z.object({ mode: z.literal("ignore") }),
   z.object({ mode: z.literal("unmap") }),
 ]);
 
-const NEW_ACCOUNT_KINDS = {
-  bank: { type: "asset", subtype: "bank" },
+export const NEW_ACCOUNT_KINDS = {
+  checking: { type: "asset", subtype: "checking" },
+  savings: { type: "asset", subtype: "savings" },
   credit_card: { type: "liability", subtype: "credit_card" },
-  loan: { type: "liability", subtype: "loan" },
   investment: { type: "asset", subtype: "investment" },
+  loan: { type: "liability", subtype: "loan" },
+  cash: { type: "asset", subtype: "cash" },
+  other_asset: { type: "asset", subtype: "other_asset" },
 } as const;
 
-/** A tidy account name from the bank's ("Costco Anywhere Visa® Card by Citi (8837)"). */
-function accountNameFor(feedName: string) {
-  return feedName.replace(/[®™]/g, "").replace(/\s+/g, " ").trim().slice(0, 90) || "Bank account";
-}
-
-/** Creates an account for a feed, adding a number if the name is taken. */
+/**
+ * Creates the account you described for a feed: your name, your type, at the
+ * top level, inside an existing account, or inside a new group.
+ */
 async function createAccountForFeed(
   db: Database,
   actor: Actor,
   bookId: string,
-  feedName: string,
-  kind: keyof typeof NEW_ACCOUNT_KINDS,
+  input: {
+    kind: keyof typeof NEW_ACCOUNT_KINDS;
+    name: string;
+    parentAccountId?: string;
+    groupName?: string;
+  },
 ) {
-  const base = accountNameFor(feedName);
-  for (let n = 1; n <= 20; n++) {
-    try {
-      return await createAccount(db, actor, bookId, {
-        name: n === 1 ? base : `${base} ${n}`,
-        ...NEW_ACCOUNT_KINDS[kind],
-      });
-    } catch (err) {
-      if (err instanceof UserFacingError && err.field === "name") continue;
-      throw err;
-    }
+  const { type, subtype } = NEW_ACCOUNT_KINDS[input.kind];
+  let parentAccountId: string | null = input.parentAccountId || null;
+  if (!parentAccountId && input.groupName) {
+    // Reuse a top-level group with that name, or make it.
+    const rows = await db
+      .select({ id: accounts.id, name: accounts.name })
+      .from(accounts)
+      .where(
+        and(eq(accounts.bookId, bookId), eq(accounts.type, type), isNull(accounts.parentAccountId)),
+      );
+    const existing = rows.find((r) => r.name.toLowerCase() === input.groupName!.toLowerCase());
+    parentAccountId =
+      existing?.id ??
+      (await createAccount(db, actor, bookId, { name: input.groupName, type, subtype })).id;
   }
-  throw new UserFacingError(
-    "Couldn't find a free name for the new account. Create it in the chart of accounts.",
-  );
+  return createAccount(db, actor, bookId, { name: input.name, type, subtype, parentAccountId });
 }
 
 /**
@@ -386,7 +406,7 @@ export async function mapFeed(db: Database, actor: Actor, feedId: string, raw: u
   await loadConnection(db, actor.userId, feed.connectionId);
   if (input.mode === "create") {
     await requireBookAccess(db, actor.userId, input.bookId, "editor");
-    const created = await createAccountForFeed(db, actor, input.bookId, feed.name, input.kind);
+    const created = await createAccountForFeed(db, actor, input.bookId, input);
     return mapFeed(db, actor, feedId, { mode: "map", bookId: input.bookId, accountId: created.id });
   }
   if (input.mode === "map") {

@@ -33,7 +33,8 @@ export const NORMAL_BALANCE: Record<AccountType, "debit" | "credit"> = {
 
 export const ACCOUNT_SUBTYPES = {
   asset: {
-    bank: "Bank",
+    checking: "Checking",
+    savings: "Savings",
     cash: "Cash",
     investment: "Investment",
     other_current_asset: "Other Current Asset",
