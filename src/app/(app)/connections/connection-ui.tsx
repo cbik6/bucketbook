@@ -2,7 +2,7 @@
 
 import { RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { useActionState, useId, useState, useTransition } from "react";
+import { useActionState, useId, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Money } from "@/components/money";
 import { Button } from "@/components/ui/button";
@@ -39,9 +39,24 @@ function when(date: Date | null, timeZone: string) {
   }).format(new Date(date));
 }
 
+function day(date: Date | null, timeZone: string) {
+  if (!date) return "";
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone }).format(
+    new Date(date),
+  );
+}
+
 export function ConnectForm({ first }: { first: boolean }) {
-  const [state, formAction] = useActionState(connectAction, {});
-  const [token, setToken] = useState("");
+  const tokenRef = useRef<HTMLTextAreaElement>(null);
+  const [state, formAction] = useActionState(
+    async (prev: Parameters<typeof connectAction>[0], fd: FormData) => {
+      const r = await connectAction(prev, fd);
+      // Never leave a pasted token or Access URL sitting on screen.
+      if (r.success && tokenRef.current) tokenRef.current.value = "";
+      return r;
+    },
+    {},
+  );
   const id = useId();
   return (
     <section aria-labelledby={`${id}-title`} className="flex flex-col gap-4">
@@ -66,13 +81,7 @@ export function ConnectForm({ first }: { first: boolean }) {
           <li>Choose which book and account each bank account feeds.</li>
         </ol>
       </div>
-      <form
-        action={formAction}
-        className="flex flex-col gap-3"
-        onSubmit={() => {
-          if (state.success) setToken("");
-        }}
-      >
+      <form action={formAction} className="flex flex-col gap-3">
         <FormError message={state.error} />
         {state.success ? (
           <p role="status" className="rounded-lg bg-signal-soft px-3 py-2.5 text-sm text-ink">
@@ -88,8 +97,7 @@ export function ConnectForm({ first }: { first: boolean }) {
             id={`${id}-token`}
             name="token"
             rows={3}
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
+            ref={tokenRef}
             spellCheck={false}
             autoComplete="off"
             className={`${inputClass} h-auto py-2 font-mono text-[0.8125rem]`}
@@ -98,7 +106,12 @@ export function ConnectForm({ first }: { first: boolean }) {
         </Field>
         <div className="flex flex-wrap items-center gap-2">
           <SubmitButton pendingLabel="Connecting">Connect</SubmitButton>
-          <Button variant="ghost" onClick={() => setToken(DEMO_URL)}>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              if (tokenRef.current) tokenRef.current.value = DEMO_URL;
+            }}
+          >
             Use the demo bank
           </Button>
         </div>
@@ -325,7 +338,7 @@ function FeedRow({
           <>
             <Money cents={feed.balanceCents} className="font-medium" />
             <div className="text-[0.8125rem] text-ink-muted">
-              Bank, {when(feed.balanceAt, timeZone)}
+              Bank balance, {day(feed.balanceAt, timeZone)}
             </div>
           </>
         ) : null}

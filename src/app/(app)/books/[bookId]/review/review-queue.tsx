@@ -519,7 +519,7 @@ function Row({ refCallback, ...p }: RowProps) {
           <Money cents={item.amountCents} className="font-medium" />
         </div>
 
-        <div className="col-span-2 col-start-2 min-w-0 lg:col-span-1 lg:col-start-auto">
+        <div className="col-start-2 row-start-2 min-w-0 lg:col-start-auto lg:row-start-auto">
           {isSplit ? (
             <button
               type="button"
@@ -871,7 +871,7 @@ function SplitEditor(p: RowData) {
                       : draft.splits,
                 })
               }
-              className="col-start-3 row-start-1 grid size-10 place-items-center rounded-lg text-ink-muted hover:bg-sunken hover:text-ink sm:col-start-auto"
+              className="col-start-3 row-start-1 grid size-10 place-items-center rounded-lg text-ink-muted hover:bg-sunken hover:text-ink sm:col-start-auto sm:row-start-auto"
             >
               <X size={15} aria-hidden />
             </button>
