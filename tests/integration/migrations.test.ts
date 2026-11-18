@@ -51,6 +51,7 @@ describe("migrations", () => {
       "book_members",
       "books",
       "bucket_rules",
+      "budgets",
       "csv_presets",
       "journal_entries",
       "journal_entry_versions",

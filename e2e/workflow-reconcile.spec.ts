@@ -18,7 +18,10 @@ const label = (page: Page, text: string) =>
 
 test("reconcile: record a cash balance, then reconcile it", async ({ page }) => {
   await signIn(page);
-  await page.getByRole("link", { name: "Cash on Hand" }).filter({ visible: true }).click();
+  await page
+    .getByRole("link", { name: "Cash on Hand", exact: true })
+    .filter({ visible: true })
+    .click();
   await expect(page.getByRole("heading", { name: "Cash on Hand" })).toBeVisible();
   await page.getByRole("button", { name: "Record a new balance" }).click();
   await label(page, "New balance").fill("80");

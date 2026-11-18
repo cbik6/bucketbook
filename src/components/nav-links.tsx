@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  BarChart3,
   BookOpenText,
+  Gauge,
   CheckCheck,
   HandCoins,
   History,
@@ -32,6 +34,8 @@ export function NavLinks({
     { href: `/books/${bookId}/accounts`, label: "Chart of accounts", Icon: ListTree },
     { href: `/books/${bookId}/journal`, label: "Journal entries", Icon: NotebookPen },
     { href: `/books/${bookId}/ledger`, label: "General ledger", Icon: BookOpenText },
+    { href: `/books/${bookId}/reports`, label: "Reports", Icon: BarChart3 },
+    { href: `/books/${bookId}/budget`, label: "Budget", Icon: Gauge },
     { href: `/books/${bookId}/reconcile`, label: "Reconcile", Icon: CheckCheck },
     { href: `/books/${bookId}/loans`, label: "Loans", Icon: HandCoins },
     { href: `/books/${bookId}/rules`, label: "Rules", Icon: Wand2 },

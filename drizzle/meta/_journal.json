@@ -50,6 +50,13 @@
       "when": 1794967695762,
       "tag": "0006_reconcile_loans",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794968223856,
+      "tag": "0007_budgets",
+      "breakpoints": true
     }
   ]
 }

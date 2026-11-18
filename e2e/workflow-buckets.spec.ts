@@ -15,8 +15,8 @@ async function signIn(page: Page) {
 }
 
 const today = new Date().toISOString().slice(0, 10);
-const label = (page: Page, text: string | RegExp) =>
-  page.getByLabel(text).filter({ visible: true });
+const label = (page: Page, text: string) =>
+  page.getByLabel(text, { exact: true }).filter({ visible: true });
 
 test("buckets: turn on, allocate a deposit, move money", async ({ page }) => {
   await signIn(page);
