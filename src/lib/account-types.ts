@@ -35,6 +35,7 @@ export const ACCOUNT_SUBTYPES = {
   asset: {
     bank: "Bank",
     cash: "Cash",
+    investment: "Investment",
     other_current_asset: "Other Current Asset",
     fixed_asset: "Fixed Asset",
     other_asset: "Other Asset",
@@ -88,7 +89,11 @@ export function subtypeLabel(type: AccountType, subtype: string): string {
  * Phase 2 posts opening balances to `opening_balance_equity`; reports close net
  * income into `retained_earnings`.
  */
-export const SYSTEM_ROLES = ["opening_balance_equity", "retained_earnings"] as const;
+export const SYSTEM_ROLES = [
+  "opening_balance_equity",
+  "retained_earnings",
+  "unrealized_gains",
+] as const;
 export type SystemRole = (typeof SYSTEM_ROLES)[number];
 
 export const BOOK_TEMPLATES = ["household", "small_business", "blank"] as const;

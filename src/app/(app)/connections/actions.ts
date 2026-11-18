@@ -71,16 +71,19 @@ export async function mapFeedAction(
 ): Promise<ActionState> {
   try {
     const a = await actor();
-    const mode = String(formData.get("mode") ?? "map");
+    const choice = String(formData.get("accountId") ?? "");
+    let mode = String(formData.get("mode") ?? "map");
+    if (mode === "map" && choice.startsWith("new:")) mode = "create";
     await mapFeed(getDb(), a, feedId, {
       mode,
       bookId: String(formData.get("bookId") ?? ""),
-      accountId: String(formData.get("accountId") ?? ""),
+      accountId: choice,
+      kind: choice.startsWith("new:") ? choice.slice(4) : undefined,
     });
     revalidatePath("/connections");
     return {
       success:
-        mode === "map"
+        mode === "map" || mode === "create"
           ? "Saved. Press Sync now to bring in its transactions."
           : mode === "ignore"
             ? "This account will be ignored."

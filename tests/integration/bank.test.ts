@@ -325,6 +325,89 @@ async function csvItems(
   );
 }
 
+describe("several cards and investments", () => {
+  it("gives each card its own new account and explains a clash", async () => {
+    const ctx = await setupBook();
+    const bridge = fakeBridge({
+      "Costco Visa® Card (8837)": { balance: "-120.00", transactions: [] },
+      "Freedom Card (1111)": { balance: "-40.00", transactions: [] },
+    });
+    const { connection } = await connectSimplefin(getDb(), ctx.actor, ACCESS_URL, bridge.impl);
+    const feeds = await getDb()
+      .select()
+      .from(bankFeeds)
+      .where(eq(bankFeeds.connectionId, connection.id));
+    const [costco, freedom] = [
+      feeds.find((f) => f.name.startsWith("Costco"))!,
+      feeds.find((f) => f.name.startsWith("Freedom"))!,
+    ];
+    await mapFeed(getDb(), ctx.actor, costco.id, {
+      mode: "map",
+      bookId: ctx.bookId,
+      accountId: ctx.id("Credit Card"),
+    });
+    await expect(
+      mapFeed(getDb(), ctx.actor, freedom.id, {
+        mode: "map",
+        bookId: ctx.bookId,
+        accountId: ctx.id("Credit Card"),
+      }),
+    ).rejects.toThrow(/New account/);
+    const mapped = await mapFeed(getDb(), ctx.actor, freedom.id, {
+      mode: "create",
+      bookId: ctx.bookId,
+      kind: "credit_card",
+    });
+    const rows = await listAccounts(getDb(), ctx.bookId);
+    const created = rows.find((a) => a.id === mapped.accountId)!;
+    expect(created).toMatchObject({
+      name: "Freedom Card (1111)",
+      type: "liability",
+      subtype: "credit_card",
+    });
+  });
+
+  it("keeps an investment account at the bank's value without importing trades", async () => {
+    const ctx = await setupBook();
+    const data = {
+      BROKER: {
+        balance: "10000.00",
+        transactions: [
+          { id: "buy", day: "2026-03-10", amount: "-500.00", description: "BUY VTI" },
+        ] as FakeTx[],
+      },
+    };
+    const bridge = fakeBridge(data);
+    const { connection } = await connectSimplefin(getDb(), ctx.actor, ACCESS_URL, bridge.impl);
+    const [feed] = await getDb()
+      .select()
+      .from(bankFeeds)
+      .where(eq(bankFeeds.connectionId, connection.id));
+    const mapped = await mapFeed(getDb(), ctx.actor, feed!.id, {
+      mode: "create",
+      bookId: ctx.bookId,
+      kind: "investment",
+    });
+    const invest = mapped.accountId!;
+    await sync(connection.id, bridge);
+    expect(await accountNetCents(getDb(), invest)).toBe(1_000_000);
+    expect(await items(ctx.bookId)).toHaveLength(0);
+
+    data.BROKER.balance = "10250.50";
+    await sync(connection.id, bridge, new Date("2026-03-21T15:00:00Z"));
+    expect(await accountNetCents(getDb(), invest)).toBe(1_025_050);
+    const rows = await listAccounts(getDb(), ctx.bookId);
+    const gains = rows.find((a) => a.systemRole === "unrealized_gains")!;
+    expect(await accountNetCents(getDb(), gains.id)).toBe(-25_050);
+    const obe = rows.find((a) => a.systemRole === "opening_balance_equity")!;
+    expect(await accountNetCents(getDb(), obe.id)).toBe(-1_000_000);
+    // Value changes stay out of income and spending.
+    const { profitAndLoss } = await import("@/server/reports/service");
+    const pl = await profitAndLoss(getDb(), ctx.bookId, { from: "2026-01-01", to: "2026-12-31" });
+    expect(pl.netIncomeCents).toBe(0);
+  });
+});
+
 describe("review queue", () => {
   it("approves a transaction into a balanced entry with the payee", async () => {
     const ctx = await setupBook();

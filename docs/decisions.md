@@ -411,3 +411,23 @@ every push and pull request, then the Docker-based Playwright suite. A second wo
 builds multi-architecture images (amd64 and arm64) and publishes them to the GitHub
 Container Registry on pushes to main and version tags. `BUCKETBOOK_IMAGE` in `.env` lets
 an install use a published image instead of building.
+
+### D52. One bank account, one account in the books, made on the spot
+
+Each SimpleFIN account still feeds exactly one account in the books (so data can't come
+in twice), but the mapping picker now offers "New bank account", "New credit card", "New
+investment account" and "New loan", named after the bank's account ("Costco Anywhere
+Visa Card by Citi (8837)"), with a first guess from the name and balance. Accounts that
+already take a feed are shown as connected and can't be picked again. This is how a
+household with several cards, or several savings accounts at one bank, sets up.
+
+### D53. Investment accounts track value, not trades
+
+An Investment detail type (asset). A SimpleFIN account mapped to one is value only: its
+buys, sells and dividends are never imported or reviewed; each sync brings the account to
+the balance the bank reports with a `valuation` entry. The first value is offset to
+Opening Balance Equity (it is where the account started); later changes go to a system
+equity account, Unrealized Gains and Losses, created the first time it is needed. Net
+worth and the Balance Sheet follow the account, while Profit and Loss, budgets and
+spending reports are untouched. Accounts without a feed use Record a new balance, which
+defaults to the same equity account.

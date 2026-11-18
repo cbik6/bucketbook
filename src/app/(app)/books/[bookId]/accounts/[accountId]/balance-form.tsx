@@ -19,7 +19,10 @@ export function BalanceForm({
   accountName,
   groups,
   today,
+  defaultOffsetId,
 }: {
+  /** Pre-selected account for the difference (for investments, unrealized gains). */
+  defaultOffsetId?: string;
   bookId: string;
   accountId: string;
   accountName: string;
@@ -32,7 +35,7 @@ export function BalanceForm({
   const [error, setError] = useState<string>();
   const [date, setDate] = useState(today);
   const [balance, setBalance] = useState("");
-  const [offset, setOffset] = useState("");
+  const [offset, setOffset] = useState(defaultOffsetId ?? "");
   if (!open) {
     return (
       <Button variant="ghost" onClick={() => setOpen(true)}>

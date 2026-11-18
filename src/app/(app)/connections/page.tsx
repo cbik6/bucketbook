@@ -23,6 +23,10 @@ async function ConnectionsContent({ searchParams }: PageProps<"/connections">) {
     listConnections(db, user.id),
     editableBooks(db, user.id),
   ]);
+  // Which ledger accounts already take a bank feed, so the picker can say so.
+  const fedBy = new Map<string, string>();
+  for (const c of connections)
+    for (const f of c.feeds) if (f.accountId) fedBy.set(f.accountId, f.name);
   const targets: MappingTarget[] = [];
   for (const b of editable) {
     const rows = await listAccounts(db, b.id);
@@ -38,7 +42,12 @@ async function ConnectionsContent({ searchParams }: PageProps<"/connections">) {
             !a.systemRole &&
             !a.archivedAt,
         )
-        .map((a) => ({ id: a.id, label: accountPath(rows, a.id).join(": "), type: a.type })),
+        .map((a) => ({
+          id: a.id,
+          label: accountPath(rows, a.id).join(": "),
+          type: a.type,
+          fedBy: fedBy.get(a.id) ?? null,
+        })),
     });
   }
   const timeZone = process.env.TZ || "UTC";

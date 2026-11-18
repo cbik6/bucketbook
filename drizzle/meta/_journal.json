@@ -57,6 +57,13 @@
       "when": 1794968223856,
       "tag": "0007_budgets",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794971966305,
+      "tag": "0008_investments",
+      "breakpoints": true
     }
   ]
 }

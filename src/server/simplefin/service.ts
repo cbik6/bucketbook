@@ -2,6 +2,9 @@ import { randomInt } from "node:crypto";
 import { and, asc, eq, gte, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { todayIso } from "@/lib/dates";
+import { formatCents } from "@/lib/money";
+import { createAccount } from "../accounts/service";
+import { systemAccount } from "../accounts/system";
 import { recordAudit } from "../audit/record";
 import { applyRules } from "../bank/rules-service";
 import { requireBankableAccount } from "../bank/accounts";
@@ -19,6 +22,8 @@ import {
   simplefinRequests,
 } from "../db/schema";
 import { getEnv } from "../env";
+import { accountHasActivity, accountNetCents } from "../ledger/queries";
+import { createEntry, loadBookForPosting, validateLines } from "../ledger/service";
 import { NotFoundError, UserFacingError, pgErrorInfo } from "../errors";
 import { type ExistingRow, addDays, planFeedSync, syncWindows, incomingDay } from "./plan";
 import {
@@ -28,6 +33,7 @@ import {
   MAX_WINDOW_DAYS,
   OVERLAP_DAYS,
   claimSetupToken,
+  epochToDay,
   fetchAccountSet,
   looksLikeAccessUrl,
   redactSecrets,
@@ -185,6 +191,8 @@ export type FeedView = {
   unexplainedCents: number | null;
   /** True when the mapped book starts before everything fetched so far. */
   backfilling: boolean;
+  /** An investment account: the books follow the bank's value; trades aren't imported. */
+  valueOnly: boolean;
 };
 
 export type ConnectionView = {
@@ -213,6 +221,7 @@ export async function listConnections(db: DbOrTx, userId: string): Promise<Conne
       bookName: books.name,
       bookStart: books.startDate,
       accountName: accounts.name,
+      accountSubtype: accounts.subtype,
     })
     .from(bankFeeds)
     .leftJoin(books, eq(books.id, bankFeeds.bookId))
@@ -271,7 +280,7 @@ export async function listConnections(db: DbOrTx, userId: string): Promise<Conne
     requestsToday: counts.get(c.id) ?? 0,
     feeds: feeds
       .filter((f) => f.feed.connectionId === c.id)
-      .map(({ feed, bookName, bookStart, accountName }) => {
+      .map(({ feed, bookName, bookStart, accountName, accountSubtype }) => {
         const ledgerCents = feed.accountId ? (ledger.get(feed.accountId) ?? 0) : null;
         const r = feed.accountId ? review.get(feed.accountId) : undefined;
         const reviewCents = r?.cents ?? 0;
@@ -297,9 +306,12 @@ export async function listConnections(db: DbOrTx, userId: string): Promise<Conne
             ledgerCents !== null && feed.balanceCents !== null && feed.syncedThrough
               ? feed.balanceCents - ledgerCents - reviewCents
               : null,
-          backfilling: Boolean(
-            feed.accountId && bookStart && (!feed.syncedFrom || feed.syncedFrom > bookStart),
-          ),
+          valueOnly: accountSubtype === "investment",
+          backfilling:
+            accountSubtype !== "investment" &&
+            Boolean(
+              feed.accountId && bookStart && (!feed.syncedFrom || feed.syncedFrom > bookStart),
+            ),
         };
       }),
   }));
@@ -311,9 +323,51 @@ const mappingSchema = z.discriminatedUnion("mode", [
     bookId: z.uuid("Pick a book."),
     accountId: z.uuid("Pick an account."),
   }),
+  z.object({
+    mode: z.literal("create"),
+    bookId: z.uuid("Pick a book."),
+    kind: z.enum(["bank", "credit_card", "loan", "investment"]),
+  }),
   z.object({ mode: z.literal("ignore") }),
   z.object({ mode: z.literal("unmap") }),
 ]);
+
+const NEW_ACCOUNT_KINDS = {
+  bank: { type: "asset", subtype: "bank" },
+  credit_card: { type: "liability", subtype: "credit_card" },
+  loan: { type: "liability", subtype: "loan" },
+  investment: { type: "asset", subtype: "investment" },
+} as const;
+
+/** A tidy account name from the bank's ("Costco Anywhere Visa® Card by Citi (8837)"). */
+function accountNameFor(feedName: string) {
+  return feedName.replace(/[®™]/g, "").replace(/\s+/g, " ").trim().slice(0, 90) || "Bank account";
+}
+
+/** Creates an account for a feed, adding a number if the name is taken. */
+async function createAccountForFeed(
+  db: Database,
+  actor: Actor,
+  bookId: string,
+  feedName: string,
+  kind: keyof typeof NEW_ACCOUNT_KINDS,
+) {
+  const base = accountNameFor(feedName);
+  for (let n = 1; n <= 20; n++) {
+    try {
+      return await createAccount(db, actor, bookId, {
+        name: n === 1 ? base : `${base} ${n}`,
+        ...NEW_ACCOUNT_KINDS[kind],
+      });
+    } catch (err) {
+      if (err instanceof UserFacingError && err.field === "name") continue;
+      throw err;
+    }
+  }
+  throw new UserFacingError(
+    "Couldn't find a free name for the new account. Create it in the chart of accounts.",
+  );
+}
 
 /**
  * Points a SimpleFIN account at an account in a book (or ignores it). A new
@@ -330,6 +384,11 @@ export async function mapFeed(db: Database, actor: Actor, feedId: string, raw: u
   const [feed] = await db.select().from(bankFeeds).where(eq(bankFeeds.id, feedId));
   if (!feed) throw new NotFoundError("That bank account");
   await loadConnection(db, actor.userId, feed.connectionId);
+  if (input.mode === "create") {
+    await requireBookAccess(db, actor.userId, input.bookId, "editor");
+    const created = await createAccountForFeed(db, actor, input.bookId, feed.name, input.kind);
+    return mapFeed(db, actor, feedId, { mode: "map", bookId: input.bookId, accountId: created.id });
+  }
   if (input.mode === "map") {
     await requireBookAccess(db, actor.userId, input.bookId, "editor");
     await requireBankableAccount(db, input.bookId, input.accountId);
@@ -371,7 +430,7 @@ export async function mapFeed(db: Database, actor: Actor, feedId: string, raw: u
   } catch (err) {
     if (pgErrorInfo(err).constraint === "bank_feeds_account_key") {
       throw new UserFacingError(
-        "Another bank account already feeds that account. Each account takes one feed.",
+        'Another bank account already feeds that account, and each account in the books takes one. Pick a different account, or choose "New account" in the list to make one for this bank account.',
         "accountId",
       );
     }
@@ -492,9 +551,15 @@ export async function runSync(
     const end = addDays(today, 1);
 
     const feeds = await db
-      .select({ feed: bankFeeds, startDate: books.startDate, archived: books.archivedAt })
+      .select({
+        feed: bankFeeds,
+        startDate: books.startDate,
+        archived: books.archivedAt,
+        subtype: accounts.subtype,
+      })
       .from(bankFeeds)
       .innerJoin(books, eq(books.id, bankFeeds.bookId))
+      .innerJoin(accounts, eq(accounts.id, bankFeeds.accountId))
       .where(
         and(
           eq(bankFeeds.connectionId, connectionId),
@@ -502,15 +567,28 @@ export async function runSync(
           eq(bankFeeds.ignored, false),
         ),
       );
-    const active = feeds.filter((f) => !f.archived);
+    const live = feeds.filter((f) => !f.archived);
+    // Investment accounts follow the bank's value; their trades never enter review.
+    const investments = live.filter((f) => f.subtype === "investment");
+    const active = live.filter((f) => f.subtype !== "investment");
+    const value = async (set: AccountSet) => {
+      for (const { feed } of investments) {
+        const acct = set.accounts.find((a) => a.id === feed.externalId);
+        if (!acct) continue;
+        const day = epochToDay(acct.balanceEpoch, serverTimeZone());
+        const moved = await recordValuation(db, feed, acct.balanceCents, day > today ? today : day);
+        if (moved) result.updatedCount += 1;
+      }
+    };
 
     if (active.length === 0) {
-      // Nothing mapped yet: just refresh the account list and balances.
+      // No transaction feeds: just refresh the account list, balances and values.
       const set = await fetchAccountSet(accessUrl, null, fetchImpl);
       result.requests += 1;
       await logRequest(db, connectionId, { ok: true });
       await upsertFeeds(db, connectionId, set, true);
       result.messages.push(...set.messages);
+      await value(set);
     } else {
       const oldestPending = await db
         .select({
@@ -553,6 +631,7 @@ export async function runSync(
         budget -= 1;
         // Balances come from the newest window only.
         await upsertFeeds(db, connectionId, set, index === 0);
+        if (index === 0) await value(set);
         result.messages.push(...set.messages);
         let windowNew = 0;
         let windowUpdated = 0;
@@ -611,6 +690,53 @@ export async function runSync(
       .where(eq(simplefinConnections.id, connectionId));
   }
   return result;
+}
+
+/**
+ * Brings an investment account to the value the bank reports. The first value
+ * is its starting point (Opening Balance Equity); later changes are market
+ * movement (Unrealized Gains and Losses), so net worth follows the account
+ * without trades or gains showing up as income or spending.
+ */
+async function recordValuation(
+  db: Database,
+  feed: typeof bankFeeds.$inferSelect,
+  balanceCents: number,
+  day: string,
+): Promise<boolean> {
+  const bookId = feed.bookId!;
+  const accountId = feed.accountId!;
+  return db.transaction(async (tx) => {
+    const book = await loadBookForPosting(tx, bookId).catch(() => null);
+    if (!book) return false;
+    const current = await accountNetCents(tx, accountId);
+    const diff = balanceCents - current;
+    if (diff === 0) return false;
+    const hasHistory = await accountHasActivity(tx, accountId);
+    const offsetRole = hasHistory ? "unrealized_gains" : "opening_balance_equity";
+    const offset = await systemAccount(tx, bookId, offsetRole);
+    const amount = formatCents(Math.abs(diff), { showSymbol: false });
+    const lines = await validateLines(tx, bookId, [
+      { accountId, debit: diff > 0 ? amount : "", credit: diff < 0 ? amount : "", memo: "" },
+      {
+        accountId: offset,
+        debit: diff < 0 ? amount : "",
+        credit: diff > 0 ? amount : "",
+        memo: "",
+      },
+    ]);
+    await createEntry(tx, {
+      actor: { userId: null as unknown as string },
+      bookId,
+      kind: "valuation",
+      entryDate: day < book.startDate ? book.startDate : day,
+      payee: feed.institution,
+      memo: hasHistory ? `Value update: ${feed.name}` : `Starting value: ${feed.name}`,
+      lines,
+      changeNote: "Value from the bank",
+    });
+    return true;
+  });
 }
 
 async function extendCoverage(db: DbOrTx, feedId: string, w: { startDay: string; endDay: string }) {

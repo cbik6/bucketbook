@@ -21,7 +21,7 @@ import {
 export type MappingTarget = {
   id: string;
   name: string;
-  accounts: { id: string; label: string; type: string }[];
+  accounts: { id: string; label: string; type: string; fedBy: string | null }[];
 };
 
 const DEMO_URL = "https://demo:demo@beta-bridge.simplefin.org/simplefin";
@@ -284,6 +284,14 @@ function FeedStatus({ feed }: { feed: FeedView }) {
     return <p className="text-[0.8125rem] text-ink-muted">Waiting for the first sync.</p>;
   }
   const diff = feed.unexplainedCents ?? 0;
+  if (feed.valueOnly) {
+    return (
+      <p className="text-[0.8125rem] text-ink-muted">
+        Value only: each sync brings the books to this balance for net worth. Trades and dividends
+        aren&apos;t imported. In your books: <Money cents={feed.ledgerCents} />.
+      </p>
+    );
+  }
   return (
     <div className="flex flex-col gap-1 text-[0.8125rem] text-ink-muted">
       <p>
@@ -375,6 +383,24 @@ function FeedRow({
   );
 }
 
+const NEW_KINDS = [
+  { kind: "bank", label: "bank account" },
+  { kind: "credit_card", label: "credit card" },
+  { kind: "investment", label: "investment account" },
+  { kind: "loan", label: "loan" },
+] as const;
+
+/** A first guess at what kind of account a bank account is, from its name and balance. */
+function guessKind(feed: FeedView): (typeof NEW_KINDS)[number]["kind"] {
+  const n = feed.name.toLowerCase();
+  if (/(card|visa|mastercard|amex|discover)/.test(n)) return "credit_card";
+  if (/(brokerage|ira\b|401|403|roth|invest|retire|hsa|stock|fund\b.*index)/.test(n))
+    return "investment";
+  if (/(loan|mortgage|auto|heloc)/.test(n)) return "loan";
+  if ((feed.balanceCents ?? 0) < 0) return "credit_card";
+  return "bank";
+}
+
 function MappingForm({
   feed,
   targets,
@@ -403,7 +429,12 @@ function MappingForm({
     book?.accounts.find((a) =>
       feed.name.toLowerCase().includes(a.label.toLowerCase().split(": ").pop()!),
     )?.id ?? "";
-  const [accountId, setAccountId] = useState(feed.accountId ?? guess);
+  const [accountId, setAccountId] = useState(
+    feed.accountId ??
+      (guess && !book?.accounts.find((a) => a.id === guess)?.fedBy
+        ? guess
+        : `new:${guessKind(feed)}`),
+  );
   if (targets.length === 0) {
     return <p className="text-sm text-ink-muted">Create a book first, then map this account.</p>;
   }
@@ -438,11 +469,24 @@ function MappingForm({
           invalid={state.field === "accountId"}
         >
           <option value="">Choose an account</option>
-          {book?.accounts.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.label}
-            </option>
-          ))}
+          <optgroup label="Add a new account for it">
+            {NEW_KINDS.map((k) => (
+              <option key={k.kind} value={`new:${k.kind}`}>
+                New {k.label}: {feed.name}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="Existing accounts">
+            {book?.accounts.map((a) => {
+              const taken = Boolean(a.fedBy) && a.id !== feed.accountId;
+              return (
+                <option key={a.id} value={a.id} disabled={taken}>
+                  {a.label}
+                  {taken ? ` (connected to ${a.fedBy})` : ""}
+                </option>
+              );
+            })}
+          </optgroup>
         </SelectInput>
       </div>
       <div className="flex flex-wrap gap-2">

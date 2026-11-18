@@ -42,7 +42,8 @@ describe.each(BOOK_TEMPLATES)("%s template", (id) => {
   });
 
   it("has exactly one account for each system role, at the top level of Equity", () => {
-    for (const role of SYSTEM_ROLES) {
+    // Unrealized gains is created the first time an investment account needs it.
+    for (const role of SYSTEM_ROLES.filter((r) => r !== "unrealized_gains")) {
       const matches = all.filter(({ a }) => a.systemRole === role);
       expect(matches, role).toHaveLength(1);
       expect(matches[0]!.type).toBe("equity");

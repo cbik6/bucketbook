@@ -26,6 +26,7 @@ import { inList } from "./sql-helpers";
  * transfer: money moving between two of your own accounts (one entry per book).
  * bucket: money moving between buckets inside one real account (allocations
  * and manual moves). The real account's total never changes.
+ * valuation: an investment account's change in market value, from a sync.
  */
 export const ENTRY_KINDS = [
   "manual",
@@ -34,6 +35,7 @@ export const ENTRY_KINDS = [
   "bank",
   "transfer",
   "bucket",
+  "valuation",
 ] as const;
 export type EntryKind = (typeof ENTRY_KINDS)[number];
 

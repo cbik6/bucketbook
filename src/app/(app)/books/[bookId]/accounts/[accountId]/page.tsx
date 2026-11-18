@@ -111,6 +111,12 @@ async function RegisterContent({
               accountId={account.id}
               accountName={account.name}
               groups={await entryFormAccounts(book.id)}
+              defaultOffsetId={
+                account.subtype === "investment"
+                  ? (rows.find((r) => r.systemRole === "unrealized_gains")?.id ??
+                    rows.find((r) => r.systemRole === "opening_balance_equity")?.id)
+                  : undefined
+              }
               today={serverToday()}
             />
           </div>

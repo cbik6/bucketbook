@@ -149,6 +149,14 @@ category for you, and nothing posts until you approve it.
 To try it without a bank, press **Use the demo bank** on the Bank connections page; it
 connects SimpleFIN's public demo account.
 
+Each bank account feeds its own account in the books. When you map one, pick **New
+credit card** (or bank account, investment account, loan) to create a matching account
+named after it; that is how several cards or savings accounts get set up.
+
+**Investment accounts** (brokerage, IRA, 401k) are for net worth: map them as a new
+investment account and each sync brings the books to the value the bank reports. Trades
+aren't imported, and the changes in value stay out of income and spending.
+
 Credit cards work like any other account: purchases are categorized in review, and the
 payment from checking is matched with the card's side as a transfer. Bank, cash, card and
 loan accounts can be reconciled against statements from **Reconcile**.

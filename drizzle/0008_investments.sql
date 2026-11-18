@@ -1,0 +1,6 @@
+ALTER TABLE "accounts" DROP CONSTRAINT "accounts_subtype_check";--> statement-breakpoint
+ALTER TABLE "accounts" DROP CONSTRAINT "accounts_system_role_check";--> statement-breakpoint
+ALTER TABLE "journal_entries" DROP CONSTRAINT "journal_entries_kind_check";--> statement-breakpoint
+ALTER TABLE "accounts" ADD CONSTRAINT "accounts_subtype_check" CHECK ("accounts"."subtype" in ('bank', 'cash', 'investment', 'other_current_asset', 'fixed_asset', 'other_asset', 'credit_card', 'loan', 'other_current_liability', 'long_term_liability', 'opening_balance', 'retained_earnings', 'owner_equity', 'other_equity', 'income', 'other_income', 'expense', 'cost_of_goods_sold', 'other_expense'));--> statement-breakpoint
+ALTER TABLE "accounts" ADD CONSTRAINT "accounts_system_role_check" CHECK ("accounts"."system_role" is null or "accounts"."system_role" in ('opening_balance_equity', 'retained_earnings', 'unrealized_gains'));--> statement-breakpoint
+ALTER TABLE "journal_entries" ADD CONSTRAINT "journal_entries_kind_check" CHECK ("journal_entries"."kind" in ('manual', 'opening_balance', 'reversal', 'bank', 'transfer', 'bucket', 'valuation'));

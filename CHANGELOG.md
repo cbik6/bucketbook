@@ -6,6 +6,22 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-18
+
+### Added
+
+- Investment accounts for net worth: map a brokerage or retirement account from
+  SimpleFIN and the books follow its value each sync (trades aren't imported), with
+  changes kept in Unrealized Gains and Losses so income and spending reports are
+  untouched.
+- Create the right account while mapping a bank account: new bank account, credit card,
+  investment account or loan, named after the bank's account. Accounts already connected
+  to another bank account are marked and can't be picked twice.
+
+### Changed
+
+- A clearer message when two bank accounts point at the same account in the books.
+
 ## [1.0.0] - 2026-11-18
 
 Phases 4 to 7: buckets, reconciliation and loans, budgets and reports, and polish. The
