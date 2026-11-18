@@ -1,15 +1,34 @@
 "use client";
 
-import { BookOpenText, History, Landmark, ListTree, NotebookPen, Settings2 } from "lucide-react";
+import {
+  BookOpenText,
+  History,
+  Inbox,
+  Landmark,
+  ListTree,
+  NotebookPen,
+  Settings2,
+  Wand2,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export function NavLinks({ bookId, layout }: { bookId: string; layout: "rail" | "bar" }) {
+export function NavLinks({
+  bookId,
+  layout,
+  reviewCount = 0,
+}: {
+  bookId: string;
+  layout: "rail" | "bar";
+  reviewCount?: number;
+}) {
   const pathname = usePathname();
-  const links = [
+  const links: Array<{ href: string; label: string; Icon: typeof Inbox; count?: number }> = [
+    { href: `/books/${bookId}/review`, label: "For review", Icon: Inbox, count: reviewCount },
     { href: `/books/${bookId}/accounts`, label: "Chart of accounts", Icon: ListTree },
     { href: `/books/${bookId}/journal`, label: "Journal entries", Icon: NotebookPen },
     { href: `/books/${bookId}/ledger`, label: "General ledger", Icon: BookOpenText },
+    { href: `/books/${bookId}/rules`, label: "Rules", Icon: Wand2 },
     { href: `/books/${bookId}/opening-balances`, label: "Opening balances", Icon: Landmark },
     { href: `/books/${bookId}/activity`, label: "Activity", Icon: History },
     { href: `/books/${bookId}/settings`, label: "Book settings", Icon: Settings2 },
@@ -18,18 +37,19 @@ export function NavLinks({ bookId, layout }: { bookId: string; layout: "rail" | 
   if (layout === "bar") {
     return (
       <nav aria-label="Book" className="flex gap-1 overflow-x-auto">
-        {links.map(({ href, label }) => {
+        {links.map(({ href, label, count }) => {
           const active = pathname.startsWith(href);
           return (
             <Link
               key={href}
               href={href}
               aria-current={active ? "page" : undefined}
-              className={`shrink-0 rounded-md px-3 py-1.5 text-sm transition-colors duration-150 ${
+              className={`flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors duration-150 ${
                 active ? "bg-rail-active text-rail-ink" : "text-rail-muted hover:text-rail-ink"
               }`}
             >
               {label}
+              <CountBadge count={count} />
             </Link>
           );
         })}
@@ -39,7 +59,7 @@ export function NavLinks({ bookId, layout }: { bookId: string; layout: "rail" | 
 
   return (
     <nav aria-label="Book" className="flex flex-col gap-0.5">
-      {links.map(({ href, label, Icon }) => {
+      {links.map(({ href, label, Icon, count }) => {
         const active = pathname.startsWith(href);
         return (
           <Link
@@ -60,9 +80,23 @@ export function NavLinks({ bookId, layout }: { bookId: string; layout: "rail" | 
             ) : null}
             <Icon size={16} strokeWidth={1.75} aria-hidden />
             {label}
+            <span className="ml-auto">
+              <CountBadge count={count} />
+            </span>
           </Link>
         );
       })}
     </nav>
+  );
+}
+
+/** How many transactions wait in review. Hidden at zero; read as "12 waiting". */
+function CountBadge({ count }: { count?: number }) {
+  if (!count) return null;
+  return (
+    <span className="tabular rounded-full bg-[var(--rail-focus)] px-1.5 text-[0.75rem] font-semibold leading-5 text-[var(--on-bucket)]">
+      {count > 999 ? "999+" : count}
+      <span className="sr-only"> waiting</span>
+    </span>
   );
 }

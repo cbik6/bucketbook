@@ -1,0 +1,913 @@
+"use client";
+
+import { ArrowLeftRight, ChevronDown, Copy, Link2, Plus, Wand2, X } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
+import { toast } from "sonner";
+import { AccountSelectOptions } from "@/components/account-select-options";
+import { Money } from "@/components/money";
+import { Button } from "@/components/ui/button";
+import { SelectInput, TextInput } from "@/components/ui/field";
+import type { AccountOptionGroup } from "@/lib/account-options";
+import { formatDay } from "@/lib/dates";
+import { formatEntryNumber } from "@/lib/ledger-math";
+import { formatCents, parseCents } from "@/lib/money";
+import type { Decision, QueueItem } from "@/server/bank/review-service";
+import { type AttachmentInfo, Attachments } from "../attachments";
+import {
+  type ReviewResult,
+  approveAction,
+  bulkAction,
+  excludeAction,
+  excludeManyAction,
+  keepBothAction,
+  linkAction,
+  transferAction,
+} from "./actions";
+
+export type { AttachmentInfo };
+
+type Split = { key: number; accountId: string; amount: string; memo: string };
+
+type Draft = {
+  /** An account id, or "transfer:<id>", "link:<entryId>", "split", or "". */
+  choice: string;
+  payee: string;
+  memo: string;
+  saveRule: boolean;
+  splits: Split[];
+  counterpart: string;
+  partnerCounterpart: string;
+};
+
+let splitKey = 1;
+const newSplit = (accountId = "", amount = ""): Split => ({
+  key: splitKey++,
+  accountId,
+  amount,
+  memo: "",
+});
+
+function defaultDraft(item: QueueItem): Draft {
+  const link = item.linkCandidates[0];
+  const choice = link
+    ? `link:${link.entryId}`
+    : item.transfer && (item.suggestedTransfer || !item.suggestedAccountId)
+      ? `transfer:${item.transfer.id}`
+      : (item.suggestedAccountId ?? (item.transfer ? `transfer:${item.transfer.id}` : ""));
+  return {
+    choice,
+    payee: item.suggestedPayee ?? item.payee ?? item.description,
+    memo: item.suggestedMemo ?? "",
+    saveRule: false,
+    splits: [],
+    counterpart: item.transfer?.counterpartAccountId ?? "",
+    partnerCounterpart: item.transfer?.partnerCounterpartAccountId ?? "",
+  };
+}
+
+const isTyping = (el: EventTarget | null) =>
+  el instanceof HTMLElement &&
+  (el.tagName === "INPUT" ||
+    el.tagName === "SELECT" ||
+    el.tagName === "TEXTAREA" ||
+    el.isContentEditable);
+
+/**
+ * The review queue: one row per bank transaction, prefilled from rules,
+ * transfer matches and existing entries. Approve one at a time or select
+ * several. Keyboard: J and K (or arrows) move, Enter opens details, A
+ * approves, X selects, E excludes.
+ */
+export function ReviewQueue({
+  bookId,
+  items,
+  groups,
+  partnerGroups,
+  attachments,
+  canEdit,
+}: {
+  bookId: string;
+  items: QueueItem[];
+  groups: AccountOptionGroup[];
+  partnerGroups: Record<string, AccountOptionGroup[]>;
+  attachments: Record<string, AttachmentInfo[]>;
+  canEdit: boolean;
+}) {
+  const router = useRouter();
+  const uid = useId();
+  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(items[0]?.id ?? null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [bulkPending, startBulk] = useTransition();
+  const [, startRow] = useTransition();
+  const rowRefs = useRef(new Map<string, HTMLLIElement>());
+
+  const ids = useMemo(() => new Set(items.map((i) => i.id)), [items]);
+  const draftFor = (item: QueueItem) => drafts[item.id] ?? defaultDraft(item);
+  const setDraft = (item: QueueItem, patch: Partial<Draft>) =>
+    setDrafts((d) => ({ ...d, [item.id]: { ...(d[item.id] ?? defaultDraft(item)), ...patch } }));
+
+  // Keep selection and focus pointing at rows that still exist after a refresh.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- rows vanish when the server list changes
+    setSelected((s) => new Set([...s].filter((id) => ids.has(id))));
+    if (activeId && !ids.has(activeId)) setActiveId(items[0]?.id ?? null);
+  }, [ids, activeId, items]);
+
+  const focusRow = (id: string | undefined) => {
+    if (!id) return;
+    setActiveId(id);
+    rowRefs.current.get(id)?.focus();
+  };
+
+  const finish = (item: QueueItem, r: ReviewResult) => {
+    setBusyId(null);
+    if (!r.ok) {
+      setErrors((e) => ({ ...e, [item.id]: r.error ?? "That didn't work." }));
+      if (r.field === "counterpart" || r.field === "splits") setExpanded(item.id);
+      return;
+    }
+    setErrors((e) => {
+      const { [item.id]: _, ...rest } = e;
+      return rest;
+    });
+    const index = items.findIndex((i) => i.id === item.id);
+    const next = items[index + 1] ?? items[index - 1];
+    if (next) setActiveId(next.id);
+    if (expanded === item.id) setExpanded(null);
+    toast.success(r.message ?? "Done.", {
+      action: r.entryId
+        ? {
+            label: "View entry",
+            onClick: () => router.push(`/books/${bookId}/journal/${r.entryId}`),
+          }
+        : undefined,
+    });
+  };
+
+  const approve = (item: QueueItem) => {
+    if (!canEdit) return;
+    const d = draftFor(item);
+    setBusyId(item.id);
+    startRow(async () => {
+      let r: ReviewResult;
+      if (d.choice === "split") {
+        r = await approveAction(bookId, item.id, {
+          splits: d.splits.map(({ accountId, amount, memo }) => ({ accountId, amount, memo })),
+          payee: d.payee,
+          memo: d.memo,
+        });
+      } else if (d.choice.startsWith("transfer:")) {
+        r = await transferAction(bookId, item.id, {
+          partnerId: d.choice.slice(9),
+          counterpartAccountId: d.counterpart || undefined,
+          partnerCounterpartAccountId: d.partnerCounterpart || undefined,
+        });
+      } else if (d.choice.startsWith("link:")) {
+        r = await linkAction(bookId, item.id, d.choice.slice(5));
+      } else if (!d.choice) {
+        r = { ok: false, error: "Pick a category first." };
+      } else {
+        r = await approveAction(bookId, item.id, {
+          accountId: d.choice,
+          payee: d.payee,
+          memo: d.memo,
+          saveRule: d.saveRule,
+        });
+      }
+      finish(item, r);
+    });
+  };
+
+  const exclude = (item: QueueItem) => {
+    if (!canEdit) return;
+    setBusyId(item.id);
+    startRow(async () => finish(item, await excludeAction(bookId, item.id)));
+  };
+
+  const selectedItems = items.filter((i) => selected.has(i.id));
+  const approveSelected = () =>
+    startBulk(async () => {
+      const decisions: Decision[] = [];
+      let unready = 0;
+      for (const item of selectedItems) {
+        const d = draftFor(item);
+        if (d.choice.startsWith("transfer:")) {
+          decisions.push({ id: item.id, kind: "transfer", partnerId: d.choice.slice(9) });
+        } else if (d.choice.startsWith("link:")) {
+          decisions.push({ id: item.id, kind: "link", entryId: d.choice.slice(5) });
+        } else if (d.choice && d.choice !== "split") {
+          decisions.push({ id: item.id, kind: "account", accountId: d.choice });
+        } else unready += 1;
+      }
+      if (decisions.length === 0) {
+        toast.error("Pick a category for the selected transactions first.");
+        return;
+      }
+      const r = await bulkAction(bookId, decisions);
+      if (!r.ok) toast.error(r.error);
+      else
+        toast.success(r.message, {
+          description: unready ? `${unready} without a category were left for you.` : undefined,
+        });
+      setSelected(new Set());
+    });
+
+  const excludeSelected = () =>
+    startBulk(async () => {
+      const r = await excludeManyAction(
+        bookId,
+        selectedItems.map((i) => i.id),
+      );
+      if (r.ok) toast.success(r.message);
+      else toast.error(r.error);
+      setSelected(new Set());
+    });
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (isTyping(e.target)) {
+      if (e.key === "Escape" && activeId) {
+        e.preventDefault();
+        rowRefs.current.get(activeId)?.focus();
+      }
+      return;
+    }
+    const index = items.findIndex((i) => i.id === activeId);
+    const item = items[index];
+    switch (e.key) {
+      case "j":
+      case "ArrowDown":
+        e.preventDefault();
+        focusRow(items[Math.min(index + 1, items.length - 1)]?.id);
+        break;
+      case "k":
+      case "ArrowUp":
+        e.preventDefault();
+        focusRow(items[Math.max(index - 1, 0)]?.id);
+        break;
+      case "Enter":
+        if (item && e.target === rowRefs.current.get(item.id)) {
+          e.preventDefault();
+          setExpanded((x) => (x === item.id ? null : item.id));
+        }
+        break;
+      case "a":
+        if (item) {
+          e.preventDefault();
+          approve(item);
+        }
+        break;
+      case "x":
+        if (item) {
+          e.preventDefault();
+          setSelected((s) => {
+            const n = new Set(s);
+            if (n.has(item.id)) n.delete(item.id);
+            else n.add(item.id);
+            return n;
+          });
+        }
+        break;
+      case "e":
+        if (item) {
+          e.preventDefault();
+          exclude(item);
+        }
+        break;
+    }
+  };
+
+  if (items.length === 0) {
+    return (
+      <div className="flex max-w-prose flex-col gap-2 py-10">
+        <p className="text-[0.9375rem] font-semibold text-ink">All caught up.</p>
+        <p className="text-sm text-ink-muted">
+          New transactions arrive with each sync from your{" "}
+          <Link href="/connections" className="text-signal-ink underline underline-offset-2">
+            bank connections
+          </Link>
+          , or{" "}
+          <Link
+            href={`/books/${bookId}/import`}
+            className="text-signal-ink underline underline-offset-2"
+          >
+            import a CSV file
+          </Link>
+          .
+        </p>
+      </div>
+    );
+  }
+
+  const allSelected = selected.size === items.length;
+
+  return (
+    <div className="flex flex-col">
+      <div
+        className="sticky top-0 z-10 flex min-h-12 flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule-strong bg-paper py-2"
+        aria-live="polite"
+      >
+        {canEdit ? (
+          <label className="flex items-center gap-2 pl-1 text-[0.8125rem] text-ink-muted">
+            <input
+              type="checkbox"
+              className="size-4 accent-[var(--signal)]"
+              checked={allSelected}
+              onChange={() =>
+                setSelected(allSelected ? new Set() : new Set(items.map((i) => i.id)))
+              }
+            />
+            {selected.size > 0 ? `${selected.size} selected` : "Select all"}
+          </label>
+        ) : null}
+        {selected.size > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="primary" onClick={approveSelected} disabled={bulkPending}>
+              {bulkPending ? "Approving" : `Approve ${selected.size}`}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={excludeSelected} disabled={bulkPending}>
+              Exclude {selected.size}
+            </Button>
+          </div>
+        ) : (
+          <span className="text-[0.8125rem] text-ink-muted">{items.length} waiting</span>
+        )}
+        <span className="ml-auto hidden text-xs text-ink-faint lg:inline">
+          <Kbd>J</Kbd> <Kbd>K</Kbd> move, <Kbd>Enter</Kbd> details, <Kbd>A</Kbd> approve,{" "}
+          <Kbd>X</Kbd> select, <Kbd>E</Kbd> exclude
+        </span>
+      </div>
+      <div
+        aria-hidden
+        className="hidden grid-cols-[1.75rem_6rem_minmax(0,1fr)_8rem_minmax(14rem,20rem)_7.5rem] gap-3 border-b border-rule pb-2 pt-3 text-xs font-medium text-ink-muted lg:grid"
+      >
+        <span />
+        <span>Date</span>
+        <span>Description</span>
+        <span className="text-right">Amount</span>
+        <span>Category</span>
+        <span />
+      </div>
+      <ol className="flex flex-col" onKeyDown={onKeyDown} aria-label="Transactions to review">
+        {items.map((item) => (
+          <Row
+            key={item.id}
+            uid={uid}
+            item={item}
+            bookId={bookId}
+            draft={draftFor(item)}
+            setDraft={(p) => setDraft(item, p)}
+            groups={groups}
+            partnerGroups={item.transfer ? partnerGroups[item.transfer.bookId] : undefined}
+            files={attachments[item.id] ?? []}
+            active={item.id === activeId}
+            selected={selected.has(item.id)}
+            expanded={expanded === item.id}
+            busy={busyId === item.id}
+            error={errors[item.id]}
+            canEdit={canEdit}
+            onFocus={() => setActiveId(item.id)}
+            onToggleSelect={() =>
+              setSelected((s) => {
+                const n = new Set(s);
+                if (n.has(item.id)) n.delete(item.id);
+                else n.add(item.id);
+                return n;
+              })
+            }
+            onToggleExpand={() => setExpanded((x) => (x === item.id ? null : item.id))}
+            onApprove={() => approve(item)}
+            onExclude={() => exclude(item)}
+            onKeepBoth={() => {
+              setBusyId(item.id);
+              startRow(async () => {
+                const r = await keepBothAction(bookId, item.id);
+                setBusyId(null);
+                if (r.ok) toast.success(r.message);
+                else toast.error(r.error);
+              });
+            }}
+            refCallback={(el) => {
+              if (el) rowRefs.current.set(item.id, el);
+              else rowRefs.current.delete(item.id);
+            }}
+          />
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="rounded border border-rule bg-surface px-1 font-sans text-[0.6875rem] text-ink-muted">
+      {children}
+    </kbd>
+  );
+}
+
+type RowProps = {
+  uid: string;
+  item: QueueItem;
+  bookId: string;
+  draft: Draft;
+  setDraft: (patch: Partial<Draft>) => void;
+  groups: AccountOptionGroup[];
+  partnerGroups?: AccountOptionGroup[];
+  files: AttachmentInfo[];
+  active: boolean;
+  selected: boolean;
+  expanded: boolean;
+  busy: boolean;
+  error?: string;
+  canEdit: boolean;
+  onFocus: () => void;
+  onToggleSelect: () => void;
+  onToggleExpand: () => void;
+  onApprove: () => void;
+  onExclude: () => void;
+  onKeepBoth: () => void;
+  refCallback: (el: HTMLLIElement | null) => void;
+};
+
+type RowData = Omit<RowProps, "refCallback">;
+
+function Row({ refCallback, ...p }: RowProps) {
+  const { item, draft } = p;
+  const base = `${p.uid}-${item.id}`;
+  const title = item.suggestedPayee ?? item.payee ?? item.description;
+  const transfer = item.transfer;
+  const crossBook = transfer && transfer.bookId !== p.bookId;
+  const isSplit = draft.choice === "split";
+
+  const chooseCategory = (value: string) => {
+    if (value === "split") {
+      const start = draft.choice && !draft.choice.includes(":") ? draft.choice : "";
+      p.setDraft({
+        choice: "split",
+        splits: draft.splits.length
+          ? draft.splits
+          : [newSplit(start, plainAmount(item.amountCents)), newSplit()],
+      });
+      if (!p.expanded) p.onToggleExpand();
+    } else {
+      p.setDraft({ choice: value });
+    }
+  };
+
+  return (
+    <li
+      ref={refCallback}
+      tabIndex={p.active ? 0 : -1}
+      onFocus={(e) => {
+        if (e.target === e.currentTarget) p.onFocus();
+      }}
+      onClickCapture={p.onFocus}
+      aria-label={`${formatDay(item.postedDate)}, ${title}, ${formatCents(item.amountCents)}`}
+      className={`group border-b border-rule outline-none focus-visible:bg-sunken focus-visible:shadow-[inset_3px_0_0_var(--focus)] ${
+        p.selected ? "bg-signal-soft/60" : ""
+      }`}
+    >
+      <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_auto] gap-x-3 gap-y-2 py-3 lg:grid-cols-[1.75rem_6rem_minmax(0,1fr)_8rem_minmax(14rem,20rem)_7.5rem] lg:items-center lg:py-2.5">
+        <div className="row-span-2 pt-0.5 lg:row-span-1 lg:pt-0">
+          {p.canEdit ? (
+            <input
+              type="checkbox"
+              aria-label={`Select ${title}`}
+              className="size-4 accent-[var(--signal)]"
+              checked={p.selected}
+              onChange={p.onToggleSelect}
+              tabIndex={-1}
+            />
+          ) : null}
+        </div>
+        <div className="tabular hidden whitespace-nowrap text-sm text-ink-muted lg:block">
+          {formatDay(item.postedDate)}
+        </div>
+        <div className="min-w-0">
+          <button
+            type="button"
+            onClick={p.onToggleExpand}
+            aria-expanded={p.expanded}
+            aria-controls={`${base}-details`}
+            className="group/title flex max-w-full items-center gap-1 text-left"
+            tabIndex={-1}
+          >
+            <span className="truncate font-medium text-ink">{title}</span>
+            <ChevronDown
+              size={14}
+              aria-hidden
+              className={`shrink-0 text-ink-faint transition-transform duration-150 ${p.expanded ? "rotate-180" : ""}`}
+            />
+          </button>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.8125rem] text-ink-muted">
+            <span className="tabular lg:hidden">{formatDay(item.postedDate)}</span>
+            <span>{item.accountName}</span>
+            {title !== item.description ? (
+              <span className="truncate">{item.description}</span>
+            ) : null}
+            <Badges item={item} />
+          </div>
+        </div>
+        <div className="text-right lg:pr-1">
+          <Money cents={item.amountCents} className="font-medium" />
+        </div>
+
+        <div className="col-span-2 col-start-2 min-w-0 lg:col-span-1 lg:col-start-auto">
+          {isSplit ? (
+            <button
+              type="button"
+              onClick={() => (p.expanded ? null : p.onToggleExpand())}
+              className="flex h-10 w-full items-center rounded-lg border border-dashed border-field-border px-3 text-sm text-ink"
+            >
+              Split into {draft.splits.length} lines
+            </button>
+          ) : (
+            <SelectInput
+              id={`${base}-category`}
+              aria-label={`Category for ${title}`}
+              value={draft.choice}
+              onChange={(e) => chooseCategory(e.target.value)}
+              disabled={!p.canEdit}
+              invalid={Boolean(p.error) && !draft.choice}
+            >
+              <option value="">Choose a category</option>
+              {item.linkCandidates.length || transfer ? (
+                <optgroup label="Matches">
+                  {item.linkCandidates.map((c) => (
+                    <option key={c.entryId} value={`link:${c.entryId}`}>
+                      Already recorded: {formatEntryNumber(c.entryNumber)}, {formatDay(c.entryDate)}
+                    </option>
+                  ))}
+                  {transfer ? (
+                    <option value={`transfer:${transfer.id}`}>
+                      Transfer {item.amountCents < 0 ? "to" : "from"} {transfer.accountName}
+                      {crossBook ? ` (${transfer.bookName})` : ""}
+                    </option>
+                  ) : null}
+                </optgroup>
+              ) : null}
+              <AccountSelectOptions
+                groups={p.groups}
+                value={draft.choice}
+                exclude={item.accountId}
+              />
+              <optgroup label="More">
+                <option value="split">Split across accounts</option>
+              </optgroup>
+            </SelectInput>
+          )}
+        </div>
+        <div className="col-start-3 row-start-2 flex items-center justify-end gap-1 lg:col-start-auto lg:row-start-auto">
+          {p.canEdit ? (
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={p.onApprove}
+              disabled={p.busy}
+              aria-label={`Approve ${title}`}
+            >
+              {p.busy
+                ? "Saving"
+                : draft.choice.startsWith("transfer:") || draft.choice.startsWith("link:")
+                  ? "Match"
+                  : "Approve"}
+            </Button>
+          ) : null}
+        </div>
+      </div>
+
+      {p.error ? (
+        <p role="alert" className="-mt-1 pb-2 pl-10 text-[0.8125rem] text-negative">
+          {p.error}
+        </p>
+      ) : null}
+
+      {item.duplicateOf ? (
+        <div className="mb-3 ml-10 flex flex-col gap-2 rounded-lg bg-sunken px-3 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-ink">
+            <Copy size={14} aria-hidden className="mr-1.5 inline text-ink-muted" />
+            Looks like a duplicate of {formatDay(item.duplicateOf.postedDate)} &ldquo;
+            {item.duplicateOf.description}&rdquo;
+            {item.duplicateOf.status === "posted" ? ", already recorded" : ", also in review"}.
+          </p>
+          {p.canEdit ? (
+            <div className="flex shrink-0 gap-2">
+              <Button size="sm" variant="secondary" onClick={p.onExclude} disabled={p.busy}>
+                It&apos;s a duplicate
+              </Button>
+              <Button size="sm" variant="ghost" onClick={p.onKeepBoth} disabled={p.busy}>
+                Keep both
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {p.expanded ? (
+        <Details
+          {...p}
+          base={base}
+          crossBook={Boolean(crossBook)}
+          isSplit={isSplit}
+          title={title}
+        />
+      ) : (
+        <div id={`${base}-details`} hidden />
+      )}
+    </li>
+  );
+}
+
+function Badges({ item }: { item: QueueItem }) {
+  return (
+    <>
+      {item.suggestedRuleName ? (
+        <span className="inline-flex items-center gap-1 rounded bg-sunken px-1.5 py-px text-xs text-ink-muted">
+          <Wand2 size={11} aria-hidden />
+          Rule: {item.suggestedRuleName}
+        </span>
+      ) : null}
+      {item.transfer ? (
+        <span className="inline-flex items-center gap-1 rounded bg-sunken px-1.5 py-px text-xs text-ink-muted">
+          <ArrowLeftRight size={11} aria-hidden />
+          Transfer match
+        </span>
+      ) : null}
+      {item.linkCandidates.length ? (
+        <span className="inline-flex items-center gap-1 rounded bg-sunken px-1.5 py-px text-xs text-ink-muted">
+          <Link2 size={11} aria-hidden />
+          Already recorded?
+        </span>
+      ) : null}
+      {item.source === "csv" ? (
+        <span className="rounded bg-sunken px-1.5 py-px text-xs text-ink-muted">CSV</span>
+      ) : null}
+    </>
+  );
+}
+
+const plainAmount = (cents: number) => formatCents(Math.abs(cents), { showSymbol: false });
+
+function Details(
+  p: RowData & { base: string; crossBook: boolean; isSplit: boolean; title: string },
+) {
+  const { item, draft } = p;
+  const choice = draft.choice;
+  const plainAccount = choice && !choice.includes(":") && choice !== "split";
+  return (
+    <div
+      id={`${p.base}-details`}
+      className="mb-4 ml-0 flex flex-col gap-4 rounded-xl border border-rule bg-surface p-4 lg:ml-10"
+    >
+      {item.bankMemo || (item.payee && item.payee !== item.description) ? (
+        <p className="text-[0.8125rem] text-ink-muted">
+          From the bank: {item.description}
+          {item.bankMemo && item.bankMemo !== item.description ? `, ${item.bankMemo}` : ""}
+        </p>
+      ) : null}
+
+      {choice.startsWith("transfer:") && item.transfer ? (
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-ink">
+            {formatCents(Math.abs(item.amountCents))} {item.amountCents < 0 ? "left" : "arrived in"}{" "}
+            {item.accountName} on {formatDay(item.postedDate)} and{" "}
+            {item.amountCents < 0 ? "arrived in" : "left"} {item.transfer.accountName}
+            {p.crossBook ? ` (${item.transfer.bookName})` : ""} on{" "}
+            {formatDay(item.transfer.postedDate)}. Matching records both sides at once.
+          </p>
+          {p.crossBook ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-1.5 text-[0.8125rem] font-medium text-ink">
+                In this book, the account for {item.transfer.bookName}
+                <SelectInput
+                  value={draft.counterpart}
+                  onChange={(e) => p.setDraft({ counterpart: e.target.value })}
+                >
+                  <option value="">Choose an account</option>
+                  <AccountSelectOptions
+                    groups={p.groups}
+                    value={draft.counterpart}
+                    exclude={item.accountId}
+                  />
+                </SelectInput>
+                <span className="font-normal text-ink-muted">
+                  For example Investment in {item.transfer.bookName}, or Owner Draws.
+                </span>
+              </label>
+              <label className="flex flex-col gap-1.5 text-[0.8125rem] font-medium text-ink">
+                In {item.transfer.bookName}, the account for this book
+                <SelectInput
+                  value={draft.partnerCounterpart}
+                  onChange={(e) => p.setDraft({ partnerCounterpart: e.target.value })}
+                >
+                  <option value="">Choose an account</option>
+                  {p.partnerGroups ? (
+                    <AccountSelectOptions
+                      groups={p.partnerGroups}
+                      value={draft.partnerCounterpart}
+                    />
+                  ) : null}
+                </SelectInput>
+                <span className="font-normal text-ink-muted">
+                  For example Owner Contributions. Both are remembered for next time.
+                </span>
+              </label>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {choice.startsWith("link:") ? (
+        <p className="text-sm text-ink">
+          An entry already records this amount on {item.accountName}. Matching marks this bank
+          transaction as recorded by it and adds nothing to the books.{" "}
+          <Link
+            href={`/books/${p.bookId}/journal/${choice.slice(5)}`}
+            className="text-signal-ink underline underline-offset-2"
+          >
+            Open the entry
+          </Link>
+        </p>
+      ) : null}
+
+      {!choice.includes(":") ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1.5 text-[0.8125rem] font-medium text-ink">
+            Payee
+            <TextInput
+              value={draft.payee}
+              maxLength={200}
+              onChange={(e) => p.setDraft({ payee: e.target.value })}
+              autoComplete="off"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 text-[0.8125rem] font-medium text-ink">
+            <span>
+              Memo <span className="font-normal text-ink-muted">(optional)</span>
+            </span>
+            <TextInput
+              value={draft.memo}
+              maxLength={500}
+              onChange={(e) => p.setDraft({ memo: e.target.value })}
+              autoComplete="off"
+            />
+          </label>
+        </div>
+      ) : null}
+
+      {p.isSplit ? <SplitEditor {...p} /> : null}
+
+      {plainAccount && p.canEdit ? (
+        <label className="flex items-start gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 accent-[var(--signal)]"
+            checked={draft.saveRule}
+            onChange={(e) => p.setDraft({ saveRule: e.target.checked })}
+          />
+          <span>
+            Always use this category for &ldquo;{item.payee ?? item.description}&rdquo;
+            <span className="block text-[0.8125rem] text-ink-muted">
+              Saves a rule. Rules only suggest; you still approve each one.
+            </span>
+          </span>
+        </label>
+      ) : null}
+
+      <Attachments
+        bookId={p.bookId}
+        target={{ bankTransactionId: item.id }}
+        files={p.files}
+        canEdit={p.canEdit}
+      />
+
+      {p.canEdit ? (
+        <div className="flex flex-wrap gap-2 border-t border-rule pt-3">
+          <Button size="sm" variant="ghost" onClick={p.onExclude} disabled={p.busy}>
+            <X size={14} aria-hidden />
+            Exclude
+          </Button>
+          <span className="self-center text-[0.8125rem] text-ink-muted">
+            Excluded transactions never reach the books. You can restore them later.
+          </span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function SplitEditor(p: RowData) {
+  const { item, draft } = p;
+  const total = Math.abs(item.amountCents);
+  let assigned = 0;
+  let unreadable = false;
+  for (const s of draft.splits) {
+    if (!s.amount.trim()) continue;
+    try {
+      assigned += parseCents(s.amount);
+    } catch {
+      unreadable = true;
+    }
+  }
+  const left = total - assigned;
+  const update = (key: number, patch: Partial<Split>) =>
+    p.setDraft({ splits: draft.splits.map((s) => (s.key === key ? { ...s, ...patch } : s)) });
+
+  return (
+    <fieldset className="flex min-w-0 flex-col gap-2">
+      <legend className="mb-1 text-[0.8125rem] font-medium text-ink">Split</legend>
+      <ol className="flex flex-col gap-2">
+        {draft.splits.map((s, i) => (
+          <li
+            key={s.key}
+            className="grid grid-cols-[minmax(0,1fr)_7.5rem_2rem] gap-2 sm:grid-cols-[minmax(0,1.4fr)_7.5rem_minmax(0,1fr)_2rem]"
+          >
+            <SelectInput
+              aria-label={`Split line ${i + 1} account`}
+              value={s.accountId}
+              onChange={(e) => update(s.key, { accountId: e.target.value })}
+            >
+              <option value="">Choose an account</option>
+              <AccountSelectOptions
+                groups={p.groups}
+                value={s.accountId}
+                exclude={item.accountId}
+              />
+            </SelectInput>
+            <TextInput
+              aria-label={`Split line ${i + 1} amount`}
+              inputMode="decimal"
+              value={s.amount}
+              onChange={(e) => update(s.key, { amount: e.target.value })}
+              onFocus={() => {
+                if (!s.amount && left > 0) update(s.key, { amount: plainAmount(left) });
+              }}
+              className="tabular text-right"
+              autoComplete="off"
+            />
+            <TextInput
+              aria-label={`Split line ${i + 1} memo`}
+              value={s.memo}
+              placeholder="Memo"
+              onChange={(e) => update(s.key, { memo: e.target.value })}
+              className="col-span-2 row-start-2 sm:col-span-1 sm:row-start-auto"
+              autoComplete="off"
+            />
+            <button
+              type="button"
+              aria-label={`Remove split line ${i + 1}`}
+              onClick={() =>
+                p.setDraft({
+                  splits:
+                    draft.splits.length > 2
+                      ? draft.splits.filter((x) => x.key !== s.key)
+                      : draft.splits,
+                })
+              }
+              className="col-start-3 row-start-1 grid size-10 place-items-center rounded-lg text-ink-muted hover:bg-sunken hover:text-ink sm:col-start-auto"
+            >
+              <X size={15} aria-hidden />
+            </button>
+          </li>
+        ))}
+      </ol>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => p.setDraft({ splits: [...draft.splits, newSplit()] })}
+          >
+            <Plus size={14} aria-hidden />
+            Add line
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => p.setDraft({ choice: draft.splits[0]?.accountId ?? "", splits: [] })}
+          >
+            Don&apos;t split
+          </Button>
+        </div>
+        <p className="tabular text-sm" aria-live="polite">
+          {unreadable ? (
+            <span className="text-negative">An amount can&apos;t be read.</span>
+          ) : left === 0 ? (
+            <span className="text-positive">Adds up to {formatCents(total)}.</span>
+          ) : (
+            <span className="text-negative">
+              {left > 0 ? `${formatCents(left)} left to assign` : `${formatCents(-left)} too much`}
+            </span>
+          )}
+        </p>
+      </div>
+    </fieldset>
+  );
+}

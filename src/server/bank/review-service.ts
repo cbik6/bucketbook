@@ -252,19 +252,53 @@ async function saveRuleForPayee(
  * Approves every listed transaction that has a suggested category, each in
  * its own transaction so one problem doesn't block the rest.
  */
-export async function bulkApprove(db: Database, actor: Actor, bookId: string, itemIds: string[]) {
-  const ids = [...new Set(itemIds)].slice(0, 500);
+export type Decision =
+  | { id: string; kind: "account"; accountId?: string }
+  | { id: string; kind: "transfer"; partnerId: string }
+  | { id: string; kind: "link"; entryId: string };
+
+/**
+ * Approves several transactions, each in its own database transaction so one
+ * problem doesn't block the rest. A transfer pair counts once even when both
+ * sides are selected.
+ */
+export async function applyDecisions(
+  db: Database,
+  actor: Actor,
+  bookId: string,
+  decisions: Decision[],
+) {
   const results = { approved: 0, skipped: [] as Array<{ id: string; reason: string }> };
-  for (const id of ids) {
+  const done = new Set<string>();
+  for (const d of decisions.slice(0, 500)) {
+    if (done.has(d.id)) continue;
     try {
-      await approveItem(db, actor, bookId, id, {});
+      if (d.kind === "transfer") {
+        await approveTransfer(db, actor, bookId, d.id, { partnerId: d.partnerId });
+        done.add(d.partnerId);
+      } else if (d.kind === "link") {
+        await linkToEntry(db, actor, bookId, d.id, d.entryId);
+      } else {
+        await approveItem(db, actor, bookId, d.id, { accountId: d.accountId });
+      }
+      done.add(d.id);
       results.approved += 1;
     } catch (err) {
-      if (err instanceof UserFacingError) results.skipped.push({ id, reason: err.message });
+      if (err instanceof UserFacingError) results.skipped.push({ id: d.id, reason: err.message });
       else throw err;
     }
   }
   return results;
+}
+
+/** Approves each listed transaction with its suggested category. */
+export async function bulkApprove(db: Database, actor: Actor, bookId: string, itemIds: string[]) {
+  return applyDecisions(
+    db,
+    actor,
+    bookId,
+    [...new Set(itemIds)].map((id) => ({ id, kind: "account" as const })),
+  );
 }
 
 const transferSchema = z.object({

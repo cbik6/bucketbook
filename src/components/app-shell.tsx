@@ -1,4 +1,4 @@
-import { LogOut } from "lucide-react";
+import { Link2, LogOut } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { signOutAction } from "@/app/(auth)/login/actions";
@@ -42,11 +42,14 @@ export function AppShell({
   user,
   books,
   currentBookId,
+  reviewCount,
   children,
 }: {
   user: CurrentUser;
   books: BookWithRole[];
   currentBookId?: string;
+  /** Transactions waiting in the current book's review queue. */
+  reviewCount?: number;
   children: ReactNode;
 }) {
   const switcherBooks = toSwitcher(books);
@@ -65,8 +68,17 @@ export function AppShell({
           <Wordmark />
         </Link>
         <BookSwitcher books={switcherBooks} currentId={currentBookId} />
-        {currentBookId ? <NavLinks bookId={currentBookId} layout="rail" /> : null}
+        {currentBookId ? (
+          <NavLinks bookId={currentBookId} layout="rail" reviewCount={reviewCount} />
+        ) : null}
         <div className="mt-auto flex flex-col gap-3 border-t border-rail-rule px-1 pt-4">
+          <Link
+            href="/connections"
+            className="flex h-9 items-center gap-2.5 rounded-lg px-2 text-sm text-rail-muted transition-colors duration-150 hover:bg-rail-raised hover:text-rail-ink"
+          >
+            <Link2 size={16} strokeWidth={1.75} aria-hidden />
+            Bank connections
+          </Link>
           <div className="min-w-0 px-1">
             <div className="truncate text-sm font-medium">{user.name}</div>
             <div className="truncate text-xs text-rail-muted">{user.email}</div>
@@ -94,7 +106,18 @@ export function AppShell({
         </div>
         <div className="flex flex-col gap-2 px-4 pb-3">
           <BookSwitcher books={switcherBooks} currentId={currentBookId} />
-          {currentBookId ? <NavLinks bookId={currentBookId} layout="bar" /> : null}
+          {currentBookId ? (
+            <NavLinks bookId={currentBookId} layout="bar" reviewCount={reviewCount} />
+          ) : (
+            <nav aria-label="App" className="flex gap-1">
+              <Link
+                href="/connections"
+                className="shrink-0 rounded-md px-3 py-1.5 text-sm text-rail-muted hover:text-rail-ink"
+              >
+                Bank connections
+              </Link>
+            </nav>
+          )}
         </div>
       </header>
 

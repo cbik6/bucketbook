@@ -20,6 +20,12 @@ const nextConfig: NextConfig = {
   },
   allowedDevOrigins: devOrigins,
   poweredByHeader: false,
+  experimental: {
+    serverActions: {
+      // Receipts can be up to 10 MB each (see attachments-service.ts), plus form overhead.
+      bodySizeLimit: "11mb",
+    },
+  },
   devIndicators: { position: "bottom-right" },
   turbopack: {
     rules: {
