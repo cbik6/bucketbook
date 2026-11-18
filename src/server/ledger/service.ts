@@ -757,10 +757,20 @@ export type EntryListItem = {
 export async function listEntries(
   db: DbOrTx,
   bookId: string,
-  options: { limit?: number; offset?: number } = {},
+  options: { limit?: number; offset?: number; all?: boolean } = {},
 ): Promise<{ items: EntryListItem[]; total: number }> {
   const limit = Math.min(options.limit ?? 50, 200);
   const offset = Math.max(options.offset ?? 0, 0);
+  // By default the journal shows the entries you write yourself, like QuickBooks:
+  // manual entries, opening balances, and reversals of those. Entries made from
+  // bank transactions, transfers, bucket moves and investment values live in the
+  // registers, the general ledger and For review's Posted tab.
+  const own = options.all
+    ? sql`true`
+    : sql`(e.kind in ('manual', 'opening_balance')
+           or (e.kind = 'reversal' and exists (
+             select 1 from journal_entries o
+             where o.id = e.reverses_entry_id and o.kind in ('manual', 'opening_balance'))))`;
   const result = await db.execute<{
     id: string;
     entry_number: number;
@@ -782,13 +792,13 @@ export async function listEntries(
     from journal_entries e
     left join journal_lines l on l.entry_id = e.id and l.version = e.current_version and l.is_current
     left join accounts a on a.id = l.account_id
-    where e.book_id = ${bookId}
+    where e.book_id = ${bookId} and ${own}
     group by e.id
     order by e.entry_date desc, e.entry_number desc
     limit ${limit} offset ${offset}
   `);
   const count = await db.execute<{ n: number }>(
-    sql`select count(*)::int as n from journal_entries where book_id = ${bookId}`,
+    sql`select count(*)::int as n from journal_entries e where e.book_id = ${bookId} and ${own}`,
   );
   return {
     total: Number(count.rows[0]?.n ?? 0),

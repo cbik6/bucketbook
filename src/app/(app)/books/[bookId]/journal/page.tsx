@@ -24,10 +24,14 @@ async function JournalContent({ params, searchParams }: PageProps<"/books/[bookI
   const sp = await searchParams;
   const { book } = await loadBookForPage(bookId);
   const page = Math.max(1, Number(typeof sp.page === "string" ? sp.page : 1) || 1);
+  const all = sp.all === "1";
   const { items, total } = await listEntries(getDb(), book.id, {
     limit: PAGE_SIZE,
     offset: (page - 1) * PAGE_SIZE,
+    all,
   });
+  const q = (n: number) =>
+    `${base}?${new URLSearchParams({ page: String(n), ...(all ? { all: "1" } : {}) })}`;
   const canEdit = book.role !== "viewer";
   const base = `/books/${book.id}/journal`;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -39,7 +43,18 @@ async function JournalContent({ params, searchParams }: PageProps<"/books/[bookI
         title="Journal entries"
         maxWidthClass="max-w-[60rem]"
         description={
-          <span className="tabular">{total === 1 ? "1 entry" : `${total} entries`}</span>
+          <>
+            <span className="tabular">{total === 1 ? "1 entry" : `${total} entries`}</span>
+            {all
+              ? ", including those made from bank transactions. "
+              : ". Entries made from bank transactions are in each account's register. "}
+            <Link
+              href={all ? base : `${base}?all=1`}
+              className="text-signal-ink underline underline-offset-2"
+            >
+              {all ? "Show only entries you wrote" : "Show all entries"}
+            </Link>
+          </>
         }
         actions={
           canEdit ? (
@@ -59,8 +74,8 @@ async function JournalContent({ params, searchParams }: PageProps<"/books/[bookI
             <h2 className="text-lg font-semibold">No entries yet</h2>
             <p className="text-ink-muted">
               A journal entry records money moving between accounts, with debits equal to credits.
-              Bank transactions will create entries for you once bank sync arrives; for now you can
-              post them by hand, or start with your opening balances.
+              Approved bank transactions don&apos;t appear here; they are in each account&apos;s
+              register. Post an entry by hand, or start with your opening balances.
             </p>
             <div className="flex flex-wrap gap-2">
               {canEdit ? (
@@ -129,7 +144,7 @@ async function JournalContent({ params, searchParams }: PageProps<"/books/[bookI
         {pages > 1 ? (
           <nav aria-label="Pages" className="mt-6 flex items-center gap-3 text-sm">
             {page > 1 ? (
-              <Link href={`${base}?page=${page - 1}`} className={buttonClass("secondary", "sm")}>
+              <Link href={q(page - 1)} className={buttonClass("secondary", "sm")}>
                 Newer
               </Link>
             ) : null}
@@ -137,7 +152,7 @@ async function JournalContent({ params, searchParams }: PageProps<"/books/[bookI
               Page {page} of {pages}
             </span>
             {page < pages ? (
-              <Link href={`${base}?page=${page + 1}`} className={buttonClass("secondary", "sm")}>
+              <Link href={q(page + 1)} className={buttonClass("secondary", "sm")}>
                 Older
               </Link>
             ) : null}

@@ -14,6 +14,10 @@ All notable changes to this project are listed here. The format follows
   from the book's start date, so they don't duplicate opening balances. Accounts already
   connected start from the day of this update. The Bank connections page shows each
   account's start day.
+- Journal entries lists the entries you write yourself (and opening balances). Entries
+  made from bank transactions, transfers, bucket moves and investment values are in the
+  registers, the general ledger and For review's Posted tab; "Show all entries" lists
+  everything.
 
 ## [1.3.0] - 2026-11-18
 

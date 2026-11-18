@@ -505,6 +505,12 @@ describe("review queue", () => {
     });
     expect(entry.kind).toBe("bank");
     expect(entry.payee).toBe("Local Grocer");
+    // Bank entries stay out of the journal list unless you ask for everything.
+    const { listEntries } = await import("@/server/ledger/service");
+    expect((await listEntries(getDb(), ctx.bookId)).items.map((e) => e.id)).not.toContain(entry.id);
+    expect(
+      (await listEntries(getDb(), ctx.bookId, { all: true })).items.map((e) => e.id),
+    ).toContain(entry.id);
     expect(await accountNetCents(getDb(), ctx.id("Checking"))).toBe(-4210);
     expect(await accountNetCents(getDb(), ctx.id("Groceries"))).toBe(4210);
     await expect(
