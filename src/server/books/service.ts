@@ -10,7 +10,7 @@ import type { Database, DbOrTx } from "../db/client";
 import {
   accounts,
   attachments,
-  bankFeeds,
+  simplefinConnections,
   bankRules,
   bankTransactions,
   bookCounterparts,
@@ -209,16 +209,8 @@ export async function deleteBook(
     await tx.execute(sql`select id from ${books} where ${books.id} = ${bookId} for update`);
     await tx.execute(sql`select set_config('bucketbook.deleting_book', ${bookId}, true)`);
 
-    await tx
-      .update(bankFeeds)
-      .set({
-        bookId: null,
-        accountId: null,
-        importFrom: null,
-        syncedFrom: null,
-        syncedThrough: null,
-      })
-      .where(eq(bankFeeds.bookId, bookId));
+    // The book's bank connections (and their accounts) go with it.
+    await tx.delete(simplefinConnections).where(eq(simplefinConnections.bookId, bookId));
     await tx.delete(attachments).where(eq(attachments.bookId, bookId));
     await tx.delete(bankTransactions).where(eq(bankTransactions.bookId, bookId));
     const recs = tx

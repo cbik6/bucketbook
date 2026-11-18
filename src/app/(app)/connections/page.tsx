@@ -1,92 +1,23 @@
-import type { Metadata } from "next";
 import { connection } from "next/server";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { AppShell, AppShellFallback, PageHeader } from "@/components/app-shell";
-import { accountPath } from "@/lib/account-tree";
-import { listAccounts } from "@/server/accounts/service";
 import { requireUser } from "@/server/auth/session";
-import { queueCounts } from "@/server/bank/review-service";
 import { listBooksForUser } from "@/server/books/service";
 import { getDb } from "@/server/db/client";
-import { editableBooks, listConnections } from "@/server/simplefin/service";
-import { ConnectForm, ConnectionCard, type MappingTarget } from "./connection-ui";
 
-export const metadata: Metadata = { title: "Bank connections" };
-
-async function ConnectionsContent({ searchParams }: PageProps<"/connections">) {
+/** Bank connections moved into each book; old links go to the first book you can edit. */
+async function Redirect(): Promise<null> {
   await connection();
   const user = await requireUser();
-  if (!user.isAdmin) notFound();
-  const sp = await searchParams;
-  const db = getDb();
-  const [books, connections, editable] = await Promise.all([
-    listBooksForUser(db, user.id),
-    listConnections(db, user.id),
-    editableBooks(db, user.id),
-  ]);
-  // Which ledger accounts already take a bank feed, so the picker can say so.
-  const fedBy = new Map<string, string>();
-  for (const c of connections)
-    for (const f of c.feeds) if (f.accountId) fedBy.set(f.accountId, f.name);
-  const targets: MappingTarget[] = [];
-  for (const b of editable) {
-    const rows = await listAccounts(db, b.id);
-    targets.push({
-      id: b.id,
-      name: b.name,
-      accounts: rows
-        .filter(
-          (a) =>
-            (a.type === "asset" || a.type === "liability") &&
-            (a.allowsPosting || a.bucketsEnabled) &&
-            !a.isBucket &&
-            !a.systemRole &&
-            !a.archivedAt,
-        )
-        .map((a) => ({
-          id: a.id,
-          label: accountPath(rows, a.id).join(": "),
-          type: a.type,
-          fedBy: fedBy.get(a.id) ?? null,
-        })),
-    });
-  }
-  const timeZone = process.env.TZ || "UTC";
-  // Opened from a book: keep that book's navigation so the way back is one tap.
-  const fromBook =
-    typeof sp.book === "string"
-      ? books.find((b) => b.id === sp.book && b.role !== "viewer")
-      : undefined;
-  const reviewCount = fromBook ? (await queueCounts(db, fromBook.id)).review : undefined;
-
-  return (
-    <AppShell user={user} books={books} currentBookId={fromBook?.id} reviewCount={reviewCount}>
-      <PageHeader
-        title="Bank connections"
-        maxWidthClass="max-w-[60rem]"
-        description="SimpleFIN brings in transactions from your banks. They wait in For review until you approve them."
-      />
-      <div className="box-content flex max-w-[60rem] flex-col gap-10 px-5 pb-16 pt-6 lg:px-10">
-        {connections.map((c) => (
-          <ConnectionCard
-            key={c.id}
-            connection={c}
-            targets={targets}
-            timeZone={timeZone}
-            autoSetup={sp.setup === c.id}
-          />
-        ))}
-        <ConnectForm first={connections.length === 0} />
-      </div>
-    </AppShell>
-  );
+  const books = await listBooksForUser(getDb(), user.id);
+  const book = books.find((b) => b.role !== "viewer");
+  redirect(book ? `/books/${book.id}/connections` : "/books");
 }
 
-export default function ConnectionsPage(props: PageProps<"/connections">) {
+export default function OldConnectionsPage() {
   return (
-    <Suspense fallback={<AppShellFallback />}>
-      <ConnectionsContent {...props} />
+    <Suspense>
+      <Redirect />
     </Suspense>
   );
 }

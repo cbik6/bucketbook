@@ -118,9 +118,13 @@ test("review: CSV import, transfer match, approve, save a rule, rule suggests", 
   await page.getByRole("link", { name: "Posted" }).click();
   await expect(page.getByRole("cell", { name: "PAYMENT TO CARD" })).toBeVisible();
 
-  // Rules page lists the saved rule; bank connections offers SimpleFIN.
+  // Rules page lists the saved rule; the book's bank connections offer SimpleFIN.
   await nav.getByRole("link", { name: "Rules" }).click();
   await expect(page.getByText("LOCAL GROCER #12").first()).toBeVisible();
+  await nav.getByRole("link", { name: "Bank connections" }).click();
+  await expect(page.getByRole("heading", { name: "Connect SimpleFIN" })).toBeVisible();
+  // The old address still leads there.
   await page.goto("/connections");
+  await expect(page).toHaveURL(/\/books\/[^/]+\/connections$/);
   await expect(page.getByRole("heading", { name: "Connect SimpleFIN" })).toBeVisible();
 });

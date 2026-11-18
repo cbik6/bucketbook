@@ -97,9 +97,9 @@ describe("people and invitations", () => {
     });
     expect(await findInvite(getDb(), token)).toBeNull();
 
-    // A viewer can't change the book; non-admins see no bank connections.
+    // A viewer can't change the book or see its bank connections.
     await expect(renameBook(getDb(), { userId: sam.id }, family.id, "Mine")).rejects.toThrow();
-    expect(await listConnections(getDb(), sam.id)).toEqual([]);
+    expect(await listConnections(getDb(), sam.id, family.id)).toEqual([]);
     await expect(listPeople(getDb(), { userId: sam.id })).rejects.toThrow(/admin/);
   });
 

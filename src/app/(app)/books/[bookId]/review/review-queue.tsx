@@ -333,7 +333,10 @@ export function ReviewQueue({
         <p className="text-[0.9375rem] font-semibold text-ink">All caught up.</p>
         <p className="text-sm text-ink-muted">
           New transactions arrive with each sync from your{" "}
-          <Link href="/connections" className="text-signal-ink underline underline-offset-2">
+          <Link
+            href={`/books/${bookId}/connections`}
+            className="text-signal-ink underline underline-offset-2"
+          >
             bank connections
           </Link>
           , or{" "}

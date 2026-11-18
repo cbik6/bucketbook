@@ -23,10 +23,17 @@ import {
 import { createRule, listRules } from "@/server/bank/rules-service";
 import { createBook } from "@/server/books/service";
 import { getDb } from "@/server/db/client";
-import { bankFeeds, bankTransactions, simplefinConnections } from "@/server/db/schema";
+import { bankFeeds, bankTransactions, bookMembers, simplefinConnections } from "@/server/db/schema";
 import { accountNetCents } from "@/server/ledger/queries";
 import { editEntry, getEntryDetail, postEntry, reverseEntry } from "@/server/ledger/service";
-import { connectSimplefin, listConnections, mapFeed, runSync } from "@/server/simplefin/service";
+import {
+  connectSimplefin,
+  disconnectSimplefin,
+  listConnections,
+  mapFeed,
+  runSync,
+  setSyncTime,
+} from "@/server/simplefin/service";
 import { addMoneyAccounts, makeUser, setupCleanDatabase } from "./helpers";
 
 setupCleanDatabase();
@@ -120,7 +127,13 @@ async function connectAndMap(
   ctx: Awaited<ReturnType<typeof setupBook>>,
   mapping: Record<string, string>,
 ) {
-  const { connection } = await connectSimplefin(getDb(), ctx.actor, ACCESS_URL, bridge.impl);
+  const { connection } = await connectSimplefin(
+    getDb(),
+    ctx.actor,
+    ctx.bookId,
+    ACCESS_URL,
+    bridge.impl,
+  );
   const feeds = await getDb()
     .select()
     .from(bankFeeds)
@@ -129,7 +142,6 @@ async function connectAndMap(
     const feed = feeds.find((f) => f.externalId === external)!;
     await mapFeed(getDb(), ctx.actor, feed.id, {
       mode: "map",
-      bookId: ctx.bookId,
       accountId: ctx.id(accountName),
       // These tests exercise history, so import from the book's start.
       importFrom: "2000-01-01",
@@ -156,6 +168,7 @@ describe("SimpleFIN connection and sync", () => {
     const { connection, accountCount } = await connectSimplefin(
       getDb(),
       ctx.actor,
+      ctx.bookId,
       ACCESS_URL,
       bridge.impl,
     );
@@ -280,7 +293,7 @@ describe("SimpleFIN connection and sync", () => {
     });
     const conn = await connectAndMap(bridge, ctx, { CHK: "Checking" });
     await sync(conn.id, bridge);
-    let [view] = await listConnections(getDb(), ctx.user.id);
+    let [view] = await listConnections(getDb(), ctx.user.id, ctx.bookId);
     expect(view!.feeds[0]).toMatchObject({
       balanceCents: 6000,
       ledgerCents: 0,
@@ -291,7 +304,7 @@ describe("SimpleFIN connection and sync", () => {
     await approveItem(getDb(), ctx.actor, ctx.bookId, item!.id, {
       accountId: ctx.id("Other Income"),
     });
-    [view] = await listConnections(getDb(), ctx.user.id);
+    [view] = await listConnections(getDb(), ctx.user.id, ctx.bookId);
     expect(view!.feeds[0]).toMatchObject({
       ledgerCents: 6000,
       reviewCents: 0,
@@ -328,6 +341,118 @@ async function csvItems(
   );
 }
 
+describe("connections belong to one book", () => {
+  const deposit = () =>
+    fakeBridge({
+      CHK: {
+        balance: "60.00",
+        transactions: [{ id: "d", day: "2026-03-02", amount: "60.00", description: "Deposit" }],
+      },
+    });
+
+  it("lets two books connect the same bank and keep their own transactions", async () => {
+    const home = await setupBook("household");
+    const llc = await setupBook("small_business", "2026-01-01", home.user);
+    const bridge = deposit();
+    const a = await connectAndMap(bridge, home, { CHK: "Checking" });
+    const b = await connectAndMap(bridge, llc, { CHK: "Business Checking" });
+    await sync(a.id, bridge);
+    await sync(b.id, bridge);
+    const [h] = await items(home.bookId);
+    const [l] = await items(llc.bookId);
+    expect(h).toMatchObject({ accountId: home.id("Checking"), amountCents: 6000 });
+    expect(l).toMatchObject({ accountId: llc.id("Business Checking"), amountCents: 6000 });
+    // Each book lists only its own connection.
+    const ids = async (bookId: string) =>
+      (await listConnections(getDb(), home.user.id, bookId)).map((c) => c.id);
+    expect(await ids(home.bookId)).toEqual([a.id]);
+    expect(await ids(llc.bookId)).toEqual([b.id]);
+  });
+
+  it("maps bank accounts only into the connection's own book", async () => {
+    const home = await setupBook("household");
+    const llc = await setupBook("small_business", "2026-01-01", home.user);
+    const conn = await connectAndMap(deposit(), home, {});
+    const [feed] = await getDb()
+      .select()
+      .from(bankFeeds)
+      .where(eq(bankFeeds.connectionId, conn.id));
+    await expect(
+      mapFeed(getDb(), home.actor, feed!.id, {
+        mode: "map",
+        bookId: llc.bookId,
+        accountId: llc.id("Business Checking"),
+      }),
+    ).rejects.toThrow();
+    // Naming another book is ignored: the account is made in the connection's book.
+    const mapped = await mapFeed(getDb(), home.actor, feed!.id, {
+      mode: "create",
+      bookId: llc.bookId,
+      kind: "checking",
+      name: "Joint Checking",
+    });
+    expect(mapped.bookId).toBe(home.bookId);
+    // And the database refuses a feed pointed at another book.
+    await expect(
+      getDb()
+        .update(bankFeeds)
+        .set({ bookId: llc.bookId, accountId: llc.id("Business Checking") })
+        .where(eq(bankFeeds.id, feed!.id)),
+    ).rejects.toThrow();
+  });
+
+  it("lets editors set up and sync; only owners connect, disconnect or move the sync time", async () => {
+    const home = await setupBook();
+    const editor = await makeUser("Editor", false);
+    const viewer = await makeUser("Viewer", false);
+    const stranger = await makeUser("Stranger", false);
+    await getDb()
+      .insert(bookMembers)
+      .values([
+        { bookId: home.bookId, userId: editor.id, role: "editor" },
+        { bookId: home.bookId, userId: viewer.id, role: "viewer" },
+      ]);
+    const bridge = deposit();
+    await expect(
+      connectSimplefin(getDb(), { userId: editor.id }, home.bookId, ACCESS_URL, bridge.impl),
+    ).rejects.toThrow(/owner/);
+    const conn = await connectAndMap(bridge, home, {});
+    const [feed] = await getDb()
+      .select()
+      .from(bankFeeds)
+      .where(eq(bankFeeds.connectionId, conn.id));
+
+    // Editor: map and sync.
+    await mapFeed(getDb(), { userId: editor.id }, feed!.id, {
+      mode: "map",
+      accountId: home.id("Checking"),
+      importFrom: "2000-01-01",
+    });
+    const result = await runSync(getDb(), conn.id, {
+      trigger: "manual",
+      userId: editor.id,
+      fetchImpl: bridge.impl,
+      now: NOW,
+    });
+    expect(result.newCount).toBe(1);
+    await expect(setSyncTime(getDb(), { userId: editor.id }, conn.id, 9)).rejects.toThrow();
+    await expect(disconnectSimplefin(getDb(), { userId: editor.id }, conn.id)).rejects.toThrow();
+
+    // Viewer and outsider: nothing.
+    expect(await listConnections(getDb(), viewer.id, home.bookId)).toEqual([]);
+    await expect(
+      mapFeed(getDb(), { userId: viewer.id }, feed!.id, { mode: "ignore" }),
+    ).rejects.toThrow();
+    await expect(
+      runSync(getDb(), conn.id, { trigger: "manual", userId: stranger.id }),
+    ).rejects.toThrow(/not found|connection|book/i);
+
+    await setSyncTime(getDb(), home.actor, conn.id, 9);
+    await disconnectSimplefin(getDb(), home.actor, conn.id);
+    expect(await listConnections(getDb(), home.user.id, home.bookId)).toEqual([]);
+  });
+});
+
 describe("import start", () => {
   it("brings in only transactions from the day an account is connected", async () => {
     const ctx = await setupBook();
@@ -340,34 +465,44 @@ describe("import start", () => {
         ],
       },
     });
-    const { connection } = await connectSimplefin(getDb(), ctx.actor, ACCESS_URL, bridge.impl);
+    const { connection } = await connectSimplefin(
+      getDb(),
+      ctx.actor,
+      ctx.bookId,
+      ACCESS_URL,
+      bridge.impl,
+    );
     const [feed] = await getDb()
       .select()
       .from(bankFeeds)
       .where(eq(bankFeeds.connectionId, connection.id));
     await mapFeed(getDb(), ctx.actor, feed!.id, {
       mode: "map",
-      bookId: ctx.bookId,
       accountId: ctx.id("Checking"),
       importFrom: "2026-03-15",
     });
     await sync(connection.id, bridge);
     expect((await items(ctx.bookId)).map((r) => r.externalId)).toEqual(["new"]);
-    const [view] = await listConnections(getDb(), ctx.user.id);
+    const [view] = await listConnections(getDb(), ctx.user.id, ctx.bookId);
     expect(view!.feeds[0]!.importFrom).toBe("2026-03-15");
   });
 
   it("defaults the import start to today when connecting", async () => {
     const ctx = await setupBook();
     const bridge = fakeBridge({ CHK: { balance: "0", transactions: [] } });
-    const { connection } = await connectSimplefin(getDb(), ctx.actor, ACCESS_URL, bridge.impl);
+    const { connection } = await connectSimplefin(
+      getDb(),
+      ctx.actor,
+      ctx.bookId,
+      ACCESS_URL,
+      bridge.impl,
+    );
     const [feed] = await getDb()
       .select()
       .from(bankFeeds)
       .where(eq(bankFeeds.connectionId, connection.id));
     const mapped = await mapFeed(getDb(), ctx.actor, feed!.id, {
       mode: "map",
-      bookId: ctx.bookId,
       accountId: ctx.id("Checking"),
     });
     const { todayIso } = await import("@/lib/dates");
@@ -384,7 +519,13 @@ describe("guided setup", () => {
       "Brokerage (1111)": { balance: "25618.90", transactions: [] },
       "Old Card (0000)": { balance: "0", transactions: [] },
     });
-    const { connection } = await connectSimplefin(getDb(), ctx.actor, ACCESS_URL, bridge.impl);
+    const { connection } = await connectSimplefin(
+      getDb(),
+      ctx.actor,
+      ctx.bookId,
+      ACCESS_URL,
+      bridge.impl,
+    );
     const feeds = await getDb()
       .select()
       .from(bankFeeds)
@@ -392,25 +533,21 @@ describe("guided setup", () => {
     const feed = (prefix: string) => feeds.find((f) => f.name.startsWith(prefix))!.id;
     const { guidedConnect } = await import("@/server/simplefin/service");
     const card = await guidedConnect(getDb(), ctx.actor, feed("Costco"), {
-      bookId: ctx.bookId,
       choice: "new",
       kind: "credit_card",
       name: "Costco Visa",
     });
     const baby = await guidedConnect(getDb(), ctx.actor, feed("Baby"), {
-      bookId: ctx.bookId,
       choice: "new",
       kind: "savings",
       name: "Baby Fund",
     });
     const broker = await guidedConnect(getDb(), ctx.actor, feed("Brokerage"), {
-      bookId: ctx.bookId,
       choice: "new",
       kind: "investment",
       name: "Brokerage",
     });
     const skipped = await guidedConnect(getDb(), ctx.actor, feed("Old"), {
-      bookId: ctx.bookId,
       choice: "ignore",
     });
     // Each new account opens at the bank's balance, and earlier ones are kept.
@@ -431,14 +568,19 @@ describe("accounts the bank reports backwards", () => {
     const bridge = fakeBridge({
       "Student Loan Payoff (5133)": { balance: "-2136.33", transactions: [] },
     });
-    const { connection } = await connectSimplefin(getDb(), ctx.actor, ACCESS_URL, bridge.impl);
+    const { connection } = await connectSimplefin(
+      getDb(),
+      ctx.actor,
+      ctx.bookId,
+      ACCESS_URL,
+      bridge.impl,
+    );
     const [feed] = await getDb()
       .select()
       .from(bankFeeds)
       .where(eq(bankFeeds.connectionId, connection.id));
     const { guidedConnect } = await import("@/server/simplefin/service");
     const mapped = await guidedConnect(getDb(), ctx.actor, feed!.id, {
-      bookId: ctx.bookId,
       choice: "new",
       kind: "savings",
       name: "Student Loan Payoff",
@@ -488,7 +630,13 @@ describe("several cards and investments", () => {
       "Costco Visa® Card (8837)": { balance: "-120.00", transactions: [] },
       "Freedom Card (1111)": { balance: "-40.00", transactions: [] },
     });
-    const { connection } = await connectSimplefin(getDb(), ctx.actor, ACCESS_URL, bridge.impl);
+    const { connection } = await connectSimplefin(
+      getDb(),
+      ctx.actor,
+      ctx.bookId,
+      ACCESS_URL,
+      bridge.impl,
+    );
     const feeds = await getDb()
       .select()
       .from(bankFeeds)
@@ -499,19 +647,16 @@ describe("several cards and investments", () => {
     ];
     await mapFeed(getDb(), ctx.actor, costco.id, {
       mode: "map",
-      bookId: ctx.bookId,
       accountId: ctx.id("Credit Card"),
     });
     await expect(
       mapFeed(getDb(), ctx.actor, freedom.id, {
         mode: "map",
-        bookId: ctx.bookId,
         accountId: ctx.id("Credit Card"),
       }),
     ).rejects.toThrow(/New account/);
     const mapped = await mapFeed(getDb(), ctx.actor, freedom.id, {
       mode: "create",
-      bookId: ctx.bookId,
       kind: "credit_card",
       name: "Chase Freedom",
     });
@@ -527,14 +672,19 @@ describe("several cards and investments", () => {
   it("creates connected accounts at the top level; nesting happens in the chart of accounts", async () => {
     const ctx = await setupBook();
     const bridge = fakeBridge({ "Baby Fund (9454)": { balance: "225.47", transactions: [] } });
-    const { connection } = await connectSimplefin(getDb(), ctx.actor, ACCESS_URL, bridge.impl);
+    const { connection } = await connectSimplefin(
+      getDb(),
+      ctx.actor,
+      ctx.bookId,
+      ACCESS_URL,
+      bridge.impl,
+    );
     const [feed] = await getDb()
       .select()
       .from(bankFeeds)
       .where(eq(bankFeeds.connectionId, connection.id));
     const mapped = await mapFeed(getDb(), ctx.actor, feed!.id, {
       mode: "create",
-      bookId: ctx.bookId,
       kind: "savings",
       name: "Baby Fund",
     });
@@ -570,14 +720,19 @@ describe("several cards and investments", () => {
       },
     };
     const bridge = fakeBridge(data);
-    const { connection } = await connectSimplefin(getDb(), ctx.actor, ACCESS_URL, bridge.impl);
+    const { connection } = await connectSimplefin(
+      getDb(),
+      ctx.actor,
+      ctx.bookId,
+      ACCESS_URL,
+      bridge.impl,
+    );
     const [feed] = await getDb()
       .select()
       .from(bankFeeds)
       .where(eq(bankFeeds.connectionId, connection.id));
     const mapped = await mapFeed(getDb(), ctx.actor, feed!.id, {
       mode: "create",
-      bookId: ctx.bookId,
       kind: "investment",
       name: "Brokerage",
     });

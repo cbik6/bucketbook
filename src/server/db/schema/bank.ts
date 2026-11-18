@@ -24,14 +24,18 @@ import { journalEntries } from "./ledger";
 import { inList } from "./sql-helpers";
 
 /**
- * One SimpleFIN login (one Access URL). It can reach many bank accounts, and
- * each of those can be mapped to a different book. The Access URL holds
- * credentials, so only its encrypted form is stored.
+ * One SimpleFIN login (one Access URL), owned by one book. Its bank accounts
+ * feed only that book, so two books can connect the same bank separately and
+ * keep their own transactions. The Access URL holds credentials, so only its
+ * encrypted form is stored.
  */
 export const simplefinConnections = pgTable(
   "simplefin_connections",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    bookId: uuid("book_id")
+      .notNull()
+      .references(() => books.id, { onDelete: "cascade" }),
     label: text("label").notNull(),
     accessUrlCiphertext: text("access_url_ciphertext").notNull(),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
@@ -51,6 +55,8 @@ export const simplefinConnections = pgTable(
       .$onUpdate(() => new Date()),
   },
   (t) => [
+    unique("simplefin_connections_book_id_id_key").on(t.bookId, t.id),
+    index("simplefin_connections_book_idx").on(t.bookId),
     check("simplefin_connections_sync_hour", sql`${t.syncHour} between 0 and 23`),
     check("simplefin_connections_sync_minute", sql`${t.syncMinute} between 0 and 59`),
     check(
@@ -127,6 +133,12 @@ export const bankFeeds = pgTable(
   },
   (t) => [
     unique("bank_feeds_connection_external_key").on(t.connectionId, t.externalId),
+    // A mapped feed goes to its connection's book and no other.
+    foreignKey({
+      name: "bank_feeds_connection_book_fk",
+      columns: [t.bookId, t.connectionId],
+      foreignColumns: [simplefinConnections.bookId, simplefinConnections.id],
+    }),
     foreignKey({
       name: "bank_feeds_account_fk",
       columns: [t.bookId, t.accountId],

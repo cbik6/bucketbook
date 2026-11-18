@@ -102,8 +102,8 @@ async function SetupContent() {
     <PlainShell>
       <StepHeader step={3} title="Connect your bank">
         {APP_NAME} brings in bank transactions through SimpleFIN, a service that reads your accounts
-        without sharing your bank password. That connection arrives in a later update, so for now
-        you can skip this step and set it up from Settings once it&apos;s ready.
+        without sharing your bank password. Each book connects its own banks: once your books open,
+        choose Bank connections in the book&apos;s menu.
       </StepHeader>
       <form action={finishSetupAction} className="flex flex-col gap-3">
         <div>

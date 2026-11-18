@@ -81,19 +81,20 @@ function RoleGuide() {
     <dl className="grid gap-x-6 gap-y-2 rounded-xl bg-sunken p-4 text-sm sm:grid-cols-[auto_1fr]">
       <dt className="font-medium">Owner</dt>
       <dd className="text-ink-muted">
-        Everything an editor can do, plus the book&apos;s settings: rename, archive, delete.
+        Everything an editor can do, plus connecting banks to the book and its settings: rename,
+        archive, delete.
       </dd>
       <dt className="font-medium">Editor</dt>
       <dd className="text-ink-muted">
-        Enters and approves transactions, and works with rules, buckets, budgets, loans and
-        reconciling.
+        Enters and approves transactions, sets up and syncs the book&apos;s bank accounts, and works
+        with rules, buckets, budgets, loans and reconciling.
       </dd>
       <dt className="font-medium">Viewer</dt>
       <dd className="text-ink-muted">
         Sees the book and its reports, but can&apos;t change anything.
       </dd>
       <dt className="font-medium">Admin</dt>
-      <dd className="text-ink-muted">Manages people and bank connections for the whole install.</dd>
+      <dd className="text-ink-muted">Manages people for the whole install.</dd>
     </dl>
   );
 }

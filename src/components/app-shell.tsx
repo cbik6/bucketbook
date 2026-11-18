@@ -1,4 +1,4 @@
-import { Link2, LogOut, Users } from "lucide-react";
+import { LogOut, Users } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { signOutAction } from "@/app/(auth)/login/actions";
@@ -53,6 +53,8 @@ export function AppShell({
   children: ReactNode;
 }) {
   const switcherBooks = toSwitcher(books);
+  // Viewers can't change a book, so they get no setup pages that edit it.
+  const canEdit = books.find((b) => b.id === currentBookId)?.role !== "viewer";
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[16rem_1fr] lg:bg-[linear-gradient(to_right,var(--rail)_16rem,transparent_16rem)]">
       <a
@@ -69,18 +71,16 @@ export function AppShell({
         </Link>
         <BookSwitcher books={switcherBooks} currentId={currentBookId} />
         {currentBookId ? (
-          <NavLinks bookId={currentBookId} layout="rail" reviewCount={reviewCount} />
+          <NavLinks
+            bookId={currentBookId}
+            layout="rail"
+            reviewCount={reviewCount}
+            canEdit={canEdit}
+          />
         ) : null}
         <div className="mt-auto flex flex-col gap-3 border-t border-rail-rule px-1 pt-4">
           {user.isAdmin ? (
             <div className="flex flex-col">
-              <Link
-                href={currentBookId ? `/connections?book=${currentBookId}` : "/connections"}
-                className="flex h-9 items-center gap-2.5 rounded-lg px-2 text-sm text-rail-muted transition-colors duration-150 hover:bg-rail-raised hover:text-rail-ink"
-              >
-                <Link2 size={16} strokeWidth={1.75} aria-hidden />
-                Bank connections
-              </Link>
               <Link
                 href="/people"
                 className="flex h-9 items-center gap-2.5 rounded-lg px-2 text-sm text-rail-muted transition-colors duration-150 hover:bg-rail-raised hover:text-rail-ink"
@@ -122,16 +122,11 @@ export function AppShell({
               bookId={currentBookId}
               layout="bar"
               reviewCount={reviewCount}
+              canEdit={canEdit}
               admin={user.isAdmin}
             />
           ) : user.isAdmin ? (
             <nav aria-label="App" className="flex gap-1">
-              <Link
-                href="/connections"
-                className="shrink-0 rounded-md px-3 py-1.5 text-sm text-rail-muted hover:text-rail-ink"
-              >
-                Bank connections
-              </Link>
               <Link
                 href="/people"
                 className="shrink-0 rounded-md px-3 py-1.5 text-sm text-rail-muted hover:text-rail-ink"

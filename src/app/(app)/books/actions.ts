@@ -6,6 +6,7 @@ import { type ActionState, actionError, formValues } from "@/server/action-state
 import { requireUser } from "@/server/auth/session";
 import { createBook, deleteBook, renameBook, setBookArchived } from "@/server/books/service";
 import { getDb } from "@/server/db/client";
+import { syncSchedules } from "@/server/jobs/simplefin";
 import { serverToday } from "@/server/ledger/page-data";
 import { createDemoBook } from "@/server/demo/seed";
 import { todayIso } from "@/lib/dates";
@@ -68,6 +69,10 @@ export async function deleteBookAction(
   try {
     const user = await requireUser();
     await deleteBook(getDb(), { userId: user.id }, bookId, confirmName);
+    // Its bank connections are gone, so their daily syncs go too.
+    await syncSchedules().catch((err: Error) =>
+      console.error("[jobs] schedule update failed:", err.message),
+    );
   } catch (err) {
     return { error: actionError(err).error };
   }

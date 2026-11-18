@@ -8,8 +8,8 @@ import { systemAccount } from "../accounts/system";
 import { recordAudit } from "../audit/record";
 import { applyRules } from "../bank/rules-service";
 import { requireBankableAccount } from "../bank/accounts";
+import type { BookRole } from "@/lib/account-types";
 import { requireBookAccess } from "../books/service";
-import { isAdmin } from "../people/service";
 import { decryptSecret, encryptSecret } from "../crypto/secret-box";
 import type { Database, DbOrTx } from "../db/client";
 import { uuidArray } from "../db/sql";
@@ -17,7 +17,6 @@ import {
   accounts,
   bankFeeds,
   bankTransactions,
-  bookMembers,
   books,
   simplefinConnections,
   simplefinRequests,
@@ -127,12 +126,15 @@ async function upsertFeeds(
 export async function connectSimplefin(
   db: Database,
   actor: Actor,
+  bookId: string,
   tokenOrUrl: string,
   fetchImpl: FetchLike = fetch,
 ) {
-  if (!(await isAdmin(db, actor.userId))) {
-    throw new ForbiddenError("Only an admin can connect a bank.");
+  const book = await requireBookAccess(db, actor.userId, bookId, "editor");
+  if (book.role !== "owner") {
+    throw new ForbiddenError("Only an owner of this book can connect a bank.");
   }
+  if (book.archivedAt) throw new UserFacingError("Restore this book before connecting a bank.");
   const text = tokenOrUrl.trim();
   if (!text) throw new UserFacingError("Paste your SimpleFIN setup token.", "token");
   const accessUrl = looksLikeAccessUrl(text) ? text : await claimSetupToken(text, fetchImpl);
@@ -142,6 +144,7 @@ export async function connectSimplefin(
     const [conn] = await tx
       .insert(simplefinConnections)
       .values({
+        bookId,
         label,
         accessUrlCiphertext: encryptSecret(accessUrl, encryptionKey()),
         createdBy: actor.userId,
@@ -155,6 +158,7 @@ export async function connectSimplefin(
     await logRequest(tx, conn!.id, { ok: true });
     await upsertFeeds(tx, conn!.id, set, true);
     await recordAudit(tx, {
+      bookId,
       userId: actor.userId,
       entityType: "simplefin_connection",
       entityId: conn!.id,
@@ -165,15 +169,23 @@ export async function connectSimplefin(
   });
 }
 
-async function loadConnection(db: DbOrTx, userId: string, connectionId: string) {
+/**
+ * A connection belongs to one book. Editors map its accounts and sync it;
+ * connecting, disconnecting and the sync time are for the book's owners.
+ */
+async function loadConnection(
+  db: DbOrTx,
+  userId: string,
+  connectionId: string,
+  minRole: BookRole = "editor",
+) {
   if (!z.uuid().safeParse(connectionId).success) throw new NotFoundError("That connection");
-  // Bank connections belong to the install and are managed by admins.
-  if (!(await isAdmin(db, userId))) throw new NotFoundError("That connection");
   const [conn] = await db
     .select()
     .from(simplefinConnections)
     .where(eq(simplefinConnections.id, connectionId));
   if (!conn) throw new NotFoundError("That connection");
+  await requireBookAccess(db, userId, conn.bookId, minRole);
   return conn;
 }
 
@@ -222,11 +234,18 @@ export type ConnectionView = {
   feeds: FeedView[];
 };
 
-export async function listConnections(db: DbOrTx, userId: string): Promise<ConnectionView[]> {
-  if (!(await isAdmin(db, userId))) return [];
+/** The book's connections, for its owners and editors. */
+export async function listConnections(
+  db: DbOrTx,
+  userId: string,
+  bookId: string,
+): Promise<ConnectionView[]> {
+  const book = await requireBookAccess(db, userId, bookId);
+  if (book.role === "viewer") return [];
   const conns = await db
     .select()
     .from(simplefinConnections)
+    .where(eq(simplefinConnections.bookId, bookId))
     .orderBy(asc(simplefinConnections.createdAt));
   if (conns.length === 0) return [];
   const feeds = await db
@@ -339,7 +358,6 @@ export async function listConnections(db: DbOrTx, userId: string): Promise<Conne
 const mappingSchema = z.discriminatedUnion("mode", [
   z.object({
     mode: z.literal("map"),
-    bookId: z.uuid("Pick a book."),
     accountId: z.uuid("Pick an account."),
     /** First day to bring in; defaults to today, so history doesn't duplicate opening balances. */
     importFrom: z
@@ -349,7 +367,6 @@ const mappingSchema = z.discriminatedUnion("mode", [
   }),
   z.object({
     mode: z.literal("create"),
-    bookId: z.uuid("Pick a book."),
     kind: z.enum(
       ["checking", "savings", "credit_card", "investment", "loan", "cash", "other_asset"],
       {
@@ -394,8 +411,8 @@ async function createAccountForFeed(
 }
 
 /**
- * Points a SimpleFIN account at an account in a book (or ignores it). A new
- * mapping starts its history from the book's start date on the next sync.
+ * Points a SimpleFIN account at an account in its connection's book (or
+ * ignores it). History comes in from the import date on the next sync.
  */
 export async function mapFeed(db: Database, actor: Actor, feedId: string, raw: unknown) {
   const parsed = mappingSchema.safeParse(raw);
@@ -407,21 +424,16 @@ export async function mapFeed(db: Database, actor: Actor, feedId: string, raw: u
   if (!z.uuid().safeParse(feedId).success) throw new NotFoundError("That bank account");
   const [feed] = await db.select().from(bankFeeds).where(eq(bankFeeds.id, feedId));
   if (!feed) throw new NotFoundError("That bank account");
-  await loadConnection(db, actor.userId, feed.connectionId);
+  const { bookId } = await loadConnection(db, actor.userId, feed.connectionId);
   if (input.mode === "create") {
-    await requireBookAccess(db, actor.userId, input.bookId, "editor");
-    const created = await createAccountForFeed(db, actor, input.bookId, input);
+    const created = await createAccountForFeed(db, actor, bookId, input);
     return mapFeed(db, actor, feedId, {
       mode: "map",
-      bookId: input.bookId,
       accountId: created.id,
       importFrom: input.importFrom,
     });
   }
-  if (input.mode === "map") {
-    await requireBookAccess(db, actor.userId, input.bookId, "editor");
-    await requireBankableAccount(db, input.bookId, input.accountId);
-  }
+  if (input.mode === "map") await requireBankableAccount(db, bookId, input.accountId);
   try {
     return await db.transaction(async (tx) => {
       const sameTarget = input.mode === "map" && feed.accountId === input.accountId;
@@ -430,7 +442,7 @@ export async function mapFeed(db: Database, actor: Actor, feedId: string, raw: u
         .set(
           input.mode === "map"
             ? {
-                bookId: input.bookId,
+                bookId,
                 accountId: input.accountId,
                 ignored: false,
                 ...(sameTarget
@@ -453,7 +465,7 @@ export async function mapFeed(db: Database, actor: Actor, feedId: string, raw: u
         .where(eq(bankFeeds.id, feedId))
         .returning();
       await recordAudit(tx, {
-        bookId: input.mode === "map" ? input.bookId : feed.bookId,
+        bookId,
         userId: actor.userId,
         entityType: "bank_feed",
         entityId: feedId,
@@ -478,7 +490,7 @@ export async function setSyncTime(db: Database, actor: Actor, connectionId: stri
   if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
     throw new UserFacingError("Pick an hour.", "syncHour");
   }
-  await loadConnection(db, actor.userId, connectionId);
+  await loadConnection(db, actor.userId, connectionId, "owner");
   const [after] = await db
     .update(simplefinConnections)
     .set({ syncHour: hour })
@@ -489,10 +501,11 @@ export async function setSyncTime(db: Database, actor: Actor, connectionId: stri
 
 /** Removes the connection and its stored Access URL. Transactions already imported stay. */
 export async function disconnectSimplefin(db: Database, actor: Actor, connectionId: string) {
-  const conn = await loadConnection(db, actor.userId, connectionId);
+  const conn = await loadConnection(db, actor.userId, connectionId, "owner");
   await db.transaction(async (tx) => {
     await tx.delete(simplefinConnections).where(eq(simplefinConnections.id, connectionId));
     await recordAudit(tx, {
+      bookId: conn.bookId,
       userId: actor.userId,
       entityType: "simplefin_connection",
       entityId: connectionId,
@@ -929,16 +942,6 @@ export async function allConnectionSchedules(db: DbOrTx) {
     .from(simplefinConnections);
 }
 
-/** True when the user has at least one book they can edit (needed to map accounts). */
-export async function editableBooks(db: DbOrTx, userId: string) {
-  return db
-    .select({ id: books.id, name: books.name })
-    .from(books)
-    .innerJoin(bookMembers, and(eq(bookMembers.bookId, books.id), eq(bookMembers.userId, userId)))
-    .where(and(isNull(books.archivedAt), ne(bookMembers.role, "viewer")))
-    .orderBy(asc(books.createdAt));
-}
-
 /**
  * Uses the bank's balance as the account's opening balance. History is only
  * brought in from the day an account is connected, so its balance that day is
@@ -975,7 +978,6 @@ export async function setFeedReversedSign(
   if (!feed) throw new NotFoundError("That bank account");
   await loadConnection(db, actor.userId, feed.connectionId);
   if (feed.reversedSign === reversed) return feed;
-  if (feed.bookId) await requireBookAccess(db, actor.userId, feed.bookId, "editor");
   const after = await db.transaction(async (tx) => {
     const [row] = await tx
       .update(bankFeeds)
@@ -1013,7 +1015,6 @@ export async function guidedConnect(
   actor: Actor,
   feedId: string,
   raw: {
-    bookId: string;
     choice: "new" | "existing" | "ignore";
     kind?: string;
     name?: string;
@@ -1030,13 +1031,11 @@ export async function guidedConnect(
     raw.choice === "new"
       ? await mapFeed(db, actor, feedId, {
           mode: "create",
-          bookId: raw.bookId,
           kind: raw.kind,
           name: raw.name,
         })
       : await mapFeed(db, actor, feedId, {
           mode: "map",
-          bookId: raw.bookId,
           accountId: raw.accountId,
         });
   await openingFromBank(db, actor, mapped);

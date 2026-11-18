@@ -135,8 +135,8 @@ Bucketbook reads bank transactions through [SimpleFIN Bridge](https://beta-bridg
 a small paid service that connects to most US banks and credit cards.
 
 1. In SimpleFIN Bridge, connect your banks and create a Setup Token.
-2. In Bucketbook, open **Bank connections** (bottom of the side menu), paste the token,
-   and press Connect. The token works once; Bucketbook trades it for an access key and
+2. In Bucketbook, open the book and choose **Bank connections** in its menu (under
+   Setup), paste the token, and press Connect. The token works once; Bucketbook trades it for an access key and
    stores that encrypted with `APP_ENCRYPTION_KEY`.
 3. A guide opens and walks through each bank account: make a new account for it (pick the
    type and name), connect it to one you already have, or skip it. Its opening balance is
@@ -153,6 +153,12 @@ make one from it), and nothing posts until you approve it.
 
 To try it without a bank, press **Use the demo bank** on the Bank connections page; it
 connects SimpleFIN's public demo account.
+
+Bank connections belong to a book, and their accounts feed only that book. To bring the
+same bank into a second book (say a household and a business that share a card), make
+another Setup Token in SimpleFIN Bridge and connect it from the second book. Each book
+then keeps its own copy of the transactions and reviews them on its own. Owners of a book
+connect and disconnect its banks; editors set up its accounts and sync.
 
 Each bank account feeds its own account in the books. New books start without any bank
 or card accounts: when you map a bank account, choose **New account**, pick its type
@@ -187,18 +193,18 @@ For review page. The column mapping is remembered per account.
 
 ## People
 
-The person who sets up Bucketbook is its admin. Admins manage people and bank
-connections from **People** and **Bank connections** at the bottom of the menu.
+The person who sets up Bucketbook is its admin. Admins manage people from **People** at
+the bottom of the menu.
 
 To add someone, open **People**, enter their name and email, pick a role for each book,
 and select **Make invite link**. Send them the link: it works once and expires in 7 days.
 They open it, choose a password, and land in their books. There is no email server
 involved, and sign-up is closed to anyone without a link.
 
-- **Owner:** everything an editor can do, plus the book's settings (rename, archive,
-  delete).
-- **Editor:** enters and approves transactions, and works with rules, buckets, budgets,
-  loans and reconciling.
+- **Owner:** everything an editor can do, plus connecting banks to the book and the
+  book's settings (rename, archive, delete).
+- **Editor:** enters and approves transactions, sets up and syncs the book's bank
+  accounts, and works with rules, buckets, budgets, loans and reconciling.
 - **Viewer:** sees the book and its reports, but can't change anything.
 
 An admin can change anyone's access, make them an admin, or remove them. Every book

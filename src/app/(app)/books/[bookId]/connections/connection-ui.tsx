@@ -50,16 +50,16 @@ function day(date: Date | null, timeZone: string) {
   );
 }
 
-export function ConnectForm({ first }: { first: boolean }) {
+export function ConnectForm({ bookId, first }: { bookId: string; first: boolean }) {
   const tokenRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
   const [state, formAction] = useActionState(
-    async (prev: Parameters<typeof connectAction>[0], fd: FormData) => {
-      const r = await connectAction(prev, fd);
+    async (prev: Parameters<typeof connectAction>[1], fd: FormData) => {
+      const r = await connectAction(bookId, prev, fd);
       // Never leave a pasted token or Access URL sitting on screen.
       if (r.success && tokenRef.current) tokenRef.current.value = "";
       // Walk through the new accounts straight away.
-      if (r.connectionId) router.replace(`/connections?setup=${r.connectionId}`);
+      if (r.connectionId) router.replace(`/books/${bookId}/connections?setup=${r.connectionId}`);
       return r;
     },
     {},
@@ -85,7 +85,11 @@ export function ConnectForm({ first }: { first: boolean }) {
             , connect your banks, then create a setup token for Bucketbook.
           </li>
           <li>Paste the token below. It works once, so make a new one if this fails.</li>
-          <li>Choose which book and account each bank account feeds.</li>
+          <li>Choose which account in this book each bank account feeds.</li>
+          <li>
+            To bring the same bank into another book too, make another setup token and connect it
+            from that book. Each book keeps its own transactions.
+          </li>
         </ol>
       </div>
       <form action={formAction} className="flex flex-col gap-3">
@@ -166,13 +170,16 @@ export function ConnectForm({ first }: { first: boolean }) {
 
 export function ConnectionCard({
   connection,
-  targets,
+  target,
   timeZone,
+  isOwner,
   autoSetup = false,
 }: {
   connection: ConnectionView;
-  targets: MappingTarget[];
+  target: MappingTarget;
   timeZone: string;
+  /** Owners choose the sync time and can disconnect. */
+  isOwner: boolean;
   /** Open the setup guide straight away (right after connecting). */
   autoSetup?: boolean;
 }) {
@@ -255,57 +262,58 @@ export function ConnectionCard({
       <SetupGuide
         connectionId={connection.id}
         feeds={unmapped}
-        targets={targets}
+        target={target}
         open={guideOpen}
         onClose={() => setGuideOpen(false)}
       />
       {mapped.length > 0 ? (
-        <FeedGroup
-          title="Connected accounts"
-          feeds={mapped}
-          targets={targets}
-          timeZone={timeZone}
-        />
+        <FeedGroup title="Connected accounts" feeds={mapped} target={target} timeZone={timeZone} />
       ) : null}
       {ignored.length > 0 ? (
-        <FeedGroup title="Ignored" feeds={ignored} targets={targets} timeZone={timeZone} />
+        <FeedGroup title="Ignored" feeds={ignored} target={target} timeZone={timeZone} />
       ) : null}
 
-      <div className="flex flex-col gap-3 border-t border-rule pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <label className="flex items-center gap-2 text-sm text-ink">
-          Sync every day at
-          <span className="w-32">
-            <SelectInput
-              defaultValue={connection.syncHour}
-              onChange={(e) => {
-                const hour = Number(e.target.value);
-                startOther(async () => {
-                  const r = await setSyncTimeAction(connection.id, hour);
-                  if (r.error) toast.error(r.error);
-                  else toast.success(`Syncing daily at ${hourLabel(hour)} (${timeZone}).`);
-                });
-              }}
-            >
-              {Array.from({ length: 24 }, (_, h) => (
-                <option key={h} value={h}>
-                  {hourLabel(h)}
-                </option>
-              ))}
-            </SelectInput>
-          </span>
-          <span className="text-ink-muted">{timeZone}</span>
-        </label>
-        <HoldButton
-          label="Disconnect"
-          onConfirm={() =>
-            startOther(async () => {
-              const r = await disconnectAction(connection.id);
-              if (r.error) toast.error(r.error);
-              else toast.success(r.success);
-            })
-          }
-        />
-      </div>
+      {isOwner ? (
+        <div className="flex flex-col gap-3 border-t border-rule pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <label className="flex items-center gap-2 text-sm text-ink">
+            Sync every day at
+            <span className="w-32">
+              <SelectInput
+                defaultValue={connection.syncHour}
+                onChange={(e) => {
+                  const hour = Number(e.target.value);
+                  startOther(async () => {
+                    const r = await setSyncTimeAction(connection.id, hour);
+                    if (r.error) toast.error(r.error);
+                    else toast.success(`Syncing daily at ${hourLabel(hour)} (${timeZone}).`);
+                  });
+                }}
+              >
+                {Array.from({ length: 24 }, (_, h) => (
+                  <option key={h} value={h}>
+                    {hourLabel(h)}
+                  </option>
+                ))}
+              </SelectInput>
+            </span>
+            <span className="text-ink-muted">{timeZone}</span>
+          </label>
+          <HoldButton
+            label="Disconnect"
+            onConfirm={() =>
+              startOther(async () => {
+                const r = await disconnectAction(connection.id);
+                if (r.error) toast.error(r.error);
+                else toast.success(r.success);
+              })
+            }
+          />
+        </div>
+      ) : (
+        <p className="border-t border-rule pt-4 text-sm text-ink-muted">
+          Syncs every day at {hourLabel(connection.syncHour)} ({timeZone}).
+        </p>
+      )}
     </section>
   );
 }
@@ -314,13 +322,13 @@ function FeedGroup({
   title,
   note,
   feeds,
-  targets,
+  target,
   timeZone,
 }: {
   title: string;
   note?: string;
   feeds: FeedView[];
-  targets: MappingTarget[];
+  target: MappingTarget;
   timeZone: string;
 }) {
   return (
@@ -331,7 +339,7 @@ function FeedGroup({
       </div>
       <ul className="flex flex-col border-t border-rule">
         {feeds.map((f) => (
-          <FeedRow key={f.id} feed={f} targets={targets} timeZone={timeZone} />
+          <FeedRow key={f.id} feed={f} target={target} timeZone={timeZone} />
         ))}
       </ul>
     </div>
@@ -394,11 +402,11 @@ function FeedStatus({ feed }: { feed: FeedView }) {
 
 function FeedRow({
   feed,
-  targets,
+  target,
   timeZone,
 }: {
   feed: FeedView;
-  targets: MappingTarget[];
+  target: MappingTarget;
   timeZone: string;
 }) {
   const [editing, setEditing] = useState(!feed.accountId && !feed.ignored);
@@ -422,19 +430,11 @@ function FeedRow({
       </div>
       <div className="flex min-w-0 flex-col gap-2">
         {editing ? (
-          <MappingForm feed={feed} targets={targets} onDone={() => setEditing(false)} />
+          <MappingForm feed={feed} target={target} onDone={() => setEditing(false)} />
         ) : (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             {feed.accountId ? (
-              <span className="text-sm text-ink">
-                <Link
-                  href={`/books/${feed.bookId}/review`}
-                  className="text-signal-ink underline-offset-2 hover:underline"
-                >
-                  {feed.bookName}
-                </Link>
-                : {feed.accountName}
-              </span>
+              <span className="text-sm text-ink">{feed.accountName}</span>
             ) : (
               <span className="text-sm text-ink-muted">Ignored</span>
             )}
@@ -451,11 +451,11 @@ function FeedRow({
 
 function MappingForm({
   feed,
-  targets,
+  target: book,
   onDone,
 }: {
   feed: FeedView;
-  targets: MappingTarget[];
+  target: MappingTarget;
   onDone: () => void;
 }) {
   const [state, formAction] = useActionState(
@@ -470,55 +470,32 @@ function MappingForm({
     {},
   );
   const id = useId();
-  const [bookId, setBookId] = useState(feed.bookId ?? (targets.length === 1 ? targets[0]!.id : ""));
-  const book = targets.find((t) => t.id === bookId);
   // Guess the account from the bank's name ("Checking" goes to Checking).
   const guess =
-    book?.accounts.find((a) =>
+    book.accounts.find((a) =>
       feed.name.toLowerCase().includes(a.label.toLowerCase().split(": ").pop()!),
     )?.id ?? "";
   const [accountId, setAccountId] = useState(
-    feed.accountId ?? (guess && !book?.accounts.find((a) => a.id === guess)?.fedBy ? guess : "new"),
+    feed.accountId ?? (guess && !book.accounts.find((a) => a.id === guess)?.fedBy ? guess : "new"),
   );
   const [kind, setKind] = useState<NewKind>(guessKind(feed));
   const [name, setName] = useState(startingName(feed.name));
-  if (targets.length === 0) {
-    return <p className="text-sm text-ink-muted">Create a book first, then map this account.</p>;
-  }
   return (
     <form action={formAction} className="flex flex-col gap-2">
       <FormError message={state.error} />
-      <div className="grid gap-2 sm:grid-cols-2">
-        <SelectInput
-          id={`${id}-book`}
-          name="bookId"
-          aria-label={`Book for ${feed.name}`}
-          value={bookId}
-          onChange={(e) => {
-            setBookId(e.target.value);
-            setAccountId("");
-          }}
-        >
-          <option value="">Choose a book</option>
-          {targets.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </SelectInput>
+      <div className="grid gap-2">
         <SelectInput
           id={`${id}-account`}
           name="accountId"
           aria-label={`Account for ${feed.name}`}
           value={accountId}
           onChange={(e) => setAccountId(e.target.value)}
-          disabled={!book}
           invalid={state.field === "accountId"}
         >
           <option value="">Choose an account</option>
           <option value="new">New account…</option>
           <optgroup label="Existing accounts">
-            {book?.accounts.map((a) => {
+            {book.accounts.map((a) => {
               const taken = Boolean(a.fedBy) && a.id !== feed.accountId;
               return (
                 <option key={a.id} value={a.id} disabled={taken}>
@@ -530,7 +507,7 @@ function MappingForm({
           </optgroup>
         </SelectInput>
       </div>
-      {accountId === "new" && book ? (
+      {accountId === "new" ? (
         <div className="grid gap-2 rounded-lg border border-rule bg-sunken p-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-[0.8125rem] font-medium text-ink">
             Type

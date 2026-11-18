@@ -6,6 +6,18 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-11-18
+
+### Changed
+
+- Bank connections belong to a book. Each book has its own **Bank connections** page in
+  its menu, and its bank accounts feed only that book, so two books can connect the same
+  bank and keep separate transactions. Owners of the book connect, disconnect and set the
+  sync time; editors set up accounts and sync. Admins no longer manage bank connections.
+- Existing connections move into the book their accounts feed. A connection whose
+  accounts fed several books is split into one per book.
+- Deleting a book removes its bank connections.
+
 ## [1.8.0] - 2026-11-18
 
 ### Added

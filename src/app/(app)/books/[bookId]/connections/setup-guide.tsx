@@ -24,13 +24,13 @@ type Choice = "new" | "existing" | "ignore";
 export function SetupGuide({
   connectionId,
   feeds,
-  targets,
+  target,
   open,
   onClose,
 }: {
   connectionId: string;
   feeds: FeedView[];
-  targets: MappingTarget[];
+  target: MappingTarget;
   open: boolean;
   onClose: () => void;
 }) {
@@ -98,7 +98,7 @@ export function SetupGuide({
           <Step
             key={feed.id}
             feed={feed}
-            targets={targets}
+            book={target}
             canGoBack={index > 0}
             onBack={() => setIndex((i) => Math.max(0, i - 1))}
             onLater={() => setIndex((i) => i + 1)}
@@ -118,14 +118,14 @@ export function SetupGuide({
 
 function Step({
   feed,
-  targets,
+  book,
   canGoBack,
   onBack,
   onLater,
   onDone,
 }: {
   feed: FeedView;
-  targets: MappingTarget[];
+  book: MappingTarget;
   canGoBack: boolean;
   onBack: () => void;
   onLater: () => void;
@@ -134,9 +134,7 @@ function Step({
   const uid = useId();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
-  const [bookId, setBookId] = useState(feed.bookId ?? targets[0]?.id ?? "");
-  const book = targets.find((t) => t.id === bookId);
-  const free = (book?.accounts ?? []).filter((a) => !a.fedBy || a.id === feed.accountId);
+  const free = book.accounts.filter((a) => !a.fedBy || a.id === feed.accountId);
   const [choice, setChoice] = useState<Choice>("new");
   const [kind, setKind] = useState<NewKind>(guessKind(feed));
   const [name, setName] = useState(startingName(feed.name));
@@ -162,7 +160,6 @@ function Step({
   const submit = () =>
     start(async () => {
       const r = await guidedConnectAction(feed.id, {
-        bookId,
         choice,
         kind,
         name,
@@ -201,19 +198,6 @@ function Step({
       </div>
 
       <FormError message={error} />
-
-      {targets.length > 1 ? (
-        <label className="flex flex-col gap-1.5 text-[0.8125rem] font-medium">
-          Book
-          <SelectInput value={bookId} onChange={(e) => setBookId(e.target.value)}>
-            {targets.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </SelectInput>
-        </label>
-      ) : null}
 
       <fieldset className="flex min-w-0 flex-col gap-2">
         <legend className="mb-1 text-[0.8125rem] font-medium">

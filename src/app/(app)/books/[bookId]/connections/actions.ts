@@ -17,11 +17,13 @@ import {
   setSyncTime,
 } from "@/server/simplefin/service";
 
+// Book roles are checked in the service: editors map and sync, owners connect.
 async function actor() {
   const user = await requireUser();
-  if (!user.isAdmin) throw new UserFacingError("Only an admin can manage bank connections.");
   return { userId: user.id };
 }
+
+const revalidate = () => revalidatePath("/books/[bookId]/connections", "page");
 
 async function refreshSchedules() {
   // The queue may be off (JOBS_ENABLED=false); schedules then wait for the next start.
@@ -31,6 +33,7 @@ async function refreshSchedules() {
 }
 
 export async function connectAction(
+  bookId: string,
   _prev: ActionState & { connectionId?: string },
   formData: FormData,
 ): Promise<ActionState & { connectionId?: string }> {
@@ -43,9 +46,14 @@ export async function connectAction(
       );
     }
     const token = String(formData.get("token") ?? "");
-    const { connection, accountCount, messages } = await connectSimplefin(getDb(), a, token);
+    const { connection, accountCount, messages } = await connectSimplefin(
+      getDb(),
+      a,
+      bookId,
+      token,
+    );
     await refreshSchedules();
-    revalidatePath("/connections");
+    revalidate();
     const found = `Connected. SimpleFIN reports ${accountCount} ${accountCount === 1 ? "account" : "accounts"}.`;
     return {
       success: messages.length ? `${found} ${messages.join(" ")}` : found,
@@ -91,13 +99,12 @@ export async function mapFeedAction(
     if (mode === "map" && choice === "new") mode = "create";
     const mapped = await mapFeed(getDb(), a, feedId, {
       mode,
-      bookId: String(formData.get("bookId") ?? ""),
       accountId: choice,
       kind: String(formData.get("kind") ?? ""),
       name: String(formData.get("name") ?? ""),
     });
     if (mode === "map" || mode === "create") await openingFromBank(getDb(), a, mapped);
-    revalidatePath("/connections");
+    revalidate();
     return {
       success:
         mode === "map" || mode === "create"
@@ -116,7 +123,7 @@ export async function setSyncTimeAction(connectionId: string, hour: number): Pro
     const a = await actor();
     await setSyncTime(getDb(), a, connectionId, hour);
     await refreshSchedules();
-    revalidatePath("/connections");
+    revalidate();
     return { success: "Sync time saved." };
   } catch (err) {
     return actionError(err);
@@ -129,7 +136,7 @@ export async function disconnectAction(connectionId: string): Promise<ActionStat
     if (!connectionId) throw new UserFacingError("Pick a connection.");
     await disconnectSimplefin(getDb(), a, connectionId);
     await refreshSchedules();
-    revalidatePath("/connections");
+    revalidate();
     return { success: "Disconnected. Transactions already brought in are kept." };
   } catch (err) {
     return actionError(err);
@@ -139,7 +146,6 @@ export async function disconnectAction(connectionId: string): Promise<ActionStat
 export async function guidedConnectAction(
   feedId: string,
   input: {
-    bookId: string;
     choice: "new" | "existing" | "ignore";
     kind?: string;
     name?: string;

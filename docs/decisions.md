@@ -517,3 +517,26 @@ call), so the public sign-up endpoint can't be used even by someone who knows an
 email. Changes keep at least one owner per book and one admin per install; membership
 changes take a table lock so two admins can't each remove the other last owner. Removing
 a person deletes their login; their past entries stay, no longer linked to a name.
+
+### D61. Bank connections belong to a book
+
+D60 made bank connections install-wide and admin-only, with each bank account mapped to
+an account in any book. That let one bank account feed only one book, so a card shared by
+a household and a business could appear in just one of them, and an admin who wasn't in a
+book still saw and managed its bank data.
+
+Now `simplefin_connections.book_id` ties each connection to one book, and a composite
+foreign key `(book_id, connection_id)` on `bank_feeds` makes the database refuse a feed
+mapped into any other book. Bringing the same bank into a second book means connecting it
+again there with its own Setup Token: each book gets its own Access URL, its own feeds,
+its own transactions and review queue, and its own share of SimpleFIN's daily request
+budget. Sharing one Access URL across books was ruled out because syncs, request counts
+and pending-charge tracking are all per connection, and splitting one fetch between books
+would tie their review queues together.
+
+Book roles decide access, as everywhere else (D8): owners connect, disconnect and set the
+sync time, since those touch credentials and the schedule; editors map accounts and sync,
+since that is ordinary bookkeeping; viewers don't see the page. The upgrade moves each
+connection into the book most of its accounts fed (or the oldest book), and copies the
+connection for any other book its accounts fed, so no mapping is lost. Deleting a book
+deletes its connections.

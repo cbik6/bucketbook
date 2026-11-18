@@ -6,6 +6,7 @@ import {
   Gauge,
   CheckCheck,
   HandCoins,
+  Link2,
   History,
   Inbox,
   Landmark,
@@ -23,12 +24,15 @@ export function NavLinks({
   bookId,
   layout,
   reviewCount = 0,
+  canEdit = true,
   admin = false,
 }: {
   bookId: string;
   layout: "rail" | "bar";
   reviewCount?: number;
-  /** Admins also get Bank connections and People in the phone bar. */
+  /** Owners and editors also get the book's bank connections. */
+  canEdit?: boolean;
+  /** Admins also get People in the phone bar. */
   admin?: boolean;
 }) {
   const pathname = usePathname();
@@ -57,6 +61,7 @@ export function NavLinks({
     {
       label: "Setup",
       links: [
+        ...(canEdit ? [{ href: `${b}/connections`, label: "Bank connections", Icon: Link2 }] : []),
         { href: `${b}/loans`, label: "Loans", Icon: HandCoins },
         { href: `${b}/rules`, label: "Rules", Icon: Wand2 },
         { href: `${b}/opening-balances`, label: "Opening balances", Icon: Landmark },
@@ -66,20 +71,14 @@ export function NavLinks({
     },
   ];
   const links = groups.flatMap((g) => g.links);
-  // The rail has its own admin links at the bottom; the phone bar needs them here.
-  const barLinks = admin
-    ? [
-        ...links,
-        { href: `/connections?book=${bookId}`, label: "Bank connections", Icon: Inbox },
-        { href: "/people", label: "People", Icon: Users },
-      ]
-    : links;
+  // The rail has its own admin link at the bottom; the phone bar needs it here.
+  const barLinks = admin ? [...links, { href: "/people", label: "People", Icon: Users }] : links;
 
   if (layout === "bar") {
     return (
       <nav aria-label="Book" className="flex gap-1 overflow-x-auto">
         {barLinks.map(({ href, label, count }) => {
-          const active = pathname.startsWith(href.split("?")[0]!);
+          const active = pathname.startsWith(href);
           return (
             <Link
               key={href}

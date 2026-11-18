@@ -99,6 +99,13 @@
       "when": 1794984346331,
       "tag": "0013_people_and_invites",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795040008077,
+      "tag": "0014_per_book_connections",
+      "breakpoints": true
     }
   ]
 }

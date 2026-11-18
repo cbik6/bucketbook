@@ -108,7 +108,7 @@ describe("deleting a book", () => {
       .then((r) => r.rows);
     const [conn] = await getDb()
       .insert(simplefinConnections)
-      .values({ label: "Bank", accessUrlCiphertext: "x" })
+      .values({ bookId, label: "Bank", accessUrlCiphertext: "x" })
       .returning();
     const [feed] = await getDb()
       .insert(bankFeeds)
@@ -134,14 +134,14 @@ describe("deleting a book", () => {
     expect(Object.values(counts).every((n) => n === 0)).toBe(true);
     expect(existsSync(path.join(receipts, bookId))).toBe(false);
 
-    const [after] = await getDb().select().from(bankFeeds).where(eq(bankFeeds.id, feed!.id));
-    expect(after).toMatchObject({
-      bookId: null,
-      accountId: null,
-      importFrom: null,
-      syncedFrom: null,
-      syncedThrough: null,
-    });
+    // The book's bank connection and its accounts go with it.
+    expect(await getDb().select().from(bankFeeds).where(eq(bankFeeds.id, feed!.id))).toEqual([]);
+    expect(
+      await getDb()
+        .select()
+        .from(simplefinConnections)
+        .where(eq(simplefinConnections.id, conn!.id)),
+    ).toEqual([]);
 
     // The other book is untouched and the ledger still balances there.
     const otherCounts = await leftovers(other.id);
