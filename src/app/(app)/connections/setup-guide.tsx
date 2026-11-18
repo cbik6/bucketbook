@@ -45,7 +45,6 @@ export function SetupGuide({
     const d = ref.current;
     if (!d) return;
     if (open && !d.open) {
-       
       setList(feeds);
       setIndex(0);
       setDone([]);
