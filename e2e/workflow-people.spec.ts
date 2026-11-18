@@ -18,9 +18,13 @@ test("people: invite a viewer who joins with the link", async ({ page, browser }
   await page.getByRole("link", { name: "People" }).filter({ visible: true }).first().click();
   await expect(page.getByRole("heading", { name: "People", exact: true })).toBeVisible();
 
-  await page.getByLabel("Name", { exact: true }).fill("Jo Viewer");
-  await page.getByLabel("Email", { exact: true }).fill("jo@example.test");
-  await page.getByLabel("Example Family", { exact: true }).first().selectOption("viewer");
+  await page.getByLabel("Name", { exact: true }).filter({ visible: true }).fill("Jo Viewer");
+  await page.getByLabel("Email", { exact: true }).filter({ visible: true }).fill("jo@example.test");
+  await page
+    .getByLabel("Example Family", { exact: true })
+    .filter({ visible: true })
+    .first()
+    .selectOption("viewer");
   await page.getByRole("button", { name: "Make invite link" }).click();
   const linkBox = page.getByLabel("Send this link to Jo Viewer");
   await expect(linkBox).toBeVisible();
@@ -31,8 +35,8 @@ test("people: invite a viewer who joins with the link", async ({ page, browser }
   const jo = await (await browser.newContext()).newPage();
   await jo.goto(link.pathname);
   await expect(jo.getByRole("heading", { name: "Join Bucketbook" })).toBeVisible();
-  await expect(jo.getByLabel("Email")).toHaveValue("jo@example.test");
-  await jo.getByLabel("Choose a password").fill("another long password");
+  await expect(jo.getByLabel("Email").filter({ visible: true })).toHaveValue("jo@example.test");
+  await jo.getByLabel("Choose a password").filter({ visible: true }).fill("another long password");
   await jo.getByRole("button", { name: "Join and open the books" }).click();
   await expect(jo.getByRole("heading", { name: "Chart of accounts" })).toBeVisible();
 
