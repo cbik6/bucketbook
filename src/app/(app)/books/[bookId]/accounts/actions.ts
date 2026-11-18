@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   archiveAccount,
@@ -9,6 +9,7 @@ import {
   unarchiveAccount,
   updateAccount,
 } from "@/server/accounts/service";
+import { recordBalance } from "@/server/accounts/adjust";
 import { type ActionState, actionError, formValues } from "@/server/action-state";
 import { requireUser } from "@/server/auth/session";
 import { requireBookAccess } from "@/server/books/service";
@@ -68,4 +69,20 @@ export async function unarchiveAccountAction(bookId: string, accountId: string) 
 
 export async function deleteAccountAction(bookId: string, accountId: string) {
   return quick(bookId, (actor) => deleteAccount(getDb(), actor, bookId, accountId));
+}
+
+export async function recordBalanceAction(
+  bookId: string,
+  accountId: string,
+  input: { date: string; balance: string; offsetAccountId: string },
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const user = await requireUser();
+    await requireBookAccess(getDb(), user.id, bookId, "editor");
+    await recordBalance(getDb(), { userId: user.id }, bookId, accountId, input);
+    revalidatePath(`/books/${bookId}`, "layout");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: actionError(err).error };
+  }
 }

@@ -62,6 +62,7 @@ export async function reverseEntryAction(
     const reversal = await reverseEntry(getDb(), actor, bookId, entryId, {
       entryDate: String(formData.get("entryDate") ?? ""),
       memo: String(formData.get("memo") ?? "") || undefined,
+      confirmReconciled: formData.get("confirmReconciled") === "on",
     });
     reversalId = reversal.id;
   } catch (err) {

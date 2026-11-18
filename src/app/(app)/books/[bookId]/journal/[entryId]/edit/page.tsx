@@ -10,6 +10,8 @@ import { NotFoundError } from "@/server/errors";
 import { loadBookForPage } from "@/server/guards";
 import { entryFormAccounts, serverToday } from "@/server/ledger/page-data";
 import { getEntryDetail } from "@/server/ledger/service";
+import { reconciledStatements } from "@/server/reconcile/service";
+import { formatDay } from "@/lib/dates";
 import { saveEntryAction } from "../../actions";
 import { EntryForm } from "../../entry-form";
 
@@ -29,6 +31,10 @@ async function EditContent({ params }: PageProps<"/books/[bookId]/journal/[entry
   if (detail.entry.kind === "opening_balance") redirect(`/books/${book.id}/opening-balances`);
   if (detail.entry.kind === "reversal" || detail.reversedBy) redirect(detailHref);
 
+  const statements = await reconciledStatements(getDb(), entryId);
+  const reconciledNote = statements[0]
+    ? `This entry was reconciled on the ${statements[0].accountName} statement ending ${formatDay(statements[0].statementDate)}.`
+    : undefined;
   const groups = await entryFormAccounts(
     book.id,
     detail.lines.map((l) => l.accountId),
@@ -52,6 +58,7 @@ async function EditContent({ params }: PageProps<"/books/[bookId]/journal/[entry
           defaultDate={serverToday()}
           minDate={book.startDate}
           cancelHref={detailHref}
+          reconciledNote={reconciledNote}
           initial={{
             entryDate: detail.entry.entryDate,
             payee: detail.entry.payee,

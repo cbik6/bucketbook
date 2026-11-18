@@ -12,6 +12,7 @@ import { SelectInput, TextInput } from "@/components/ui/field";
 import type { AccountOptionGroup } from "@/lib/account-options";
 import { formatDay } from "@/lib/dates";
 import { formatEntryNumber } from "@/lib/ledger-math";
+import { splitPayment } from "@/lib/loans";
 import { formatCents, parseCents } from "@/lib/money";
 import type { Decision, QueueItem } from "@/server/bank/review-service";
 import { type AttachmentInfo, Attachments } from "../attachments";
@@ -29,6 +30,13 @@ import {
 } from "./actions";
 
 export type { AttachmentInfo };
+
+export type LoanHint = {
+  accountId: string;
+  interestAccountId: string;
+  rateMicro: number;
+  owedCents: number;
+};
 
 type Split = { key: number; accountId: string; amount: string; memo: string };
 
@@ -92,9 +100,11 @@ export function ReviewQueue({
   partnerGroups,
   attachments,
   buckets,
+  loans,
   canEdit,
 }: {
   bookId: string;
+  loans: LoanHint[];
   buckets: Record<string, { id: string; name: string; isUnassigned: boolean }[]>;
   items: QueueItem[];
   groups: AccountOptionGroup[];
@@ -391,6 +401,7 @@ export function ReviewQueue({
             partnerGroups={item.transfer ? partnerGroups[item.transfer.bookId] : undefined}
             files={attachments[item.id] ?? []}
             buckets={buckets[item.accountId]}
+            loans={loans}
             active={item.id === activeId}
             selected={selected.has(item.id)}
             expanded={expanded === item.id}
@@ -447,6 +458,7 @@ type RowProps = {
   partnerGroups?: AccountOptionGroup[];
   files: AttachmentInfo[];
   buckets?: { id: string; name: string; isUnassigned: boolean }[];
+  loans: LoanHint[];
   active: boolean;
   selected: boolean;
   expanded: boolean;
@@ -483,6 +495,23 @@ function Row({ refCallback, ...p }: RowProps) {
       });
       if (!p.expanded) p.onToggleExpand();
     } else {
+      // A payment to a loan splits into principal and interest, ready to edit.
+      const loan = p.loans.find((l) => l.accountId === value);
+      if (loan && item.amountCents < 0) {
+        const { interestCents, principalCents } = splitPayment(
+          -item.amountCents,
+          loan.owedCents,
+          loan.rateMicro,
+        );
+        const lines = [newSplit(loan.accountId, plainAmount(principalCents))];
+        if (interestCents > 0)
+          lines.push(newSplit(loan.interestAccountId, plainAmount(interestCents)));
+        if (lines.length > 1) {
+          p.setDraft({ choice: "split", splits: lines });
+          if (!p.expanded) p.onToggleExpand();
+          return;
+        }
+      }
       p.setDraft({ choice: value });
     }
   };

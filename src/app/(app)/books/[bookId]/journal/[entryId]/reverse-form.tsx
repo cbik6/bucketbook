@@ -16,7 +16,10 @@ export function ReverseForm({
   entryLabel,
   minDate,
   notes = [],
+  reconciled,
 }: {
+  /** Shown with a confirming tick when the entry is in a finished reconciliation. */
+  reconciled?: string;
   action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
   entryLabel: string;
   minDate: string;
@@ -53,6 +56,18 @@ export function ReverseForm({
         Posts a new entry with every debit and credit swapped, cancelling {entryLabel} as of the
         date you pick. The original stays in the journal.
       </p>
+      {reconciled ? (
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="confirmReconciled"
+            className="mt-0.5 size-4 accent-[var(--signal)]"
+          />
+          <span>
+            {reconciled} I understand reversing it changes a balance that already matched the bank.
+          </span>
+        </label>
+      ) : null}
       {notes.map((n) => (
         <p key={n} className="text-sm font-medium">
           {n}

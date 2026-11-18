@@ -11,6 +11,7 @@ import { listAttachments } from "@/server/bank/attachments-service";
 import { type QueueTab, listQueue, queueCounts } from "@/server/bank/review-service";
 import { bucketChoices } from "@/server/buckets/service";
 import { getDb } from "@/server/db/client";
+import { loanHints } from "@/server/loans/service";
 import { loadBookForPage } from "@/server/guards";
 import { entryFormAccounts } from "@/server/ledger/page-data";
 import { ReviewQueue, type AttachmentInfo } from "./review-queue";
@@ -72,6 +73,7 @@ async function ReviewContent({ params, searchParams }: PageProps<"/books/[bookId
         partnerGroups={partnerGroups}
         attachments={attachments}
         buckets={await bucketChoices(db, book.id)}
+        loans={await loanHints(db, book.id)}
         canEdit={canEdit}
       />
     );

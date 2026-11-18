@@ -22,6 +22,7 @@ import {
   users,
 } from "../db/schema";
 import { NotFoundError, UserFacingError } from "../errors";
+import { assertReconciledChangeConfirmed } from "../reconcile/service";
 
 type Actor = { userId: string };
 
@@ -62,6 +63,8 @@ const entryInputSchema = z.object({
     .nullable()
     .default(null),
   lines: z.array(draftLine).max(MAX_LINES, `An entry can have at most ${MAX_LINES} lines.`),
+  /** Set when you've seen the warning that this entry is in a finished reconciliation. */
+  confirmReconciled: z.boolean().default(false),
 });
 
 export type EntryInput = {
@@ -333,6 +336,7 @@ export async function editEntry(
       );
     }
     assertDateAllowed(input.entryDate, book.startDate);
+    await assertReconciledChangeConfirmed(tx, entryId, input.confirmReconciled);
     return editEntryInTx(tx, actor, book, entryId, input);
   });
 }
@@ -343,10 +347,14 @@ export async function reverseEntry(
   actor: Actor,
   bookId: string,
   entryId: string,
-  raw: { entryDate?: string; memo?: string },
+  raw: { entryDate?: string; memo?: string; confirmReconciled?: boolean },
 ) {
   const parsed = z
-    .object({ entryDate: isoDate, memo: z.string().trim().max(500).optional() })
+    .object({
+      entryDate: isoDate,
+      memo: z.string().trim().max(500).optional(),
+      confirmReconciled: z.boolean().default(false),
+    })
     .safeParse(raw);
   if (!parsed.success) throw new UserFacingError(parsed.error.issues[0]!.message, "entryDate");
   return db.transaction(async (tx) => {
@@ -360,6 +368,7 @@ export async function reverseEntry(
         `This entry was already reversed by ${formatEntryNumber(reversedBy.entryNumber)}.`,
       );
     }
+    await assertReconciledChangeConfirmed(tx, entryId, parsed.data.confirmReconciled);
     const date = parsed.data.entryDate;
     if (date < entry.entryDate) {
       throw new UserFacingError(

@@ -16,7 +16,8 @@ import { listAccounts } from "@/server/accounts/service";
 import { getDb } from "@/server/db/client";
 import { loadBookForPage } from "@/server/guards";
 import { accountRegister } from "@/server/ledger/queries";
-import { serverToday } from "@/server/ledger/page-data";
+import { entryFormAccounts, serverToday } from "@/server/ledger/page-data";
+import { BalanceForm } from "./balance-form";
 
 export const metadata: Metadata = { title: "Account register" };
 
@@ -99,6 +100,21 @@ async function RegisterContent({
         </div>
 
         <RangePicker basePath={`${base}/accounts/${account.id}`} range={range} keep={keep} />
+
+        {book.role !== "viewer" &&
+        (type === "asset" || type === "liability") &&
+        account.allowsPosting &&
+        !account.archivedAt ? (
+          <div>
+            <BalanceForm
+              bookId={book.id}
+              accountId={account.id}
+              accountName={account.name}
+              groups={await entryFormAccounts(book.id)}
+              today={serverToday()}
+            />
+          </div>
+        ) : null}
 
         {lines.length === 0 && openingNetCents === 0 ? (
           <p className="py-6 text-ink-muted">

@@ -22,6 +22,8 @@ type Props = {
   minDate: string;
   cancelHref: string;
   mode: "new" | "edit";
+  /** Set when the entry is in a finished reconciliation: asks for a confirming tick. */
+  reconciledNote?: string;
 };
 
 let nextKey = 1;
@@ -42,7 +44,9 @@ export function EntryForm({
   minDate,
   cancelHref,
   mode,
+  reconciledNote,
 }: Props) {
+  const [confirmReconciled, setConfirmReconciled] = useState(false);
   const [state, formAction, pending] = useActionState(action, {});
   // Unique per form: a hidden, previously visited page can still be in the DOM.
   const uid = useId();
@@ -130,6 +134,7 @@ export function EntryForm({
     entryDate,
     payee,
     memo,
+    confirmReconciled,
     lines: lines.map(({ accountId, debit, credit, memo: m }) => ({
       accountId,
       debit,
@@ -153,6 +158,20 @@ export function EntryForm({
     >
       <input type="hidden" name="payload" value={payload} />
       <FormError message={state.field === "entryDate" ? undefined : state.error} />
+      {reconciledNote ? (
+        <label className="flex items-start gap-2 rounded-xl border border-rule bg-sunken px-4 py-3 text-sm">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 accent-[var(--signal)]"
+            checked={confirmReconciled}
+            onChange={(e) => setConfirmReconciled(e.target.checked)}
+          />
+          <span>
+            {reconciledNote} I understand that saving changes a balance that already matched the
+            bank.
+          </span>
+        </label>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-[12rem_minmax(0,1fr)_minmax(0,1fr)]">
         <Field

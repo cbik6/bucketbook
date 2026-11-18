@@ -11,6 +11,7 @@ import { formatDay } from "@/lib/dates";
 import { formatEntryNumber } from "@/lib/ledger-math";
 import { listAttachments } from "@/server/bank/attachments-service";
 import { entryBankContext } from "@/server/bank/review-service";
+import { reconciledStatements } from "@/server/reconcile/service";
 import { getDb } from "@/server/db/client";
 import { NotFoundError } from "@/server/errors";
 import { loadBookForPage } from "@/server/guards";
@@ -38,10 +39,14 @@ async function EntryContent({
     throw e;
   });
   const { entry, lines, versions, reversedBy, reverses, shownVersion, versionHeader } = detail;
-  const [bank, files] = await Promise.all([
+  const [bank, files, statements] = await Promise.all([
     entryBankContext(getDb(), user.id, book.id, entry),
     listAttachments(getDb(), book.id, { entryId: entry.id }),
+    reconciledStatements(getDb(), entry.id),
   ]);
+  const reconciledText = statements[0]
+    ? `Reconciled on the ${statements[0].accountName} statement ending ${formatDay(statements[0].statementDate)}.`
+    : undefined;
   const base = `/books/${book.id}`;
   const label = formatEntryNumber(entry.entryNumber);
   const isOld = shownVersion !== entry.currentVersion;
@@ -136,6 +141,12 @@ async function EntryContent({
           </p>
         ) : null}
 
+        {reconciledText ? (
+          <p className="rounded-xl border border-rule bg-sunken px-4 py-3 text-sm">
+            {reconciledText} Changing it asks you to confirm first.
+          </p>
+        ) : null}
+
         {versionHeader.payee || versionHeader.memo ? (
           <div className="max-w-prose">
             {versionHeader.payee ? <p className="font-medium">{versionHeader.payee}</p> : null}
@@ -223,6 +234,7 @@ async function EntryContent({
               action={reverseEntryAction.bind(null, book.id, entry.id)}
               entryLabel={label}
               notes={reverseNotes}
+              reconciled={reconciledText}
               minDate={entry.entryDate < book.startDate ? book.startDate : entry.entryDate}
             />
           </div>

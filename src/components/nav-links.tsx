@@ -2,6 +2,8 @@
 
 import {
   BookOpenText,
+  CheckCheck,
+  HandCoins,
   History,
   Inbox,
   Landmark,
@@ -30,6 +32,8 @@ export function NavLinks({
     { href: `/books/${bookId}/accounts`, label: "Chart of accounts", Icon: ListTree },
     { href: `/books/${bookId}/journal`, label: "Journal entries", Icon: NotebookPen },
     { href: `/books/${bookId}/ledger`, label: "General ledger", Icon: BookOpenText },
+    { href: `/books/${bookId}/reconcile`, label: "Reconcile", Icon: CheckCheck },
+    { href: `/books/${bookId}/loans`, label: "Loans", Icon: HandCoins },
     { href: `/books/${bookId}/rules`, label: "Rules", Icon: Wand2 },
     { href: `/books/${bookId}/opening-balances`, label: "Opening balances", Icon: Landmark },
     { href: `/books/${bookId}/activity`, label: "Activity", Icon: History },

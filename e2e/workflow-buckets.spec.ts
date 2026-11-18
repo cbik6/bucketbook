@@ -75,7 +75,10 @@ test("buckets: turn on, allocate a deposit, move money", async ({ page }) => {
   await expect(car).toContainText("$500.00");
 
   await page.getByRole("button", { name: "Move money" }).click();
-  await page.getByLabel("To", { exact: true }).filter({ visible: true }).selectOption({ label: "Trip" });
+  await page
+    .getByLabel("To", { exact: true })
+    .filter({ visible: true })
+    .selectOption({ label: "Trip" });
   await label(page, "Amount").fill("120");
   await page.getByRole("button", { name: "Move", exact: true }).click();
   await expect(page.getByText("Moved.")).toBeVisible();
