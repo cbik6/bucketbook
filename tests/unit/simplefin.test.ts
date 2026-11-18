@@ -70,6 +70,7 @@ describe("SimpleFIN protocol helpers", () => {
             { id: "t1", posted: 1793507994, amount: "-05.50", description: "Bait", payee: "Shack" },
             { id: "t2", posted: 0, amount: "-12.00", description: "Cafe", pending: true },
             { id: "t3", posted: 1793507994, amount: "1.234", description: "Bad" },
+            { id: "t4", posted: 1793507994, amount: "00.00", description: "Nothing" },
           ],
         },
       ],

@@ -584,10 +584,10 @@ export async function runSync(
     if (err instanceof UserFacingError) {
       result.messages = [err.message];
     } else {
-      console.error(
-        "[simplefin] sync failed:",
-        redactSecrets(String((err as Error)?.message ?? err)),
-      );
+      // Log the cause only: a failed query's text carries transaction details.
+      const e = err as Error & { cause?: Error };
+      const detail = e?.cause?.message ?? String(e?.message ?? err).split("\n")[0]!.slice(0, 200);
+      console.error("[simplefin] sync failed:", redactSecrets(detail));
       result.messages = ["The sync failed unexpectedly. Check the server logs and try again."];
     }
     if (result.requests === 0) await logRequest(db, connectionId, { ok: false }).catch(() => {});

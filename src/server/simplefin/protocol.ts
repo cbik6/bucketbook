@@ -206,6 +206,8 @@ export function parseAccountSet(json: unknown): AccountSet {
         messages.push(`${a.name}: skipped a transaction. ${(err as Error).message}.`);
         continue;
       }
+      // A zero amount moves no money, so there is nothing to record.
+      if (amountCents === 0) continue;
       const pending = t.pending === true || !t.posted;
       transactions.push({
         id: t.id,
