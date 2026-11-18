@@ -1,6 +1,7 @@
 import { eq, sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { listAccounts } from "@/server/accounts/service";
+import { bankableAccounts } from "@/server/bank/accounts";
 import { importCsv } from "@/server/bank/csv-service";
 import { approveItem, approveTransfer, listQueue } from "@/server/bank/review-service";
 import { createRule } from "@/server/bank/rules-service";
@@ -125,6 +126,8 @@ describe("buckets", () => {
     ]);
     expect(overview.accounts[0]!.totalCents).toBe(500_000);
     expect(overview.eligible.map((e) => e.name)).not.toContain("Savings");
+    // It still takes bank data (CSV and SimpleFIN), landing in its buckets.
+    expect((await bankableAccounts(getDb(), ctx.bookId)).map((a) => a.name)).toContain("Savings");
   });
 
   it("moves money between buckets but never more than a bucket holds", async () => {

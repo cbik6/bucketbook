@@ -32,7 +32,9 @@ services:
 
   app:
     build: .
-    image: bucketbook:local
+    # Set BUCKETBOOK_IMAGE=ghcr.io/OWNER/bucketbook:latest (the repository owner) in .env to use the
+    # published image instead of building from source.
+    image: ${BUCKETBOOK_IMAGE:-bucketbook:local}
     restart: unless-stopped
     depends_on:
       postgres:

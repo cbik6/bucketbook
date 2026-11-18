@@ -19,7 +19,8 @@
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "test:e2e": "bash scripts/e2e.sh",
-    "db:reset": "docker compose -f docker-compose.dev.yml exec -T postgres psql -q -v ON_ERROR_STOP=1 -c \"set client_min_messages=warning\" -U bucketbook -d bucketbook -c \"drop schema public cascade; create schema public; drop schema if exists drizzle cascade; drop schema if exists pgboss cascade;\""
+    "db:reset": "docker compose -f docker-compose.dev.yml exec -T postgres psql -q -v ON_ERROR_STOP=1 -c \"set client_min_messages=warning\" -U bucketbook -d bucketbook -c \"drop schema public cascade; create schema public; drop schema if exists drizzle cascade; drop schema if exists pgboss cascade;\"",
+    "seed:demo": "tsx --env-file-if-exists=.env.local scripts/seed-demo.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { AppShell, AppShellFallback, PageHeader } from "@/components/app-shell";
 import { ButtonLink } from "@/components/ui/button";
+import { DemoButton } from "./demo-button";
 import { CHART_TEMPLATES } from "@/server/accounts/templates";
 import { requireUser } from "@/server/auth/session";
 import { listBooksForUser } from "@/server/books/service";
@@ -33,10 +34,13 @@ async function BooksContent() {
         title="Books"
         description="Each book keeps its own accounts and reports."
         actions={
-          <ButtonLink href="/books/new" variant="primary">
-            <Plus size={16} aria-hidden />
-            New book
-          </ButtonLink>
+          <>
+            <DemoButton />
+            <ButtonLink href="/books/new" variant="primary">
+              <Plus size={16} aria-hidden />
+              New book
+            </ButtonLink>
+          </>
         }
       />
       <div className="px-5 py-6 lg:px-10">

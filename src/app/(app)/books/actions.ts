@@ -6,7 +6,9 @@ import { type ActionState, actionError, formValues } from "@/server/action-state
 import { requireUser } from "@/server/auth/session";
 import { createBook, renameBook, requireBookAccess, setBookArchived } from "@/server/books/service";
 import { getDb } from "@/server/db/client";
+import { createDemoBook } from "@/server/demo/seed";
 import { changeStartDate } from "@/server/ledger/service";
+import { todayIso } from "@/lib/dates";
 
 export async function createBookAction(
   _prev: ActionState,
@@ -69,4 +71,20 @@ export async function changeStartDateAction(
   } catch (err) {
     return actionError(err, values);
   }
+}
+
+/** Creates the sample "Demo Household" book and opens its review queue. */
+export async function createDemoBookAction(): Promise<ActionState> {
+  let bookId: string;
+  try {
+    const user = await requireUser();
+    ({ bookId } = await createDemoBook(
+      getDb(),
+      { userId: user.id },
+      todayIso(process.env.TZ || undefined),
+    ));
+  } catch (err) {
+    return actionError(err);
+  }
+  redirect(`/books/${bookId}/review`);
 }

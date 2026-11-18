@@ -63,7 +63,7 @@ export function AppShell({
       </a>
 
       {/* Wide screens: rail */}
-      <aside className="on-rail sticky top-0 hidden h-dvh flex-col gap-6 bg-rail px-3 pb-4 pt-5 text-rail-ink lg:flex">
+      <aside className="on-rail sticky top-0 hidden h-dvh flex-col gap-6 overflow-y-auto overscroll-contain bg-rail px-3 pb-4 pt-5 text-rail-ink [scrollbar-width:thin] lg:flex">
         <Link href="/" className="rounded-md px-2 outline-offset-4">
           <Wordmark />
         </Link>

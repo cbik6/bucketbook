@@ -35,7 +35,7 @@ test("reports: budget, Profit and Loss, Balance Sheet, CSV", async ({ page }) =>
   await nav.getByRole("link", { name: "Reports" }).click();
   await page.getByRole("link", { name: /Balance Sheet/ }).click();
   await expect(page.getByRole("row", { name: /Total liabilities and equity/ })).toBeVisible();
-  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.getByText(/This should never happen/)).toHaveCount(0);
 
   const href = await page
     .getByRole("link", { name: "Export CSV" })

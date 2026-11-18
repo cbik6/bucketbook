@@ -92,16 +92,14 @@ export async function copyPreviousMonth(db: Database, actor: Actor, bookId: stri
       .where(and(eq(budgets.bookId, bookId), eq(budgets.month, prev)));
     if (rows.length === 0) throw new UserFacingError("Last month has no budget to copy.");
     await tx.delete(budgets).where(and(eq(budgets.bookId, bookId), eq(budgets.month, first)));
-    await tx
-      .insert(budgets)
-      .values(
-        rows.map((r) => ({
-          bookId,
-          accountId: r.accountId,
-          month: first,
-          amountCents: r.amountCents,
-        })),
-      );
+    await tx.insert(budgets).values(
+      rows.map((r) => ({
+        bookId,
+        accountId: r.accountId,
+        month: first,
+        amountCents: r.amountCents,
+      })),
+    );
     await recordAudit(tx, {
       bookId,
       userId: actor.userId,
