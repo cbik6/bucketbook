@@ -131,6 +131,8 @@ async function connectAndMap(
       mode: "map",
       bookId: ctx.bookId,
       accountId: ctx.id(accountName),
+      // These tests exercise history, so import from the book's start.
+      importFrom: "2000-01-01",
     });
   }
   return connection;
@@ -325,6 +327,53 @@ async function csvItems(
     (r) => r.accountId === ctx.id(accountName) && r.status === "review",
   );
 }
+
+describe("import start", () => {
+  it("brings in only transactions from the day an account is connected", async () => {
+    const ctx = await setupBook();
+    const bridge = fakeBridge({
+      CHK: {
+        balance: "500.00",
+        transactions: [
+          { id: "old", day: "2026-02-01", amount: "-20.00", description: "Before connecting" },
+          { id: "new", day: "2026-03-18", amount: "-5.00", description: "After connecting" },
+        ],
+      },
+    });
+    const { connection } = await connectSimplefin(getDb(), ctx.actor, ACCESS_URL, bridge.impl);
+    const [feed] = await getDb()
+      .select()
+      .from(bankFeeds)
+      .where(eq(bankFeeds.connectionId, connection.id));
+    await mapFeed(getDb(), ctx.actor, feed!.id, {
+      mode: "map",
+      bookId: ctx.bookId,
+      accountId: ctx.id("Checking"),
+      importFrom: "2026-03-15",
+    });
+    await sync(connection.id, bridge);
+    expect((await items(ctx.bookId)).map((r) => r.externalId)).toEqual(["new"]);
+    const [view] = await listConnections(getDb(), ctx.user.id);
+    expect(view!.feeds[0]!.importFrom).toBe("2026-03-15");
+  });
+
+  it("defaults the import start to today when connecting", async () => {
+    const ctx = await setupBook();
+    const bridge = fakeBridge({ CHK: { balance: "0", transactions: [] } });
+    const { connection } = await connectSimplefin(getDb(), ctx.actor, ACCESS_URL, bridge.impl);
+    const [feed] = await getDb()
+      .select()
+      .from(bankFeeds)
+      .where(eq(bankFeeds.connectionId, connection.id));
+    const mapped = await mapFeed(getDb(), ctx.actor, feed!.id, {
+      mode: "map",
+      bookId: ctx.bookId,
+      accountId: ctx.id("Checking"),
+    });
+    const { todayIso } = await import("@/lib/dates");
+    expect(mapped.importFrom).toBe(todayIso(process.env.TZ || undefined));
+  });
+});
 
 describe("several cards and investments", () => {
   it("gives each card its own new account and explains a clash", async () => {

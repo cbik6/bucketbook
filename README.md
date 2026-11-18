@@ -138,9 +138,10 @@ a small paid service that connects to most US banks and credit cards.
    and press Connect. The token works once; Bucketbook trades it for an access key and
    stores that encrypted with `APP_ENCRYPTION_KEY`.
 3. For each bank account, choose the book and account it feeds, or ignore it.
-4. Press **Sync now**. History comes in from each book's start date, a few weeks per
-   sync, to stay within SimpleFIN's limit of about 24 requests a day. After that it syncs
-   once a day at the hour you pick (in the server's `TZ`).
+4. Press **Sync now**. Each account brings in transactions from the day you connected it,
+   so enter its balance on that day as its opening balance (the Bank connections page
+   shows the bank's balance). After that it syncs once a day at the hour you pick (in the
+   server's `TZ`).
 
 New transactions wait in **For review** in each book. Approve each with a category (or
 split it), match transfers between your accounts, or exclude it. Rules fill in the

@@ -103,6 +103,12 @@ export const bankFeeds = pgTable(
     balanceCents: bigint("balance_cents", { mode: "number" }),
     availableBalanceCents: bigint("available_balance_cents", { mode: "number" }),
     balanceAt: timestamp("balance_at", { withTimezone: true }),
+    /**
+     * Transactions dated before this day are never brought in. Set to the day the
+     * account is connected, so opening balances (as of that day) aren't duplicated
+     * by history.
+     */
+    importFrom: date("import_from", { mode: "string" }),
     /** The newest day fetched for this account; the next sync starts a few days before it. */
     syncedThrough: date("synced_through", { mode: "string" }),
     /** The oldest day fetched, so a backfill knows where it stopped. */

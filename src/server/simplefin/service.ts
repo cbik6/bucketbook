@@ -193,6 +193,8 @@ export type FeedView = {
   backfilling: boolean;
   /** An investment account: the books follow the bank's value; trades aren't imported. */
   valueOnly: boolean;
+  /** Transactions before this day aren't brought in (the day it was connected). */
+  importFrom: string | null;
 };
 
 export type ConnectionView = {
@@ -307,10 +309,14 @@ export async function listConnections(db: DbOrTx, userId: string): Promise<Conne
               ? feed.balanceCents - ledgerCents - reviewCents
               : null,
           valueOnly: accountSubtype === "investment",
+          importFrom:
+            feed.accountId && bookStart ? effectiveStart(bookStart, feed.importFrom) : null,
           backfilling:
             accountSubtype !== "investment" &&
             Boolean(
-              feed.accountId && bookStart && (!feed.syncedFrom || feed.syncedFrom > bookStart),
+              feed.accountId &&
+              bookStart &&
+              (!feed.syncedFrom || feed.syncedFrom > effectiveStart(bookStart, feed.importFrom)),
             ),
         };
       }),
@@ -322,6 +328,11 @@ const mappingSchema = z.discriminatedUnion("mode", [
     mode: z.literal("map"),
     bookId: z.uuid("Pick a book."),
     accountId: z.uuid("Pick an account."),
+    /** First day to bring in; defaults to today, so history doesn't duplicate opening balances. */
+    importFrom: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date.")
+      .optional(),
   }),
   z.object({
     mode: z.literal("create"),
@@ -337,6 +348,10 @@ const mappingSchema = z.discriminatedUnion("mode", [
       .trim()
       .min(1, "Name the new account.")
       .max(100, "Keep the name under 100 characters."),
+    importFrom: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date.")
+      .optional(),
   }),
   z.object({ mode: z.literal("ignore") }),
   z.object({ mode: z.literal("unmap") }),
@@ -383,7 +398,12 @@ export async function mapFeed(db: Database, actor: Actor, feedId: string, raw: u
   if (input.mode === "create") {
     await requireBookAccess(db, actor.userId, input.bookId, "editor");
     const created = await createAccountForFeed(db, actor, input.bookId, input);
-    return mapFeed(db, actor, feedId, { mode: "map", bookId: input.bookId, accountId: created.id });
+    return mapFeed(db, actor, feedId, {
+      mode: "map",
+      bookId: input.bookId,
+      accountId: created.id,
+      importFrom: input.importFrom,
+    });
   }
   if (input.mode === "map") {
     await requireBookAccess(db, actor.userId, input.bookId, "editor");
@@ -400,7 +420,13 @@ export async function mapFeed(db: Database, actor: Actor, feedId: string, raw: u
                 bookId: input.bookId,
                 accountId: input.accountId,
                 ignored: false,
-                ...(sameTarget ? {} : { syncedFrom: null, syncedThrough: null }),
+                ...(sameTarget
+                  ? {}
+                  : {
+                      syncedFrom: null,
+                      syncedThrough: null,
+                      importFrom: input.importFrom ?? todayIso(serverTimeZone()),
+                    }),
               }
             : {
                 bookId: null,
@@ -408,6 +434,7 @@ export async function mapFeed(db: Database, actor: Actor, feedId: string, raw: u
                 ignored: input.mode === "ignore",
                 syncedFrom: null,
                 syncedThrough: null,
+                importFrom: null,
               },
         )
         .where(eq(bankFeeds.id, feedId))
@@ -473,6 +500,11 @@ export type SyncResult = {
 };
 
 type Interval = { from: string; to: string };
+
+/** The first day a feed brings in: its import date, but never before the book starts. */
+function effectiveStart(bookStart: string, importFrom: string | null) {
+  return importFrom && importFrom > bookStart ? importFrom : bookStart;
+}
 
 function mergeIntervals(list: Interval[]): Interval[] {
   const sorted = list.filter((i) => i.from < i.to).sort((a, b) => a.from.localeCompare(b.from));
@@ -604,7 +636,8 @@ export async function runSync(
         .groupBy(bankTransactions.feedId);
       const pendingFrom = new Map(oldestPending.map((r) => [r.feedId, r.day]));
       const needed: Interval[] = [];
-      for (const { feed, startDate } of active) {
+      for (const { feed, startDate: bookStart } of active) {
+        const startDate = effectiveStart(bookStart, feed.importFrom);
         if (!feed.syncedThrough || !feed.syncedFrom) {
           needed.push({ from: startDate, to: end });
           continue;
@@ -631,9 +664,10 @@ export async function runSync(
         result.messages.push(...set.messages);
         let windowNew = 0;
         let windowUpdated = 0;
-        for (const { feed, startDate } of active) {
+        for (const { feed, startDate: bookStart } of active) {
           const account = set.accounts.find((a) => a.id === feed.externalId);
           if (!account) continue;
+          const startDate = effectiveStart(bookStart, feed.importFrom);
           const counts = await applyWindow(db, feed, startDate, account.transactions, w, now);
           windowNew += counts.newCount;
           windowUpdated += counts.updatedCount;

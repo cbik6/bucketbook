@@ -452,3 +452,13 @@ payee or description contains the bank text with store numbers, dates and long
 reference digits removed, the direction, the bank account, and the category, bucket and
 payee chosen on that row. Saving re-applies rules to the queue. The quick "Always use
 this category" tick remains for the common case.
+
+### D56. Bank history starts the day you connect
+
+Pulling history back to the book's start date fought with opening balances, which people
+enter as the balance on the day they set an account up. Each feed now has an import start
+(`import_from`), set to the day it is mapped (and to the upgrade day for feeds connected
+before this change); syncs never bring in anything earlier, and never before the book's
+start date. The opening balance is the account's balance on that day. For older history,
+import a CSV, which is explicit and fingerprinted against duplicates. This supersedes the
+backfill part of D35.

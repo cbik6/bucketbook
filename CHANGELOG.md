@@ -6,6 +6,15 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-18
+
+### Changed
+
+- Connected bank accounts bring in transactions from the day they are connected, not
+  from the book's start date, so they don't duplicate opening balances. Accounts already
+  connected start from the day of this update. The Bank connections page shows each
+  account's start day.
+
 ## [1.3.0] - 2026-11-18
 
 ### Added

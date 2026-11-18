@@ -8,6 +8,7 @@ import { Money } from "@/components/money";
 import { Button } from "@/components/ui/button";
 import { Field, FormError, SelectInput, TextInput, inputClass } from "@/components/ui/field";
 import { HoldButton } from "@/components/ui/hold-button";
+import { formatDay } from "@/lib/dates";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { ConnectionView, FeedView } from "@/server/simplefin/service";
 import {
@@ -321,6 +322,12 @@ function FeedStatus({ feed }: { feed: FeedView }) {
           , then anything dated before the book&apos;s start date.
         </p>
       )}
+      {feed.importFrom ? (
+        <p>
+          Brings in transactions from {formatDay(feed.importFrom)} on; enter the balance before that
+          as its opening balance.
+        </p>
+      ) : null}
       {feed.backfilling ? <p>Older history is still coming in, a few weeks per sync.</p> : null}
     </div>
   );
