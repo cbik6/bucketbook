@@ -36,6 +36,13 @@
       "when": 1794963526310,
       "tag": "0004_ledger_view_payee",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794966283041,
+      "tag": "0005_buckets",
+      "breakpoints": true
     }
   ]
 }

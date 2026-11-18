@@ -33,7 +33,7 @@ async function ConnectionsContent({ searchParams }: PageProps<"/connections">) {
         .filter(
           (a) =>
             (a.type === "asset" || a.type === "liability") &&
-            a.allowsPosting &&
+            (a.allowsPosting || a.bucketsEnabled) &&
             !a.isBucket &&
             !a.systemRole &&
             !a.archivedAt,

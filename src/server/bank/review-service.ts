@@ -27,6 +27,7 @@ import {
   reverseEntry,
   validateLines,
 } from "../ledger/service";
+import { allocateDepositInTx, unassignedOf } from "../buckets/service";
 import { applyRules } from "./rules-service";
 
 type Actor = { userId: string };
@@ -48,6 +49,63 @@ function offsetSide(amountCents: number, part: number) {
 }
 
 type ItemRow = typeof bankTransactions.$inferSelect;
+
+type LineSide = { lineAccountId: string; parentId: string; unassignedId: string | null };
+
+/**
+ * Where the bank line posts. A plain account takes it directly. An account
+ * with buckets takes it in the chosen bucket, or Unassigned when none is
+ * chosen (or the choice isn't one of its buckets).
+ */
+async function bankLineAccount(
+  tx: DbOrTx,
+  accountId: string,
+  bucketId: string | null | undefined,
+): Promise<LineSide> {
+  const [acct] = await tx
+    .select({ bucketsEnabled: accounts.bucketsEnabled })
+    .from(accounts)
+    .where(eq(accounts.id, accountId));
+  if (!acct?.bucketsEnabled)
+    return { lineAccountId: accountId, parentId: accountId, unassignedId: null };
+  const unassigned = await unassignedOf(tx, accountId);
+  if (!unassigned) throw new UserFacingError("This account's Unassigned bucket is missing.");
+  if (bucketId && z.uuid().safeParse(bucketId).success) {
+    const [bucket] = await tx
+      .select({ id: accounts.id })
+      .from(accounts)
+      .where(
+        and(
+          eq(accounts.id, bucketId),
+          eq(accounts.parentAccountId, accountId),
+          eq(accounts.isBucket, true),
+          isNull(accounts.archivedAt),
+        ),
+      );
+    if (bucket)
+      return { lineAccountId: bucket.id, parentId: accountId, unassignedId: unassigned.id };
+  }
+  return { lineAccountId: unassigned.id, parentId: accountId, unassignedId: unassigned.id };
+}
+
+/** A deposit into Unassigned runs the account's allocation rules. */
+async function allocateIfDeposit(
+  tx: DbOrTx,
+  actor: Actor,
+  bookId: string,
+  side: LineSide,
+  item: ItemRow,
+) {
+  if (!side.unassignedId || side.lineAccountId !== side.unassignedId || item.amountCents <= 0)
+    return;
+  await allocateDepositInTx(tx, actor, bookId, {
+    parentId: side.parentId,
+    unassignedId: side.unassignedId,
+    depositCents: item.amountCents,
+    date: item.postedDate,
+    label: item.payee ?? item.description,
+  });
+}
 
 async function lockItem(tx: DbOrTx, bookId: string, itemId: string): Promise<ItemRow> {
   if (!z.uuid().safeParse(itemId).success) throw new NotFoundError("That transaction");
@@ -107,6 +165,8 @@ const approveSchema = z.object({
   memo: z.string().trim().max(500).optional(),
   /** Save "this payee goes to this account" as a rule. */
   saveRule: z.boolean().optional(),
+  /** For an account with buckets: which bucket the money comes from or goes to. */
+  bucketId: z.string().optional(),
 });
 
 export type ApproveInput = z.input<typeof approveSchema>;
@@ -132,8 +192,13 @@ export async function approveItem(
     assertDateAllowed(item.postedDate, book.startDate);
     const size = Math.abs(item.amountCents);
 
+    const side = await bankLineAccount(
+      tx,
+      item.accountId,
+      input.bucketId || item.suggestedBucketId,
+    );
     const lines: DraftLine[] = [
-      { accountId: item.accountId, ...bankSide(item.amountCents), memo: "" },
+      { accountId: side.lineAccountId, ...bankSide(item.amountCents), memo: "" },
     ];
     if (input.splits && input.splits.length > 0) {
       let total = 0;
@@ -165,7 +230,11 @@ export async function approveItem(
       if (!accountId) throw new UserFacingError("Pick a category first.", "accountId");
       lines.push({ accountId, ...offsetSide(item.amountCents, size), memo: "" });
     }
-    if (lines.slice(1).some((l) => l.accountId === item.accountId)) {
+    if (
+      lines
+        .slice(1)
+        .some((l) => l.accountId === item.accountId || l.accountId === side.lineAccountId)
+    ) {
       throw new UserFacingError(
         "The category can't be the same account the transaction is on.",
         "accountId",
@@ -185,6 +254,7 @@ export async function approveItem(
       changeNote: "Approved from review",
     });
     await markPosted(tx, actor, item, entry.id, "approved");
+    await allocateIfDeposit(tx, actor, bookId, side, item);
 
     let ruleCreated = false;
     if (input.saveRule && lines.length === 2 && payee) {
@@ -307,6 +377,7 @@ const transferSchema = z.object({
   /** For a transfer between books: the account standing for the other book, in each book. */
   counterpartAccountId: z.string().optional(),
   partnerCounterpartAccountId: z.string().optional(),
+  bucketId: z.string().optional(),
   memo: z.string().trim().max(500).optional(),
 });
 
@@ -364,11 +435,13 @@ export async function approveTransfer(
     assertDateAllowed(partner.postedDate, locked.get(otherBookId)!.startDate);
     const memo = input.memo || null;
 
+    const itemSide = await bankLineAccount(tx, item.accountId, input.bucketId);
+    const partnerSide = await bankLineAccount(tx, partner.accountId, undefined);
     if (otherBookId === bookId) {
       const outflow = item.amountCents < 0 ? item : partner;
       const lines = await validateLines(tx, bookId, [
-        { accountId: item.accountId, ...bankSide(item.amountCents), memo: "" },
-        { accountId: partner.accountId, ...bankSide(partner.amountCents), memo: "" },
+        { accountId: itemSide.lineAccountId, ...bankSide(item.amountCents), memo: "" },
+        { accountId: partnerSide.lineAccountId, ...bankSide(partner.amountCents), memo: "" },
       ]);
       const entry = await createEntry(tx, {
         actor,
@@ -381,6 +454,8 @@ export async function approveTransfer(
       });
       await markPosted(tx, actor, item, entry.id, "transfer");
       await markPosted(tx, actor, partner, entry.id, "transfer");
+      await allocateIfDeposit(tx, actor, bookId, itemSide, item);
+      await allocateIfDeposit(tx, actor, bookId, partnerSide, partner);
       return { entries: [entry] };
     }
 
@@ -401,12 +476,12 @@ export async function approveTransfer(
     const nameOf = (id: string) => bookNames.find((b) => b.id === id)?.name ?? "the other book";
     const groupId = randomUUID();
     const entries = [];
-    for (const [side, book, other, counterpart] of [
-      [item, bookId, otherBookId, mine],
-      [partner, otherBookId, bookId, theirs],
+    for (const [side, book, other, counterpart, lineSide] of [
+      [item, bookId, otherBookId, mine, itemSide],
+      [partner, otherBookId, bookId, theirs, partnerSide],
     ] as const) {
       const lines = await validateLines(tx, book, [
-        { accountId: side.accountId, ...bankSide(side.amountCents), memo: "" },
+        { accountId: lineSide.lineAccountId, ...bankSide(side.amountCents), memo: "" },
         {
           accountId: counterpart,
           ...offsetSide(side.amountCents, Math.abs(side.amountCents)),
@@ -425,6 +500,7 @@ export async function approveTransfer(
         changeNote: "Matched transfer between books",
       });
       await markPosted(tx, actor, side, entry.id, "transfer");
+      await allocateIfDeposit(tx, actor, book, lineSide, side);
       await tx
         .insert(bookCounterparts)
         .values({ bookId: book, otherBookId: other, accountId: counterpart })
@@ -586,17 +662,22 @@ export async function linkCandidates(
     net: string;
   }>(sql`
     select l.entry_id, l.entry_number, l.entry_date::text as entry_date, l.entry_payee, l.entry_memo,
-           l.account_id, sum(l.net_cents)::text as net
+           coalesce(case when a.is_bucket then a.parent_account_id end, l.account_id) as account_id,
+           sum(l.net_cents)::text as net
     from ledger_lines l
+    join accounts a on a.id = l.account_id
     where l.book_id = ${bookId}
-      and l.account_id = any(${uuidArray(accountIds)})
+      and coalesce(case when a.is_bucket then a.parent_account_id end, l.account_id)
+          = any(${uuidArray(accountIds)})
       and l.entry_kind not in ('reversal', 'opening_balance')
       and not exists (select 1 from journal_entries r where r.reverses_entry_id = l.entry_id)
       and not exists (
         select 1 from bank_transactions b
-        where b.entry_id = l.entry_id and b.account_id = l.account_id
+        where b.entry_id = l.entry_id
+          and b.account_id = coalesce(case when a.is_bucket then a.parent_account_id end, l.account_id)
       )
-    group by l.entry_id, l.entry_number, l.entry_date, l.entry_payee, l.entry_memo, l.account_id
+    group by l.entry_id, l.entry_number, l.entry_date, l.entry_payee, l.entry_memo,
+             coalesce(case when a.is_bucket then a.parent_account_id end, l.account_id)
   `);
   const day = (d: string) => Date.parse(`${d}T00:00:00Z`) / 86_400_000;
   for (const item of items) {

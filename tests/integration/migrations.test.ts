@@ -50,6 +50,7 @@ describe("migrations", () => {
       "book_counterparts",
       "book_members",
       "books",
+      "bucket_rules",
       "csv_presets",
       "journal_entries",
       "journal_entry_versions",

@@ -1,6 +1,8 @@
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   boolean,
+  date,
   check,
   foreignKey,
   index,
@@ -42,6 +44,13 @@ export const accounts = pgTable(
     allowsPosting: boolean("allows_posting").notNull().default(true),
     bucketsEnabled: boolean("buckets_enabled").notNull().default(false),
     isBucket: boolean("is_bucket").notNull().default(false),
+    /** The one bucket per parent that deposits land in until they are allocated. */
+    isUnassigned: boolean("is_unassigned").notNull().default(false),
+    /** Bucket goal: a target amount, optionally by a date. */
+    goalCents: bigint("goal_cents", { mode: "number" }),
+    goalDate: date("goal_date", { mode: "string" }),
+    /** Bucket card color: one of the reserved pastels. */
+    color: text("color"),
     sortOrder: integer("sort_order").notNull().default(0),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -88,5 +97,18 @@ export const accounts = pgTable(
       sql`not (${t.bucketsEnabled} and ${t.allowsPosting})`,
     ),
     check("accounts_bucket_flags", sql`not (${t.bucketsEnabled} and ${t.isBucket})`),
+    check("accounts_unassigned_is_bucket", sql`not ${t.isUnassigned} or ${t.isBucket}`),
+    check(
+      "accounts_goal_only_buckets",
+      sql`(${t.goalCents} is null and ${t.goalDate} is null) or ${t.isBucket}`,
+    ),
+    check("accounts_goal_positive", sql`${t.goalCents} is null or ${t.goalCents} > 0`),
+    check(
+      "accounts_color_check",
+      sql`${t.color} is null or ${inList(t.color, ["pink", "yellow", "green", "blue"])}`,
+    ),
+    uniqueIndex("accounts_one_unassigned_key")
+      .on(t.parentAccountId)
+      .where(sql`${t.isUnassigned}`),
   ],
 );

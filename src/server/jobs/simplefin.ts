@@ -1,13 +1,16 @@
 import type { PgBoss } from "pg-boss";
 import { getDb } from "../db/client";
+import { runMonthlyRules } from "../buckets/service";
 import { allConnectionSchedules, runSync } from "../simplefin/service";
 import { getBoss } from "./boss";
 
 /**
- * The daily SimpleFIN sync. Each connection gets its own schedule (keyed by
+ * Scheduled jobs: the daily SimpleFIN sync and monthly bucket allocations.
+ * Each SimpleFIN connection gets its own schedule (keyed by
  * connection id) at its chosen hour and a random minute, in the server's TZ.
  */
 export const SYNC_QUEUE = "simplefin-sync";
+export const MONTHLY_QUEUE = "bucket-monthly";
 
 type SyncJob = { connectionId: string };
 
@@ -26,6 +29,14 @@ export async function registerSimplefinJobs(boss: PgBoss) {
     console.log(`[jobs] simplefin sync ${result.status}`);
   });
   await syncSchedules(boss);
+
+  // Monthly bucket allocations: checked every morning, each rule runs once a month.
+  await boss.createQueue(MONTHLY_QUEUE, { policy: "singleton", retryLimit: 1 });
+  await boss.work(MONTHLY_QUEUE, async () => {
+    const r = await runMonthlyRules(getDb(), null);
+    if (r.movedCents) console.log("[jobs] monthly bucket allocations posted");
+  });
+  await boss.schedule(MONTHLY_QUEUE, "10 1 * * *", null, { tz: process.env.TZ || "UTC" });
 }
 
 /** Makes the schedules match the connections: add, move, or remove. */

@@ -24,8 +24,17 @@ import { inList } from "./sql-helpers";
  * manual: typed on the journal screen. opening_balance: the one opening entry.
  * reversal: cancels another entry. bank: approved from the review queue.
  * transfer: money moving between two of your own accounts (one entry per book).
+ * bucket: money moving between buckets inside one real account (allocations
+ * and manual moves). The real account's total never changes.
  */
-export const ENTRY_KINDS = ["manual", "opening_balance", "reversal", "bank", "transfer"] as const;
+export const ENTRY_KINDS = [
+  "manual",
+  "opening_balance",
+  "reversal",
+  "bank",
+  "transfer",
+  "bucket",
+] as const;
 export type EntryKind = (typeof ENTRY_KINDS)[number];
 
 /**

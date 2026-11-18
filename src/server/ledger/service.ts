@@ -584,9 +584,22 @@ async function assertBankLinksKept(tx: DbOrTx, entryId: string, lines: ParsedLin
     const prev = expected.get(l.accountId)?.cents ?? 0;
     expected.set(l.accountId, { cents: prev + l.amountCents, name: l.name });
   }
+  const buckets = expected.size
+    ? await tx
+        .select({ id: accounts.id, parentAccountId: accounts.parentAccountId })
+        .from(accounts)
+        .where(
+          and(inArray(accounts.parentAccountId, [...expected.keys()]), eq(accounts.isBucket, true)),
+        )
+    : [];
   for (const [accountId, { cents, name }] of expected) {
+    // An account with buckets holds its money in them, so count their lines too.
+    const ids = new Set([
+      accountId,
+      ...buckets.filter((b) => b.parentAccountId === accountId).map((b) => b.id),
+    ]);
     const net = lines
-      .filter((l) => l.accountId === accountId)
+      .filter((l) => ids.has(l.accountId))
       .reduce((sum, l) => sum + l.debitCents - l.creditCents, 0);
     if (net !== cents) {
       throw new UserFacingError(

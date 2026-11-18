@@ -229,8 +229,12 @@ export async function listConnections(db: DbOrTx, userId: string): Promise<Conne
   const review = new Map<string, { cents: number; n: number; pending: number }>();
   if (accountIds.length) {
     const l = await db.execute<{ account_id: string; net: string }>(sql`
-      select account_id, sum(net_cents)::text as net from ledger_lines
-      where account_id = any(${uuidArray(accountIds)}) group by account_id
+      select coalesce(case when a.is_bucket then a.parent_account_id end, l.account_id) as account_id,
+             sum(l.net_cents)::text as net
+      from ledger_lines l join accounts a on a.id = l.account_id
+      where coalesce(case when a.is_bucket then a.parent_account_id end, l.account_id)
+            = any(${uuidArray(accountIds)})
+      group by 1
     `);
     for (const r of l.rows) ledger.set(r.account_id, Number(r.net));
     const q = await db.execute<{

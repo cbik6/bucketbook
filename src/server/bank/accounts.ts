@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
 import type { DbOrTx } from "../db/client";
 import { accounts } from "../db/schema";
 import { NotFoundError, UserFacingError } from "../errors";
@@ -6,8 +6,8 @@ import { NotFoundError, UserFacingError } from "../errors";
 /**
  * Accounts that bank data can land on: asset and liability accounts you can
  * post to (checking, savings, cash, credit cards, loans). System accounts and
- * buckets are left out. An account with buckets turned on joins in Phase 4,
- * when its deposits land in Unassigned.
+ * buckets are left out; an account with buckets takes bank data itself and
+ * the bank line goes to one of its buckets (deposits to Unassigned).
  */
 export async function bankableAccounts(db: DbOrTx, bookId: string) {
   return db
@@ -23,7 +23,7 @@ export async function bankableAccounts(db: DbOrTx, bookId: string) {
       and(
         eq(accounts.bookId, bookId),
         inArray(accounts.type, ["asset", "liability"]),
-        eq(accounts.allowsPosting, true),
+        or(eq(accounts.allowsPosting, true), eq(accounts.bucketsEnabled, true)),
         eq(accounts.isBucket, false),
         isNull(accounts.systemRole),
         isNull(accounts.archivedAt),
