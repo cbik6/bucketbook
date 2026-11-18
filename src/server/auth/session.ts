@@ -6,14 +6,19 @@ import { getDb } from "../db/client";
 import { getSetupState } from "../setup/service";
 import { getAuth } from "./auth";
 
-export type CurrentUser = { id: string; name: string; email: string };
+export type CurrentUser = { id: string; name: string; email: string; isAdmin: boolean };
 
 /** The signed-in user for this request, or null. Cached per request. */
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const requestHeaders = await headers();
   const session = await getAuth().api.getSession({ headers: requestHeaders });
   if (!session) return null;
-  return { id: session.user.id, name: session.user.name, email: session.user.email };
+  return {
+    id: session.user.id,
+    name: session.user.name,
+    email: session.user.email,
+    isAdmin: Boolean(session.user.isAdmin),
+  };
 });
 
 /**

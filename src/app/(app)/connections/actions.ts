@@ -19,6 +19,7 @@ import {
 
 async function actor() {
   const user = await requireUser();
+  if (!user.isAdmin) throw new UserFacingError("Only an admin can manage bank connections.");
   return { userId: user.id };
 }
 

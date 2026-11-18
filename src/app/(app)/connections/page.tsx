@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
+import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { AppShell, AppShellFallback, PageHeader } from "@/components/app-shell";
 import { accountPath } from "@/lib/account-tree";
@@ -16,6 +17,7 @@ export const metadata: Metadata = { title: "Bank connections" };
 async function ConnectionsContent({ searchParams }: PageProps<"/connections">) {
   await connection();
   const user = await requireUser();
+  if (!user.isAdmin) notFound();
   const sp = await searchParams;
   const db = getDb();
   const [books, connections, editable] = await Promise.all([

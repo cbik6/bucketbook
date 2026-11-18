@@ -13,6 +13,7 @@ import {
   NotebookPen,
   PiggyBank,
   Settings2,
+  Users,
   Wand2,
 } from "lucide-react";
 import Link from "next/link";
@@ -22,10 +23,13 @@ export function NavLinks({
   bookId,
   layout,
   reviewCount = 0,
+  admin = false,
 }: {
   bookId: string;
   layout: "rail" | "bar";
   reviewCount?: number;
+  /** Admins also get Bank connections and People in the phone bar. */
+  admin?: boolean;
 }) {
   const pathname = usePathname();
   type NavLink = { href: string; label: string; Icon: typeof Inbox; count?: number };
@@ -62,11 +66,14 @@ export function NavLinks({
     },
   ];
   const links = groups.flatMap((g) => g.links);
-  // The rail has its own Bank connections link at the bottom; the phone bar needs one here.
-  const barLinks = [
-    ...links,
-    { href: `/connections?book=${bookId}`, label: "Bank connections", Icon: Inbox },
-  ];
+  // The rail has its own admin links at the bottom; the phone bar needs them here.
+  const barLinks = admin
+    ? [
+        ...links,
+        { href: `/connections?book=${bookId}`, label: "Bank connections", Icon: Inbox },
+        { href: "/people", label: "People", Icon: Users },
+      ]
+    : links;
 
   if (layout === "bar") {
     return (

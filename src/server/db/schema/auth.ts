@@ -23,6 +23,8 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
+  /** Admins manage people and bank connections. The person who set up the install is one. */
+  isAdmin: boolean("is_admin").notNull().default(false),
   ...timestamps,
 });
 

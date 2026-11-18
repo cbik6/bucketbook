@@ -44,7 +44,7 @@ decimal places is an error rather than a silent rounding.
 Its tables are renamed `auth_sessions`, `auth_accounts` and `auth_verifications` so they
 are never confused with the chart of accounts; `users` keeps its plain name. IDs are
 UUIDs. Better Auth's telemetry is explicitly off. A database hook closes sign-up once
-the first user exists (single user for now). Sessions last 30 days.
+the first user exists; later logins come only from invitations (D60). Sessions last 30 days.
 
 ### D8. Multi-user ready schema
 
@@ -498,3 +498,22 @@ needs to know. Turning the flag on or off flips the stored balances at once and,
 nothing has been imported yet, resets the opening balance from the corrected figure. The
 guide offers it only for money accounts showing a negative balance, since an overdrawn
 checking account is real and should stay as reported unless the person says otherwise.
+
+### D60. People, admins, and invitation links
+
+Book roles (owner, editor, viewer) already existed per book (D8) and every action
+checks them on the server, so sharing needed only a way in and someone to manage it.
+`users.is_admin` marks admins; the first login becomes one, and the upgrade made every
+existing login one. Admins manage people and bank connections; bank connections are no
+longer tied to the person who added them, since books are shared.
+
+New people join through an invitation link rather than a password set by the admin,
+because then nobody else ever knows their password and no email server is needed. The
+link holds 32 random bytes; only the SHA-256 hash is stored, it works once, expires in 7
+days, and a new invitation or a fresh link replaces the old one. Sign-up stays closed: the
+database hook allows a new login only for the first user, or while the app itself is
+accepting a valid invitation (an `AsyncLocalStorage` context set around its own sign-up
+call), so the public sign-up endpoint can't be used even by someone who knows an invited
+email. Changes keep at least one owner per book and one admin per install; membership
+changes take a table lock so two admins can't each remove the other last owner. Removing
+a person deletes their login; their past entries stay, no longer linked to a name.

@@ -1,4 +1,4 @@
-import { Link2, LogOut } from "lucide-react";
+import { Link2, LogOut, Users } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { signOutAction } from "@/app/(auth)/login/actions";
@@ -72,13 +72,24 @@ export function AppShell({
           <NavLinks bookId={currentBookId} layout="rail" reviewCount={reviewCount} />
         ) : null}
         <div className="mt-auto flex flex-col gap-3 border-t border-rail-rule px-1 pt-4">
-          <Link
-            href={currentBookId ? `/connections?book=${currentBookId}` : "/connections"}
-            className="flex h-9 items-center gap-2.5 rounded-lg px-2 text-sm text-rail-muted transition-colors duration-150 hover:bg-rail-raised hover:text-rail-ink"
-          >
-            <Link2 size={16} strokeWidth={1.75} aria-hidden />
-            Bank connections
-          </Link>
+          {user.isAdmin ? (
+            <div className="flex flex-col">
+              <Link
+                href={currentBookId ? `/connections?book=${currentBookId}` : "/connections"}
+                className="flex h-9 items-center gap-2.5 rounded-lg px-2 text-sm text-rail-muted transition-colors duration-150 hover:bg-rail-raised hover:text-rail-ink"
+              >
+                <Link2 size={16} strokeWidth={1.75} aria-hidden />
+                Bank connections
+              </Link>
+              <Link
+                href="/people"
+                className="flex h-9 items-center gap-2.5 rounded-lg px-2 text-sm text-rail-muted transition-colors duration-150 hover:bg-rail-raised hover:text-rail-ink"
+              >
+                <Users size={16} strokeWidth={1.75} aria-hidden />
+                People
+              </Link>
+            </div>
+          ) : null}
           <div className="min-w-0 px-1">
             <div className="truncate text-sm font-medium">{user.name}</div>
             <div className="truncate text-xs text-rail-muted">{user.email}</div>
@@ -107,8 +118,13 @@ export function AppShell({
         <div className="flex flex-col gap-2 px-4 pb-3">
           <BookSwitcher books={switcherBooks} currentId={currentBookId} />
           {currentBookId ? (
-            <NavLinks bookId={currentBookId} layout="bar" reviewCount={reviewCount} />
-          ) : (
+            <NavLinks
+              bookId={currentBookId}
+              layout="bar"
+              reviewCount={reviewCount}
+              admin={user.isAdmin}
+            />
+          ) : user.isAdmin ? (
             <nav aria-label="App" className="flex gap-1">
               <Link
                 href="/connections"
@@ -116,8 +132,14 @@ export function AppShell({
               >
                 Bank connections
               </Link>
+              <Link
+                href="/people"
+                className="shrink-0 rounded-md px-3 py-1.5 text-sm text-rail-muted hover:text-rail-ink"
+              >
+                People
+              </Link>
             </nav>
-          )}
+          ) : null}
         </div>
       </header>
 

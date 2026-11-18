@@ -101,10 +101,12 @@ async function ReviewContent({ params, searchParams }: PageProps<"/books/[bookId
         actions={
           <>
             <span className="hidden gap-2 sm:flex">
-              <ButtonLink href={`/connections?book=${book.id}`} variant="ghost">
-                <Link2 size={15} aria-hidden />
-                Bank connections
-              </ButtonLink>
+              {user.isAdmin ? (
+                <ButtonLink href={`/connections?book=${book.id}`} variant="ghost">
+                  <Link2 size={15} aria-hidden />
+                  Bank connections
+                </ButtonLink>
+              ) : null}
               <ButtonLink href={`/books/${book.id}/rules`} variant="ghost">
                 <Wand2 size={15} aria-hidden />
                 Rules

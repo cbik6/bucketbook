@@ -9,6 +9,7 @@ import { recordAudit } from "../audit/record";
 import { applyRules } from "../bank/rules-service";
 import { requireBankableAccount } from "../bank/accounts";
 import { requireBookAccess } from "../books/service";
+import { isAdmin } from "../people/service";
 import { decryptSecret, encryptSecret } from "../crypto/secret-box";
 import type { Database, DbOrTx } from "../db/client";
 import { uuidArray } from "../db/sql";
@@ -29,7 +30,7 @@ import {
   setOpeningBalanceFor,
   validateLines,
 } from "../ledger/service";
-import { NotFoundError, UserFacingError, pgErrorInfo } from "../errors";
+import { ForbiddenError, NotFoundError, UserFacingError, pgErrorInfo } from "../errors";
 import { type ExistingRow, addDays, planFeedSync, syncWindows, incomingDay } from "./plan";
 import {
   type AccountSet,
@@ -129,6 +130,9 @@ export async function connectSimplefin(
   tokenOrUrl: string,
   fetchImpl: FetchLike = fetch,
 ) {
+  if (!(await isAdmin(db, actor.userId))) {
+    throw new ForbiddenError("Only an admin can connect a bank.");
+  }
   const text = tokenOrUrl.trim();
   if (!text) throw new UserFacingError("Paste your SimpleFIN setup token.", "token");
   const accessUrl = looksLikeAccessUrl(text) ? text : await claimSetupToken(text, fetchImpl);
@@ -163,15 +167,12 @@ export async function connectSimplefin(
 
 async function loadConnection(db: DbOrTx, userId: string, connectionId: string) {
   if (!z.uuid().safeParse(connectionId).success) throw new NotFoundError("That connection");
+  // Bank connections belong to the install and are managed by admins.
+  if (!(await isAdmin(db, userId))) throw new NotFoundError("That connection");
   const [conn] = await db
     .select()
     .from(simplefinConnections)
-    .where(
-      and(
-        eq(simplefinConnections.id, connectionId),
-        or(eq(simplefinConnections.createdBy, userId), isNull(simplefinConnections.createdBy)),
-      ),
-    );
+    .where(eq(simplefinConnections.id, connectionId));
   if (!conn) throw new NotFoundError("That connection");
   return conn;
 }
@@ -222,10 +223,10 @@ export type ConnectionView = {
 };
 
 export async function listConnections(db: DbOrTx, userId: string): Promise<ConnectionView[]> {
+  if (!(await isAdmin(db, userId))) return [];
   const conns = await db
     .select()
     .from(simplefinConnections)
-    .where(or(eq(simplefinConnections.createdBy, userId), isNull(simplefinConnections.createdBy)))
     .orderBy(asc(simplefinConnections.createdAt));
   if (conns.length === 0) return [];
   const feeds = await db

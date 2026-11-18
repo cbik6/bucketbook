@@ -15,12 +15,15 @@ export function setupCleanDatabase() {
 
 let counter = 0;
 
-/** Inserts a user row directly (no password), for service-level tests. */
-export async function makeUser(name = "Test User") {
+/**
+ * Inserts a user row directly (no password), for service-level tests. Admins by
+ * default, like the person who sets up an install; pass false for a member.
+ */
+export async function makeUser(name = "Test User", isAdmin = true) {
   counter += 1;
   const [row] = await getDb()
     .insert(users)
-    .values({ name, email: `user${counter}-${Date.now()}@example.test` })
+    .values({ name, email: `user${counter}-${Date.now()}@example.test`, isAdmin })
     .returning();
   return row!;
 }

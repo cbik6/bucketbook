@@ -28,7 +28,8 @@ your real bank accounts, running on your own server.
   amortization schedule (payments split into principal and interest for you), budget by
   month, and read Profit and Loss, Balance Sheet, Budget vs. Actuals, bucket, spending
   and net worth reports, all with drill-down and CSV export.
-- **Multiple books.** Keep your household and each business separate.
+- **Multiple books, multiple people.** Keep your household and each business separate,
+  and invite others with an Owner, Editor or Viewer role in each book.
 - **Your data, your server.** Plain Postgres with readable table names, installable on
   your phone's home screen, light and dark mode.
 
@@ -184,6 +185,25 @@ loan accounts can be reconciled against statements from **Reconcile**.
 For banks SimpleFIN can't reach, export a CSV from the bank and use **Import CSV** on the
 For review page. The column mapping is remembered per account.
 
+## People
+
+The person who sets up Bucketbook is its admin. Admins manage people and bank
+connections from **People** and **Bank connections** at the bottom of the menu.
+
+To add someone, open **People**, enter their name and email, pick a role for each book,
+and select **Make invite link**. Send them the link: it works once and expires in 7 days.
+They open it, choose a password, and land in their books. There is no email server
+involved, and sign-up is closed to anyone without a link.
+
+- **Owner:** everything an editor can do, plus the book's settings (rename, archive,
+  delete).
+- **Editor:** enters and approves transactions, and works with rules, buckets, budgets,
+  loans and reconciling.
+- **Viewer:** sees the book and its reports, but can't change anything.
+
+An admin can change anyone's access, make them an admin, or remove them. Every book
+always keeps at least one owner, and the install always keeps at least one admin.
+
 ## Querying your books with SQL
 
 The database uses plain, readable names. The `ledger_lines` view has one row per posted
@@ -274,7 +294,7 @@ Version 1 is complete:
 7. **Polish:** install as an app, demo book, CI and published images.
 
 Ideas for later (the schema leaves room): invoices and bills, multiple currencies,
-sharing a book with another person, importers from other apps.
+importers from other apps.
 
 ## No warranty
 

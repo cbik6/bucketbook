@@ -8,6 +8,8 @@ import { recordAudit } from "../audit/record";
 import { getDb } from "../db/client";
 import * as schema from "../db/schema";
 import { getEnv } from "../env";
+import { completeInvite } from "../people/service";
+import { inviteContext } from "../people/invite-context";
 
 export const MIN_PASSWORD_LENGTH = 10;
 
@@ -28,7 +30,13 @@ function createAuth() {
         auth_verifications: schema.authVerifications,
       },
     }),
-    user: { modelName: "users" },
+    user: {
+      modelName: "users",
+      additionalFields: {
+        // Never settable through sign-up; set by the hook below or by an admin.
+        isAdmin: { type: "boolean", required: false, defaultValue: false, input: false },
+      },
+    },
     session: {
       modelName: "auth_sessions",
       expiresIn: 60 * 60 * 24 * 30, // 30 days
@@ -49,16 +57,29 @@ function createAuth() {
     databaseHooks: {
       user: {
         create: {
-          // Single-user for now: only the setup wizard's first account may sign up.
-          before: async () => {
+          // The first login sets up the install and becomes its admin. After that,
+          // a login can only be created by accepting a valid invitation.
+          before: async (user) => {
+            const invite = inviteContext.getStore();
+            if (invite) {
+              if (user.email.toLowerCase() !== invite.email) {
+                throw new APIError("FORBIDDEN", {
+                  message: "That invitation is for a different email.",
+                });
+              }
+              return { data: { ...user, isAdmin: false } };
+            }
             const [row] = await db.select({ n: count() }).from(schema.users);
             if ((row?.n ?? 0) > 0) {
               throw new APIError("FORBIDDEN", {
-                message: "Sign-up is closed. This install already has an owner.",
+                message: "Sign-up is closed. Ask the admin for an invitation.",
               });
             }
+            return { data: { ...user, isAdmin: true } };
           },
           after: async (user) => {
+            const invite = inviteContext.getStore();
+            if (invite) await completeInvite(db, invite.inviteId, user.id);
             await recordAudit(db, {
               userId: user.id,
               entityType: "user",

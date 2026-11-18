@@ -6,6 +6,19 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-11-18
+
+### Added
+
+- People: the admin invites others with a one-time link (valid 7 days) and gives them an
+  Owner, Editor or Viewer role in each book. Admins can change access, make someone an
+  admin, withdraw invitations, and remove people.
+
+### Changed
+
+- The person who set up the install is its admin. Bank connections are managed by admins
+  and shared across the install. Sign-up without an invitation stays closed.
+
 ## [1.7.0] - 2026-11-18
 
 ### Added

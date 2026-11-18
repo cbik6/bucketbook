@@ -53,6 +53,7 @@ describe("migrations", () => {
       "bucket_rules",
       "budgets",
       "csv_presets",
+      "invitations",
       "journal_entries",
       "journal_entry_versions",
       "journal_lines",
