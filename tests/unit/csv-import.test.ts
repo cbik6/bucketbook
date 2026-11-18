@@ -13,7 +13,7 @@ import {
 describe("CSV parsing", () => {
   it("handles quotes, embedded commas and newlines, CRLF, and a BOM", () => {
     const text =
-      '﻿Date,Description,Amount\r\n2026-01-02,"Shop, Inc.",-5.00\r\n2026-01-03,"Line\nbreak ""quoted""",10\r\n\r\n';
+      '\uFEFFDate,Description,Amount\r\n2026-01-02,"Shop, Inc.",-5.00\r\n2026-01-03,"Line\nbreak ""quoted""",10\r\n\r\n';
     expect(parseCsv(text)).toEqual([
       ["Date", "Description", "Amount"],
       ["2026-01-02", "Shop, Inc.", "-5.00"],

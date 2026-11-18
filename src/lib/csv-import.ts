@@ -13,7 +13,7 @@ export const MAX_CSV_ROWS = 5000;
 
 /** RFC 4180 CSV: quoted fields, doubled quotes, commas and newlines inside quotes. */
 export function parseCsv(text: string, delimiter?: string): string[][] {
-  const src = text.replace(/^﻿/, "");
+  const src = text.replace(/^\uFEFF/, "");
   const delim = delimiter ?? detectDelimiter(src);
   const rows: string[][] = [];
   let row: string[] = [];
