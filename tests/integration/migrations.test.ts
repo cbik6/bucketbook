@@ -39,15 +39,23 @@ describe("migrations", () => {
     expect(rows.map((r) => r.table_name)).toEqual([
       "accounts",
       "app_settings",
+      "attachments",
       "audit_log",
       "auth_accounts",
       "auth_sessions",
       "auth_verifications",
+      "bank_feeds",
+      "bank_rules",
+      "bank_transactions",
+      "book_counterparts",
       "book_members",
       "books",
+      "csv_presets",
       "journal_entries",
       "journal_entry_versions",
       "journal_lines",
+      "simplefin_connections",
+      "simplefin_requests",
       "users",
     ]);
   });

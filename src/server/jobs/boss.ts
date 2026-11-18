@@ -2,8 +2,8 @@ import { PgBoss } from "pg-boss";
 
 /**
  * pg-boss is a job queue that stores its jobs in Postgres (in its own `pgboss`
- * schema), so no Redis container is needed. Phase 1 only starts it; Phase 3
- * registers the SimpleFIN sync and matching jobs here.
+ * schema), so no Redis container is needed. Jobs: the daily SimpleFIN sync
+ * (see ./simplefin.ts).
  */
 
 type BossState = { boss: PgBoss; started: boolean };
@@ -20,8 +20,16 @@ export async function startJobs(connectionString: string): Promise<PgBoss> {
   globalForBoss.__bucketbookBoss = { boss, started: false };
   await boss.start();
   globalForBoss.__bucketbookBoss.started = true;
+  // Imported here so the queue module stays free of app code until it starts.
+  const { registerSimplefinJobs } = await import("./simplefin");
+  await registerSimplefinJobs(boss);
   console.log("[jobs] queue started");
   return boss;
+}
+
+export function getBoss(): PgBoss | null {
+  const state = globalForBoss.__bucketbookBoss;
+  return state?.started ? state.boss : null;
 }
 
 export function jobsStarted(): boolean {

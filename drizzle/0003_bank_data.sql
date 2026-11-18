@@ -106,6 +106,7 @@ CREATE TABLE "simplefin_connections" (
 	"created_by" uuid,
 	"sync_hour" integer DEFAULT 6 NOT NULL,
 	"sync_minute" integer DEFAULT 17 NOT NULL,
+	"sync_started_at" timestamp with time zone,
 	"last_sync_at" timestamp with time zone,
 	"last_sync_status" text,
 	"last_sync_messages" jsonb DEFAULT '[]'::jsonb NOT NULL,

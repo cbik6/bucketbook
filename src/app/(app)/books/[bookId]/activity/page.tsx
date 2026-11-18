@@ -46,7 +46,11 @@ async function ActivityContent({ params, searchParams }: PageProps<"/books/[book
                 ? `${base}/journal/${d.link.id}`
                 : d.link?.kind === "account" && live.has(d.link.id)
                   ? `${base}/accounts/${d.link.id}`
-                  : undefined;
+                  : d.link?.kind === "rules"
+                    ? `${base}/rules`
+                    : d.link?.kind === "review"
+                      ? `${base}/review`
+                      : undefined;
             return (
               <li
                 key={r.id}

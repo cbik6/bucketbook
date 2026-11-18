@@ -59,6 +59,7 @@ export type RegisterRow = {
   entryNumber: number;
   entryKind: string;
   entryDate: string;
+  entryPayee: string | null;
   entryMemo: string | null;
   lineMemo: string | null;
   accountId: string;
@@ -106,6 +107,7 @@ export async function accountRegister(
     entry_number: number;
     entry_kind: string;
     entry_date: string;
+    entry_payee: string | null;
     entry_memo: string | null;
     line_memo: string | null;
     account_id: string;
@@ -115,7 +117,7 @@ export async function accountRegister(
     others: string[] | null;
   }>(sql`
     select l.line_id, l.entry_id, l.entry_number, l.entry_kind, l.entry_date::text as entry_date,
-           l.entry_memo, l.line_memo, l.account_id,
+           l.entry_payee, l.entry_memo, l.line_memo, l.account_id,
            l.debit_cents::text as debit_cents, l.credit_cents::text as credit_cents,
            sum(l.net_cents) over (
              order by l.entry_date, l.entry_number, l.line_number
@@ -139,6 +141,7 @@ export async function accountRegister(
       entryNumber: Number(r.entry_number),
       entryKind: r.entry_kind,
       entryDate: r.entry_date,
+      entryPayee: r.entry_payee,
       entryMemo: r.entry_memo,
       lineMemo: r.line_memo,
       accountId: r.account_id,
@@ -165,6 +168,7 @@ export async function linesInRange(
     entry_number: number;
     entry_kind: string;
     entry_date: string;
+    entry_payee: string | null;
     entry_memo: string | null;
     line_memo: string | null;
     account_id: string;
@@ -172,7 +176,7 @@ export async function linesInRange(
     credit_cents: string;
   }>(sql`
     select line_id, entry_id, entry_number, entry_kind, entry_date::text as entry_date,
-           entry_memo, line_memo, account_id,
+           entry_payee, entry_memo, line_memo, account_id,
            debit_cents::text as debit_cents, credit_cents::text as credit_cents
     from ledger_lines
     where ${sql.join(filters, sql` and `)}
@@ -184,6 +188,7 @@ export async function linesInRange(
     entryNumber: Number(r.entry_number),
     entryKind: r.entry_kind,
     entryDate: r.entry_date,
+    entryPayee: r.entry_payee,
     entryMemo: r.entry_memo,
     lineMemo: r.line_memo,
     accountId: r.account_id,

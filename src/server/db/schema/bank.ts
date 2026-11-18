@@ -38,6 +38,8 @@ export const simplefinConnections = pgTable(
     /** Daily sync time, in the server's time zone. The minute is random so installs spread out. */
     syncHour: integer("sync_hour").notNull().default(6),
     syncMinute: integer("sync_minute").notNull().default(17),
+    /** Set while a sync runs, so a scheduled and a manual sync never overlap. */
+    syncStartedAt: timestamp("sync_started_at", { withTimezone: true }),
     lastSyncAt: timestamp("last_sync_at", { withTimezone: true }),
     lastSyncStatus: text("last_sync_status"),
     /** Messages from the bridge or the sync itself, safe to show (never the Access URL). */

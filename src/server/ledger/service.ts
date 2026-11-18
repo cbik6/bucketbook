@@ -14,6 +14,7 @@ import type { Database, DbOrTx } from "../db/client";
 import {
   type EntryKind,
   accounts,
+  bankTransactions,
   books,
   journalEntries,
   journalEntryVersions,
@@ -41,8 +42,18 @@ const draftLine = z.object({
   memo: z.string().max(500, "Keep line memos under 500 characters.").default(""),
 });
 
+const optionalText = (max: number, label: string) =>
+  z
+    .string()
+    .trim()
+    .max(max, `Keep the ${label} under ${max} characters.`)
+    .transform((v) => v || null)
+    .nullable()
+    .default(null);
+
 const entryInputSchema = z.object({
   entryDate: isoDate,
+  payee: optionalText(200, "payee"),
   memo: z
     .string()
     .trim()
@@ -53,7 +64,12 @@ const entryInputSchema = z.object({
   lines: z.array(draftLine).max(MAX_LINES, `An entry can have at most ${MAX_LINES} lines.`),
 });
 
-export type EntryInput = { entryDate: string; memo: string | null; lines: DraftLine[] };
+export type EntryInput = {
+  entryDate: string;
+  payee?: string | null;
+  memo: string | null;
+  lines: DraftLine[];
+};
 
 function parseEntryInput(raw: unknown): z.infer<typeof entryInputSchema> {
   const result = entryInputSchema.safeParse(raw);
@@ -72,7 +88,7 @@ const formatDate = (iso: string) =>
     new Date(`${iso}T00:00:00Z`),
   );
 
-async function loadBookForPosting(tx: DbOrTx, bookId: string) {
+export async function loadBookForPosting(tx: DbOrTx, bookId: string) {
   // Locking the book row serializes entry numbering within a book.
   const result = await tx.execute<{ id: string; start_date: string; archived_at: Date | null }>(
     sql`select id, start_date::text as start_date, archived_at from books where id = ${bookId} for update`,
@@ -92,7 +108,7 @@ async function nextEntryNumber(tx: DbOrTx, bookId: string): Promise<number> {
 }
 
 /** Checks the lines balance and every account can take postings. Returns clean lines. */
-async function validateLines(
+export async function validateLines(
   tx: DbOrTx,
   bookId: string,
   lines: DraftLine[],
@@ -140,7 +156,7 @@ async function validateLines(
   return parsed;
 }
 
-function assertDateAllowed(entryDate: string, startDate: string) {
+export function assertDateAllowed(entryDate: string, startDate: string) {
   if (entryDate < startDate) {
     throw new UserFacingError(
       `Entries start on the book's start date (${formatDate(startDate)}). Use opening balances for anything earlier.`,
@@ -157,6 +173,7 @@ async function insertVersion(
     entryId: string;
     version: number;
     entryDate: string;
+    payee: string | null;
     memo: string | null;
     changeNote: string;
     lines: ParsedLine[];
@@ -166,6 +183,7 @@ async function insertVersion(
     entryId: args.entryId,
     version: args.version,
     entryDate: args.entryDate,
+    payee: args.payee,
     memo: args.memo,
     changeNote: args.changeNote,
     createdBy: args.actor.userId,
@@ -184,16 +202,18 @@ async function insertVersion(
   );
 }
 
-async function createEntry(
+export async function createEntry(
   tx: DbOrTx,
   args: {
     actor: Actor;
     bookId: string;
     kind: EntryKind;
     entryDate: string;
+    payee?: string | null;
     memo: string | null;
     lines: ParsedLine[];
     reversesEntryId?: string;
+    transferGroupId?: string;
     changeNote: string;
   },
 ) {
@@ -205,8 +225,10 @@ async function createEntry(
       entryNumber,
       kind: args.kind,
       entryDate: args.entryDate,
+      payee: args.payee ?? null,
       memo: args.memo,
       reversesEntryId: args.reversesEntryId ?? null,
+      transferGroupId: args.transferGroupId ?? null,
       createdBy: args.actor.userId,
     })
     .returning();
@@ -216,6 +238,7 @@ async function createEntry(
     entryId: entry!.id,
     version: 1,
     entryDate: args.entryDate,
+    payee: args.payee ?? null,
     memo: args.memo,
     changeNote: args.changeNote,
     lines: args.lines,
@@ -243,6 +266,7 @@ export async function postEntry(db: Database, actor: Actor, bookId: string, raw:
       bookId,
       kind: "manual",
       entryDate: input.entryDate,
+      payee: input.payee,
       memo: input.memo,
       lines,
       changeNote: "Created",
@@ -291,7 +315,7 @@ export async function editEntry(
   options: { allowKinds?: EntryKind[] } = {},
 ) {
   const input = parseEntryInput(raw);
-  const allowKinds = options.allowKinds ?? ["manual"];
+  const allowKinds = options.allowKinds ?? ["manual", "bank", "transfer"];
   return db.transaction(async (tx) => {
     const book = await loadBookForPosting(tx, bookId);
     const { entry, reversedBy } = await loadEntryForChange(tx, bookId, entryId);
@@ -359,6 +383,7 @@ export async function reverseEntry(
       bookId,
       kind: "reversal",
       entryDate: date,
+      payee: entry.payee,
       memo: memo.slice(0, 500),
       lines,
       reversesEntryId: entryId,
@@ -372,7 +397,13 @@ export async function reverseEntry(
       action: "reverse",
       after: { reversedByEntryId: reversal.id, reversalDate: date },
     });
-    return reversal;
+    // Bank transactions this entry recorded are no longer recorded: back to review.
+    const returned = await tx
+      .update(bankTransactions)
+      .set({ status: "review", entryId: null, postMethod: null })
+      .where(and(eq(bankTransactions.bookId, bookId), eq(bankTransactions.entryId, entryId)))
+      .returning({ id: bankTransactions.id });
+    return Object.assign(reversal, { returnedToReview: returned.length });
   });
 }
 
@@ -509,7 +540,12 @@ export async function saveOpeningBalances(
       credit: l.creditCents ? centsText(l.creditCents) : "",
       memo: "",
     }));
-    const input = { entryDate: book.startDate, memo: "Opening balances", lines: draft };
+    const input = {
+      entryDate: book.startDate,
+      payee: null,
+      memo: "Opening balances",
+      lines: draft,
+    };
     if (state.entry) {
       // A single account plus its offset still needs two lines; that holds here.
       const result = await editEntryInTx(tx, actor, book, state.entry.id, input);
@@ -529,6 +565,38 @@ export async function saveOpeningBalances(
   });
 }
 
+/**
+ * An entry that records bank transactions must keep recording them: the net
+ * on each linked bank account has to stay equal to the bank's amounts.
+ */
+async function assertBankLinksKept(tx: DbOrTx, entryId: string, lines: ParsedLine[]) {
+  const links = await tx
+    .select({
+      accountId: bankTransactions.accountId,
+      amountCents: bankTransactions.amountCents,
+      name: accounts.name,
+    })
+    .from(bankTransactions)
+    .innerJoin(accounts, eq(accounts.id, bankTransactions.accountId))
+    .where(eq(bankTransactions.entryId, entryId));
+  const expected = new Map<string, { cents: number; name: string }>();
+  for (const l of links) {
+    const prev = expected.get(l.accountId)?.cents ?? 0;
+    expected.set(l.accountId, { cents: prev + l.amountCents, name: l.name });
+  }
+  for (const [accountId, { cents, name }] of expected) {
+    const net = lines
+      .filter((l) => l.accountId === accountId)
+      .reduce((sum, l) => sum + l.debitCents - l.creditCents, 0);
+    if (net !== cents) {
+      throw new UserFacingError(
+        `This entry records a bank transaction of ${formatCents(cents)} on ${name}, so its ${name} lines must still come to that amount. To undo the bank match, reverse the entry instead.`,
+        "lines",
+      );
+    }
+  }
+}
+
 /** editEntry's core, for callers that already hold a transaction (opening balances). */
 async function editEntryInTx(
   tx: DbOrTx,
@@ -539,9 +607,12 @@ async function editEntryInTx(
 ) {
   const { entry } = await loadEntryForChange(tx, book.id, entryId);
   const lines = await validateLines(tx, book.id, input.lines);
+  await assertBankLinksKept(tx, entryId, lines);
   const beforeLines = await currentLines(tx, entryId, entry.currentVersion);
+  const payee = input.payee === undefined ? entry.payee : input.payee;
   const same =
     input.entryDate === entry.entryDate &&
+    (payee ?? null) === (entry.payee ?? null) &&
     (input.memo ?? null) === (entry.memo ?? null) &&
     beforeLines.length === lines.length &&
     beforeLines.every(
@@ -563,13 +634,14 @@ async function editEntryInTx(
     entryId,
     version,
     entryDate: input.entryDate,
+    payee,
     memo: input.memo,
     changeNote: "Edited",
     lines,
   });
   const [after] = await tx
     .update(journalEntries)
-    .set({ currentVersion: version, entryDate: input.entryDate, memo: input.memo })
+    .set({ currentVersion: version, entryDate: input.entryDate, payee, memo: input.memo })
     .where(eq(journalEntries.id, entryId))
     .returning();
   await recordAudit(tx, {
@@ -629,6 +701,7 @@ export async function changeStartDate(db: Database, actor: Actor, bookId: string
       const lines = await currentLines(tx, opening.id, opening.currentVersion);
       await editEntryInTx(tx, actor, { id: bookId, startDate }, opening.id, {
         entryDate: startDate,
+        payee: opening.payee,
         memo: opening.memo,
         lines: lines.map((l) => ({
           accountId: l.accountId,
@@ -650,6 +723,7 @@ export type EntryListItem = {
   entryNumber: number;
   kind: string;
   entryDate: string;
+  payee: string | null;
   memo: string | null;
   totalCents: number;
   lineCount: number;
@@ -670,6 +744,7 @@ export async function listEntries(
     entry_number: number;
     kind: string;
     entry_date: string;
+    payee: string | null;
     memo: string | null;
     total: string;
     line_count: number;
@@ -677,7 +752,7 @@ export async function listEntries(
     current_version: number;
     reversed: boolean;
   }>(sql`
-    select e.id, e.entry_number, e.kind, e.entry_date::text as entry_date, e.memo, e.current_version,
+    select e.id, e.entry_number, e.kind, e.entry_date::text as entry_date, e.payee, e.memo, e.current_version,
            coalesce(sum(l.debit_cents), 0)::text as total,
            count(l.id)::int as line_count,
            array_agg(distinct a.name) filter (where a.name is not null) as names,
@@ -700,6 +775,7 @@ export async function listEntries(
       entryNumber: Number(r.entry_number),
       kind: r.kind,
       entryDate: r.entry_date,
+      payee: r.payee,
       memo: r.memo,
       totalCents: Number(r.total),
       lineCount: Number(r.line_count),
@@ -713,7 +789,7 @@ export async function listEntries(
 export type EntryDetail = {
   entry: typeof journalEntries.$inferSelect;
   shownVersion: number;
-  versionHeader: { entryDate: string; memo: string | null };
+  versionHeader: { entryDate: string; payee: string | null; memo: string | null };
   lines: {
     id: string;
     lineNumber: number;
@@ -727,6 +803,7 @@ export type EntryDetail = {
   versions: {
     version: number;
     entryDate: string;
+    payee: string | null;
     memo: string | null;
     changeNote: string | null;
     createdAt: Date;
@@ -753,6 +830,7 @@ export async function getEntryDetail(
     .select({
       version: journalEntryVersions.version,
       entryDate: journalEntryVersions.entryDate,
+      payee: journalEntryVersions.payee,
       memo: journalEntryVersions.memo,
       changeNote: journalEntryVersions.changeNote,
       createdAt: journalEntryVersions.createdAt,
@@ -797,7 +875,7 @@ export async function getEntryDetail(
   return {
     entry,
     shownVersion: shown,
-    versionHeader: { entryDate: header.entryDate, memo: header.memo },
+    versionHeader: { entryDate: header.entryDate, payee: header.payee, memo: header.memo },
     lines,
     versions,
     reversedBy: reversedBy ?? null,

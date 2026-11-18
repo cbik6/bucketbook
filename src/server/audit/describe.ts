@@ -1,4 +1,5 @@
 import { formatEntryNumber } from "@/lib/ledger-math";
+import { formatCents } from "@/lib/money";
 
 export type AuditRowLike = {
   entityType: string;
@@ -11,7 +12,7 @@ export type AuditRowLike = {
 export type AuditDescription = {
   summary: string;
   details: string[];
-  link?: { kind: "account" | "entry"; id: string };
+  link?: { kind: "account" | "entry" | "rules" | "review"; id: string };
 };
 
 type Obj = Record<string, unknown>;
@@ -91,10 +92,12 @@ export function describeAudit(
             ? "opening balances"
             : kind === "reversal"
               ? "reversal"
-              : "entry";
+              : kind === "transfer"
+                ? "transfer"
+                : "entry";
         return {
           summary: `Posted ${what} ${label}`,
-          details: after.memo ? [String(after.memo)] : [],
+          details: [after.payee, after.memo].filter(Boolean).map(String),
           link,
         };
       }
@@ -138,6 +141,56 @@ export function describeAudit(
           details.push(`Start date: ${str(before.startDate)} to ${str(after.startDate)}`);
         return { summary: "Changed book settings", details };
       }
+    }
+  }
+
+  if (row.entityType === "bank_transaction") {
+    const amount = typeof after.amountCents === "number" ? formatCents(after.amountCents) : "";
+    const what = [str(after.description), amount].filter((v) => v && v !== "blank").join(", ");
+    switch (row.action) {
+      case "approve": {
+        const how =
+          after.method === "transfer"
+            ? "Matched a transfer"
+            : after.method === "linked"
+              ? "Matched to an existing entry"
+              : "Approved";
+        return {
+          summary: `${how}: ${what}`,
+          details: [],
+          link:
+            typeof after.entryId === "string" ? { kind: "entry", id: after.entryId } : undefined,
+        };
+      }
+      case "exclude":
+        return { summary: `Excluded from review: ${what}`, details: [] };
+      case "restore":
+        return { summary: `Returned to review: ${what}`, details: [] };
+      case "import":
+        return {
+          summary: `Imported ${str(after.count)} transactions from a CSV file`,
+          details: after.skipped ? [`${str(after.skipped)} already imported, skipped`] : [],
+          link: { kind: "review", id: row.entityId },
+        };
+      default:
+        return { summary: "Changed a bank transaction", details: [] };
+    }
+  }
+
+  if (row.entityType === "bank_rule") {
+    const link = { kind: "rules" as const, id: row.entityId };
+    const ruleName = str(after.name ?? before.name);
+    switch (row.action) {
+      case "create":
+        return { summary: `Created rule ${ruleName}`, details: [], link };
+      case "delete":
+        return { summary: `Deleted rule ${ruleName}`, details: [], link };
+      default:
+        return {
+          summary: after.moved ? "Changed rule order" : `Changed rule ${ruleName}`,
+          details: [],
+          link,
+        };
     }
   }
 

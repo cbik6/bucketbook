@@ -2,7 +2,18 @@ import type { DbOrTx } from "../db/client";
 import { auditLog } from "../db/schema";
 
 export type AuditAction =
-  "create" | "update" | "archive" | "unarchive" | "delete" | "reverse" | "setup";
+  | "create"
+  | "update"
+  | "archive"
+  | "unarchive"
+  | "delete"
+  | "reverse"
+  | "setup"
+  | "approve"
+  | "exclude"
+  | "restore"
+  | "import"
+  | "sync";
 
 export type AuditEntry = {
   bookId?: string | null;
@@ -22,6 +33,7 @@ const REDACTED_KEYS = new Set([
   "refreshToken",
   "idToken",
   "accessUrl",
+  "accessUrlCiphertext",
 ]);
 
 function redact(value: unknown): unknown {

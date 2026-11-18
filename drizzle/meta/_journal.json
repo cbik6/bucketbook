@@ -26,14 +26,14 @@
     {
       "idx": 3,
       "version": "7",
-      "when": 1794962618582,
+      "when": 1794963525125,
       "tag": "0003_bank_data",
       "breakpoints": true
     },
     {
       "idx": 4,
       "version": "7",
-      "when": 1794962632928,
+      "when": 1794963526310,
       "tag": "0004_ledger_view_payee",
       "breakpoints": true
     }

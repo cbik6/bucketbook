@@ -1,5 +1,5 @@
 {
-  "id": "7aae3ffd-b5a5-4a3c-a2b9-8a5b32aea496",
+  "id": "ff2c0925-309a-4823-af74-d9d2debfb937",
   "prevId": "aca9fdc0-882a-4b3d-8cc3-729d8e9fbf1c",
   "version": "7",
   "dialect": "postgresql",
@@ -2567,6 +2567,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": 17
+        },
+        "sync_started_at": {
+          "name": "sync_started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "last_sync_at": {
           "name": "last_sync_at",
