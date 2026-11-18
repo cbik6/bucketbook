@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { and, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createAccount, listAccounts } from "@/server/accounts/service";
+import { createAccount, listAccounts, updateAccount } from "@/server/accounts/service";
 import {
   deleteAttachment,
   listAttachments,
@@ -369,40 +369,39 @@ describe("several cards and investments", () => {
     });
   });
 
-  it("groups new savings accounts under a new or existing parent", async () => {
+  it("creates connected accounts at the top level; nesting happens in the chart of accounts", async () => {
     const ctx = await setupBook();
-    const bridge = fakeBridge({
-      "Baby Fund (9454)": { balance: "225.47", transactions: [] },
-      "Emergency Fund (5267)": { balance: "54.79", transactions: [] },
-    });
+    const bridge = fakeBridge({ "Baby Fund (9454)": { balance: "225.47", transactions: [] } });
     const { connection } = await connectSimplefin(getDb(), ctx.actor, ACCESS_URL, bridge.impl);
-    const feeds = await getDb()
+    const [feed] = await getDb()
       .select()
       .from(bankFeeds)
       .where(eq(bankFeeds.connectionId, connection.id));
-    const baby = feeds.find((f) => f.name.startsWith("Baby"))!;
-    const emergency = feeds.find((f) => f.name.startsWith("Emergency"))!;
-    const first = await mapFeed(getDb(), ctx.actor, baby.id, {
+    const mapped = await mapFeed(getDb(), ctx.actor, feed!.id, {
       mode: "create",
       bookId: ctx.bookId,
       kind: "savings",
       name: "Baby Fund",
-      groupName: "Marcus",
     });
-    const second = await mapFeed(getDb(), ctx.actor, emergency.id, {
-      mode: "create",
-      bookId: ctx.bookId,
-      kind: "savings",
-      name: "Emergency Fund",
-      groupName: "marcus",
+    let rows = await listAccounts(getDb(), ctx.bookId);
+    const baby = rows.find((a) => a.id === mapped.accountId)!;
+    expect(baby).toMatchObject({ name: "Baby Fund", subtype: "savings", parentAccountId: null });
+
+    const marcus = await createAccount(getDb(), ctx.actor, ctx.bookId, {
+      name: "Marcus",
+      type: "asset",
+      subtype: "savings",
     });
-    const rows = await listAccounts(getDb(), ctx.bookId);
-    const marcus = rows.filter((a) => a.name === "Marcus");
-    expect(marcus).toHaveLength(1);
-    const a = rows.find((r) => r.id === first.accountId)!;
-    const b = rows.find((r) => r.id === second.accountId)!;
-    expect(a).toMatchObject({ subtype: "savings", parentAccountId: marcus[0]!.id });
-    expect(b.parentAccountId).toBe(marcus[0]!.id);
+    await updateAccount(getDb(), ctx.actor, ctx.bookId, baby.id, {
+      name: "Baby Fund",
+      type: "asset",
+      subtype: "savings",
+      parentAccountId: marcus.id,
+    });
+    rows = await listAccounts(getDb(), ctx.bookId);
+    expect(rows.find((a) => a.id === baby.id)!.parentAccountId).toBe(marcus.id);
+    const [still] = await getDb().select().from(bankFeeds).where(eq(bankFeeds.id, feed!.id));
+    expect(still!.accountId).toBe(baby.id);
   });
 
   it("keeps an investment account at the bank's value without importing trades", async () => {

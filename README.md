@@ -151,8 +151,9 @@ connects SimpleFIN's public demo account.
 
 Each bank account feeds its own account in the books. New books start without any bank
 or card accounts: when you map a bank account, choose **New account**, pick its type
-(Checking, Savings, Credit card, Investment, Loan, Cash) and name it. Several savings
-accounts at one bank can go inside a group (for example "Marcus") so they total together.
+(Checking, Savings, Credit card, Investment, Loan, Cash) and name it. To group several
+accounts (for example savings accounts under "Marcus"), add the group in the chart of
+accounts and set "Sub-account of" on each.
 
 **Investment accounts** (brokerage, IRA, 401k) are for net worth: map them as a new
 investment account and each sync brings the books to the value the bank reports. Trades

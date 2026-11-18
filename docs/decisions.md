@@ -438,7 +438,8 @@ New books (household and small business) no longer come with Checking, Savings o
 Card placeholders; the household chart keeps Cash on Hand, which no bank reports. You add
 money accounts in the chart of accounts, or while connecting a bank account: choose "New
 account", pick the type (Checking, Savings, Credit card, Investment, Loan, Cash, Other
-asset), name it (it starts as the bank's name), and optionally put it inside an existing
-account or a new group such as "Marcus" so related accounts total together. The old
+asset) and name it (it starts as the bank's name). It is created at the top level; to
+group related accounts (several Marcus savings accounts under "Marcus"), use "Sub-account
+of" in the chart of accounts, which keeps the bank connection. The old
 "Bank" detail type split into Checking and Savings; existing accounts were converted, with
 names containing "sav" becoming Savings.

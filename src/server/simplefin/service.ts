@@ -337,10 +337,6 @@ const mappingSchema = z.discriminatedUnion("mode", [
       .trim()
       .min(1, "Name the new account.")
       .max(100, "Keep the name under 100 characters."),
-    /** Put it inside an existing account... */
-    parentAccountId: z.string().optional(),
-    /** ...or inside a new group with this name (for example "Marcus"). */
-    groupName: z.string().trim().max(100).optional(),
   }),
   z.object({ mode: z.literal("ignore") }),
   z.object({ mode: z.literal("unmap") }),
@@ -357,36 +353,16 @@ export const NEW_ACCOUNT_KINDS = {
 } as const;
 
 /**
- * Creates the account you described for a feed: your name, your type, at the
- * top level, inside an existing account, or inside a new group.
+ * Creates the account you described for a feed, at the top level. To nest it
+ * under another account, use "Sub-account of" in the chart of accounts.
  */
 async function createAccountForFeed(
   db: Database,
   actor: Actor,
   bookId: string,
-  input: {
-    kind: keyof typeof NEW_ACCOUNT_KINDS;
-    name: string;
-    parentAccountId?: string;
-    groupName?: string;
-  },
+  input: { kind: keyof typeof NEW_ACCOUNT_KINDS; name: string },
 ) {
-  const { type, subtype } = NEW_ACCOUNT_KINDS[input.kind];
-  let parentAccountId: string | null = input.parentAccountId || null;
-  if (!parentAccountId && input.groupName) {
-    // Reuse a top-level group with that name, or make it.
-    const rows = await db
-      .select({ id: accounts.id, name: accounts.name })
-      .from(accounts)
-      .where(
-        and(eq(accounts.bookId, bookId), eq(accounts.type, type), isNull(accounts.parentAccountId)),
-      );
-    const existing = rows.find((r) => r.name.toLowerCase() === input.groupName!.toLowerCase());
-    parentAccountId =
-      existing?.id ??
-      (await createAccount(db, actor, bookId, { name: input.groupName, type, subtype })).id;
-  }
-  return createAccount(db, actor, bookId, { name: input.name, type, subtype, parentAccountId });
+  return createAccount(db, actor, bookId, { name: input.name, ...NEW_ACCOUNT_KINDS[input.kind] });
 }
 
 /**

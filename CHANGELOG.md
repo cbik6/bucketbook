@@ -6,6 +6,13 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-11-18
+
+### Changed
+
+- New accounts made while connecting a bank account are created at the top level; the
+  "Inside" choice is gone. Group accounts with "Sub-account of" in the chart of accounts.
+
 ## [1.2.0] - 2026-11-18
 
 ### Changed

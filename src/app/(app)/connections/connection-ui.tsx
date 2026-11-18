@@ -384,13 +384,13 @@ function FeedRow({
 }
 
 const NEW_KINDS = [
-  { kind: "checking", label: "Checking", type: "asset" },
-  { kind: "savings", label: "Savings", type: "asset" },
-  { kind: "credit_card", label: "Credit card", type: "liability" },
-  { kind: "investment", label: "Investment (value only)", type: "asset" },
-  { kind: "loan", label: "Loan", type: "liability" },
-  { kind: "cash", label: "Cash", type: "asset" },
-  { kind: "other_asset", label: "Other asset", type: "asset" },
+  { kind: "checking", label: "Checking" },
+  { kind: "savings", label: "Savings" },
+  { kind: "credit_card", label: "Credit card" },
+  { kind: "investment", label: "Investment (value only)" },
+  { kind: "loan", label: "Loan" },
+  { kind: "cash", label: "Cash" },
+  { kind: "other_asset", label: "Other asset" },
 ] as const;
 
 type NewKind = (typeof NEW_KINDS)[number]["kind"];
@@ -444,10 +444,6 @@ function MappingForm({
   );
   const [kind, setKind] = useState<NewKind>(guessKind(feed));
   const [name, setName] = useState(startingName(feed.name));
-  const [parent, setParent] = useState("");
-  const [groupName, setGroupName] = useState("");
-  const kindType = NEW_KINDS.find((k) => k.kind === kind)!.type;
-  const parents = (book?.accounts ?? []).filter((a) => a.type === kindType);
   if (targets.length === 0) {
     return <p className="text-sm text-ink-muted">Create a book first, then map this account.</p>;
   }
@@ -503,10 +499,7 @@ function MappingForm({
             <SelectInput
               name="kind"
               value={kind}
-              onChange={(e) => {
-                setKind(e.target.value as NewKind);
-                setParent("");
-              }}
+              onChange={(e) => setKind(e.target.value as NewKind)}
             >
               {NEW_KINDS.map((k) => (
                 <option key={k.kind} value={k.kind}>
@@ -526,35 +519,6 @@ function MappingForm({
               autoComplete="off"
             />
           </label>
-          <label className="flex flex-col gap-1 text-[0.8125rem] font-medium text-ink">
-            Inside
-            <SelectInput
-              name="parentAccountId"
-              value={parent}
-              onChange={(e) => setParent(e.target.value)}
-            >
-              <option value="">Top level</option>
-              <option value="group">A new group…</option>
-              {parents.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.label}
-                </option>
-              ))}
-            </SelectInput>
-          </label>
-          {parent === "group" ? (
-            <label className="flex flex-col gap-1 text-[0.8125rem] font-medium text-ink">
-              Group name
-              <TextInput
-                name="groupName"
-                value={groupName}
-                maxLength={100}
-                placeholder="For example: Marcus"
-                onChange={(e) => setGroupName(e.target.value)}
-                autoComplete="off"
-              />
-            </label>
-          ) : null}
           {kind === "investment" ? (
             <p className="text-[0.8125rem] text-ink-muted sm:col-span-2">
               The books follow this account&apos;s value for net worth; trades aren&apos;t imported.
