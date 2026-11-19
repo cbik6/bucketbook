@@ -6,6 +6,24 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-11-19
+
+### Added
+
+- For review learns from what you've already added. Where no rule applies, it guesses the
+  category (and the payee you used before) from the same store or from similar words,
+  marks the guess "From your history", and says what it was based on. The learning runs
+  on your server; nothing is sent anywhere.
+- Parent accounts can be headings only: a Parent accounts selector at the top of the chart
+  of accounts. With Headings only, accounts with sub-accounts can't be picked for new
+  entries, review or rules. Older entries that use them are kept.
+
+### Changed
+
+- The category list in For review is searchable. Suggestions and matches come first, then
+  the groups that fit the money's direction (Expenses first for money out, Income first
+  for money in), with sub-accounts indented under their parents.
+
 ## [1.13.1] - 2026-11-19
 
 ### Added

@@ -1,4 +1,5 @@
 import { type Page, expect, test } from "@playwright/test";
+import { pickCategory } from "./helpers";
 
 /**
  * Phase 4 flow on the install the earlier specs set up: turn on buckets for
@@ -66,11 +67,7 @@ test("buckets: turn on, allocate a deposit, move money", async ({ page }) => {
   await page.getByRole("button", { name: "Send 1 to review" }).click();
   const row = page.getByRole("listitem").filter({ hasText: "INTEREST PAYMENT" });
   await expect(row.getByLabel(/Bucket it goes to/)).toHaveValue(/.+/);
-  const category = row.getByLabel(/Category for/);
-  const interest = await category
-    .locator("option", { hasText: /(^|: )Interest Earned$/ })
-    .getAttribute("value");
-  await category.selectOption(interest!);
+  await pickCategory(page, row, "interest earned", /(^|: )Interest Earned/);
   await row.getByRole("button", { name: /Add INTEREST PAYMENT/ }).click();
   await expect(page.getByText("Added.")).toBeVisible();
 

@@ -154,6 +154,39 @@ export async function renameBook(
   });
 }
 
+/**
+ * Whether accounts with sub-accounts can take postings. When off, parents are
+ * headings only: pickers grey them out and posting to one is refused. Entries
+ * that already use a parent stay as they are.
+ */
+export async function setPostToParents(
+  db: Database,
+  actor: { userId: string },
+  bookId: string,
+  allowed: boolean,
+): Promise<BookRow> {
+  return db.transaction(async (tx) => {
+    const before = await requireBookAccess(tx, actor.userId, bookId, "editor");
+    const [after] = await tx
+      .update(books)
+      .set({ postToParents: allowed })
+      .where(eq(books.id, bookId))
+      .returning();
+    if (before.postToParents !== allowed) {
+      await recordAudit(tx, {
+        bookId,
+        userId: actor.userId,
+        entityType: "book",
+        entityId: bookId,
+        action: "update",
+        before: { postToParents: before.postToParents },
+        after: { postToParents: allowed },
+      });
+    }
+    return after!;
+  });
+}
+
 export async function setBookArchived(
   db: Database,
   actor: { userId: string },

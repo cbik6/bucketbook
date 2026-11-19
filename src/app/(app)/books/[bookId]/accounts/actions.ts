@@ -12,7 +12,7 @@ import {
 import { recordBalance } from "@/server/accounts/adjust";
 import { type ActionState, actionError, formValues } from "@/server/action-state";
 import { requireUser } from "@/server/auth/session";
-import { requireBookAccess } from "@/server/books/service";
+import { requireBookAccess, setPostToParents } from "@/server/books/service";
 import { getDb } from "@/server/db/client";
 
 const FIELDS = ["name", "code", "type", "subtype", "parentAccountId", "description"];
@@ -84,5 +84,16 @@ export async function recordBalanceAction(
     return { ok: true };
   } catch (err) {
     return { ok: false, error: actionError(err).error };
+  }
+}
+
+export async function setPostToParentsAction(bookId: string, allowed: boolean) {
+  try {
+    const user = await requireUser();
+    await setPostToParents(getDb(), { userId: user.id }, bookId, allowed);
+    revalidatePath(`/books/${bookId}`, "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return { ok: false as const, error: actionError(err).error };
   }
 }

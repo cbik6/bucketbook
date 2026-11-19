@@ -18,6 +18,7 @@ import { type AccountRow, listAccounts } from "@/server/accounts/service";
 import { CHART_TEMPLATES } from "@/server/accounts/templates";
 import { getDb } from "@/server/db/client";
 import { loadBookForPage } from "@/server/guards";
+import { ParentPosting } from "./parent-posting";
 import { Money } from "@/components/money";
 import { naturalBalance } from "@/lib/ledger-math";
 import { accountTotals } from "@/server/ledger/queries";
@@ -97,6 +98,7 @@ async function AccountsContent({ params, searchParams }: PageProps<"/books/[book
           }
           actions={
             <>
+              <ParentPosting bookId={book.id} allowed={book.postToParents} canEdit={canEdit} />
               {archivedCount > 0 || showArchived ? (
                 <Link
                   href={hrefWith(base, { archived: showArchived ? undefined : "1" })}

@@ -155,6 +155,13 @@ exclude it. Rules fill in the category for you (open a transaction's details and
 **Create a rule from this** to make one from it), and nothing posts until you add it. On
 the Posted tab, **Undo** sends a transaction back to review.
 
+Where no rule applies, Bucketbook guesses from what you've already added: the same store
+going to the same place, or similar words in the description. A guess is marked **From
+your history**, and its details say what it was based on. The learning is plain counting
+on your own server; no transaction leaves it. The category list is searchable: type part
+of a name, and suggestions, matches and the groups that fit (spending first for money
+out, income first for money in) come first.
+
 To try it without a bank, press **Use the demo bank** on the Bank connections page; it
 connects SimpleFIN's public demo account.
 
@@ -168,7 +175,10 @@ Each bank account feeds its own account in the books. New books start without an
 or card accounts: when you map a bank account, choose **New account**, pick its type
 (Checking, Savings, Credit card, Investment, Loan, Cash) and name it. To group several
 accounts (for example savings accounts under "Marcus"), add the group in the chart of
-accounts and set "Sub-account of" on each.
+accounts and set "Sub-account of" on each. To keep such group accounts as headings only,
+set **Parent accounts** to **Headings only** at the top of the chart of accounts: they
+can't be picked any more, so every transaction lands on a sub-account. Entries that
+already use a parent stay as they are.
 
 **Investment accounts** (brokerage, IRA, 401k) are for net worth: map them as a new
 investment account and each sync brings the books to the value the bank reports. Trades

@@ -157,6 +157,15 @@ export function describeAudit(
           details.push(`Name: ${str(before.name)} to ${str(after.name)}`);
         if (before.startDate !== after.startDate)
           details.push(`Start date: ${str(before.startDate)} to ${str(after.startDate)}`);
+        if (
+          typeof after.postToParents === "boolean" &&
+          before.postToParents !== after.postToParents
+        )
+          details.push(
+            after.postToParents
+              ? "Parent accounts can be chosen again"
+              : "Parent accounts are headings only",
+          );
         return { summary: "Changed book settings", details };
       }
     }

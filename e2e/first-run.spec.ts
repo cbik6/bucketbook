@@ -52,6 +52,13 @@ test("first run: create the owner and a book, then manage the chart of accounts"
   await expect(petFood).toBeVisible();
   await expect(panel).toHaveCount(0);
 
+  // Parent accounts can be kept as headings only, and turned back.
+  const parents = page.getByLabel("Parent accounts");
+  await parents.selectOption("headings");
+  await expect(page.getByText(/Parent accounts are now headings only/)).toBeVisible();
+  await parents.selectOption("allowed");
+  await expect(page.getByText("Parent accounts can be chosen again.")).toBeVisible();
+
   // Books start without bank or card accounts: add the ones the later specs use.
   for (const [name, type, detail] of [
     ["Checking", "Asset", "Checking"],

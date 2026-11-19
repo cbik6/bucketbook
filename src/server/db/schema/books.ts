@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   char,
   check,
   date,
@@ -25,6 +26,11 @@ export const books = pgTable(
     /** Bank data before this date is ignored; opening balances are as of this date. */
     startDate: date("start_date", { mode: "string" }).notNull(),
     currencyCode: char("currency_code", { length: 3 }).notNull().default("USD"),
+    /**
+     * When false, accounts with sub-accounts are headings only: new entries,
+     * rules and review choices must use one of the sub-accounts.
+     */
+    postToParents: boolean("post_to_parents").notNull().default(true),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })

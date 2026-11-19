@@ -565,3 +565,31 @@ no migration was needed. A CSV and a PDF of the same month never count as the sa
 import, but the duplicate check (same amount, a few days apart) compares each file
 against SimpleFIN rows and against rows from the other kind of file, so the overlap
 arrives flagged.
+
+### D63. Category guesses are learned on the server
+
+Rules decide a category when one matches. Where none does, `src/lib/category-learner.ts`
+guesses from the book's own added bank transactions, retrained on each visit to For
+review from the most recent 5,000. It first looks for the same store (the bank's text with
+store numbers, dates and card-processor prefixes removed, first two words) going the same
+direction; if three quarters or more of those went to one account, that is the guess.
+Otherwise a naive Bayes model over the description's words, the direction, the bank
+account and the size of the amount guesses, but only when it is fairly sure (70%) and at
+least two earlier transactions share a word with the pick. Up to three likely accounts
+also head the category list.
+
+The training data is each added transaction's bank text and the single account on the
+other side of its entry as the entry reads now, so fixing an entry teaches the fix. Split
+entries, transfers and matches are left out. A guess fills in the category the same way a
+rule does and is marked "From your history" with the reason. An outside AI service could
+name stores never seen before, but it would send transaction text off the server, so
+Clark chose to keep learning local (as with PDF statements, D62).
+
+### D64. Parent accounts can be headings only
+
+`books.post_to_parents` (on by default) says whether an account with sub-accounts can take
+postings. Off, `validateLines` refuses new lines on a parent, rules can't point at one,
+and pickers grey it out as a heading. Opening balances and lines an edited entry already
+had are allowed, so older entries keep working. Buckets don't make their parent a parent
+here; bucket parents already refuse postings. The setting is a selector on the chart of
+accounts, open to editors.

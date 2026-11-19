@@ -1,4 +1,4 @@
-import { type Page, expect } from "@playwright/test";
+import { type Locator, type Page, expect } from "@playwright/test";
 
 /** Clicks a link in the rail's folded Setup group, opening the group first if needed. */
 export async function clickSetupLink(page: Page, name: string) {
@@ -22,4 +22,18 @@ export async function accountMenu(page: Page, item: string) {
     await expect(menuItem).toBeVisible({ timeout: 1000 });
   }).toPass();
   await menuItem.click();
+}
+
+/** Picks a category for a review row from its searchable list. */
+export async function pickCategory(page: Page, row: Locator, search: string, option: RegExp) {
+  const trigger = row.getByLabel(/Category for/);
+  const box = page.getByPlaceholder("Search categories");
+  // Clicks before the page is interactive are lost, so retry until the list opens.
+  await expect(async () => {
+    if (!(await box.isVisible())) await trigger.click();
+    await expect(box).toBeVisible({ timeout: 1000 });
+  }).toPass();
+  await box.fill(search);
+  await page.getByRole("option", { name: option }).filter({ visible: true }).first().click();
+  await expect(box).toBeHidden();
 }

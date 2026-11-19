@@ -1,0 +1,1 @@
+ALTER TABLE "books" ADD COLUMN "post_to_parents" boolean DEFAULT true NOT NULL;

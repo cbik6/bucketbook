@@ -1,5 +1,5 @@
 import { type Page, expect, test } from "@playwright/test";
-import { clickSetupLink } from "./helpers";
+import { clickSetupLink, pickCategory } from "./helpers";
 
 /**
  * Phase 3 flow on the install that first-run.spec.ts set up: import bank CSV
@@ -74,7 +74,7 @@ test("review: CSV import, transfer match, approve, save a rule, rule suggests", 
 
   // The card payment pairs with the checking side and records both at once.
   const transfer = page.getByRole("listitem").filter({ hasText: "PAYMENT TO CARD" });
-  await expect(transfer.getByLabel(/Category for/)).toHaveValue(/^transfer:/);
+  await expect(transfer.getByLabel(/Category for/)).toContainText("Transfer to Credit Card");
   await transfer.getByRole("button", { name: /Match PAYMENT TO CARD/ }).click();
   await expect(page.getByText("Transfer recorded.")).toBeVisible();
   await expect(page.getByRole("listitem").filter({ hasText: "PAYMENT THANK YOU" })).toHaveCount(0);
@@ -82,14 +82,11 @@ test("review: CSV import, transfer match, approve, save a rule, rule suggests", 
   // Categorize the grocery run and save it as a rule.
   const grocery = page.getByRole("listitem").filter({ hasText: "LOCAL GROCER #12" });
   const category = grocery.getByLabel(/Category for/);
-  const groceries = await category
-    .locator("option", { hasText: /(^|: )Groceries$/ })
-    .getAttribute("value");
   // Splitting can be backed out of from the same list.
-  await category.selectOption("split");
-  await expect(category.locator("option:checked")).toHaveText("Split into 2 lines");
-  await category.selectOption(groceries!);
-  await expect(category).toHaveValue(groceries!);
+  await pickCategory(page, grocery, "split", /Split across accounts/);
+  await expect(category).toContainText("Split into 2 lines");
+  await pickCategory(page, grocery, "groceries", /(^|: )Groceries/);
+  await expect(category).toContainText("Groceries");
   // Splitting opened the details, so the rule checkbox is already showing.
   await grocery.getByLabel(/Always use this category/).check();
   await grocery.getByRole("button", { name: /Add LOCAL GROCER/ }).click();
@@ -97,11 +94,7 @@ test("review: CSV import, transfer match, approve, save a rule, rule suggests", 
 
   // Paycheck with the keyboard: focus the row, then A approves.
   const pay = page.getByRole("listitem").filter({ hasText: "PAYROLL ACME" });
-  const payCategory = pay.getByLabel(/Category for/);
-  const paychecks = await payCategory
-    .locator("option", { hasText: /(^|: )Paychecks$/ })
-    .getAttribute("value");
-  await payCategory.selectOption(paychecks!);
+  await pickCategory(page, pay, "paychecks", /(^|: )Paychecks/);
   await pay.focus();
   await page.keyboard.press("a");
   await expect(page.getByText("All caught up.")).toBeVisible();
@@ -110,12 +103,17 @@ test("review: CSV import, transfer match, approve, save a rule, rule suggests", 
   await importCsv(
     page,
     "Checking",
-    `Date,Description,Amount\n${today},LOCAL GROCER #12,-55.25\n${today},LOCAL GROCER #12,-18.00\n`,
-    2,
+    `Date,Description,Amount\n${today},LOCAL GROCER #12,-55.25\n${today},LOCAL GROCER #12,-18.00\n${today},PAYROLL ACME,1600.00\n`,
+    3,
   );
   const next = page.getByRole("listitem").filter({ hasText: "$18.00" });
   await expect(next.getByText("Rule: LOCAL GROCER #12")).toBeVisible();
-  await expect(next.getByLabel(/Category for/)).toHaveValue(groceries!);
+  await expect(next.getByLabel(/Category for/)).toContainText("Groceries");
+
+  // With no rule, the next paycheck's category comes from your history.
+  const pay2 = page.getByRole("listitem").filter({ hasText: "PAYROLL ACME" });
+  await expect(pay2.getByText("From your history")).toBeVisible();
+  await expect(pay2.getByLabel(/Category for/)).toContainText("Paychecks");
 
   // Create a rule straight from a transaction, prefilled from it.
   await next.getByRole("button", { name: "LOCAL GROCER #12", exact: true }).click();
@@ -131,8 +129,8 @@ test("review: CSV import, transfer match, approve, save a rule, rule suggests", 
 
   // Select all and approve together.
   await page.getByLabel("Select all").check();
-  await page.getByRole("button", { name: "Add 2" }).click();
-  await expect(page.getByText("Added 2.")).toBeVisible();
+  await page.getByRole("button", { name: "Add 3" }).click();
+  await expect(page.getByText("Added 3.")).toBeVisible();
   await expect(page.getByText("All caught up.")).toBeVisible();
 
   await page.getByRole("link", { name: "Posted" }).click();

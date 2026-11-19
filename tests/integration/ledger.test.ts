@@ -9,7 +9,8 @@ import {
   listAccounts,
   updateAccount,
 } from "@/server/accounts/service";
-import { createBook } from "@/server/books/service";
+import { accountOptionGroups } from "@/lib/account-options";
+import { createBook, setPostToParents } from "@/server/books/service";
 import { getDb, getPool } from "@/server/db/client";
 import { accounts, auditLog, journalLines } from "@/server/db/schema";
 import { UserFacingError } from "@/server/errors";
@@ -505,5 +506,48 @@ describe("register and ledger invariants", () => {
       (e: unknown) => e,
     );
     expect(err).toBeInstanceOf(UserFacingError);
+  });
+});
+
+describe("parent accounts as headings", () => {
+  it("refuses new postings to a parent once the book keeps parents as headings", async () => {
+    const { actor, bookId, id } = await setupBook();
+    // Allowed by default, so an older entry can use the parent.
+    const old = await postEntry(getDb(), actor, bookId, {
+      entryDate: "2026-02-01",
+      lines: [line(id("Food"), "12"), line(id("Checking"), "", "12")],
+    });
+    await setPostToParents(getDb(), actor, bookId, false);
+
+    await expect(
+      postEntry(getDb(), actor, bookId, {
+        entryDate: "2026-02-02",
+        lines: [line(id("Food"), "5"), line(id("Checking"), "", "5")],
+      }),
+    ).rejects.toThrow(/Food is a parent account/);
+    // Sub-accounts still work, and the older entry can still be edited.
+    await postEntry(getDb(), actor, bookId, {
+      entryDate: "2026-02-02",
+      lines: [line(id("Groceries"), "5"), line(id("Checking"), "", "5")],
+    });
+    const edited = await editEntry(getDb(), actor, bookId, old.id, {
+      entryDate: "2026-02-01",
+      memo: "Snacks",
+      lines: [line(id("Food"), "12"), line(id("Checking"), "", "12")],
+    });
+    expect(edited.changed).toBe(true);
+
+    // The pickers grey the parent out.
+    const groups = accountOptionGroups(await listAccounts(getDb(), bookId), [], {
+      blockParents: true,
+    });
+    const food = groups.flatMap((g) => g.options).find((o) => o.id === id("Food"))!;
+    expect(food).toMatchObject({ isParent: true, disabled: true });
+
+    await setPostToParents(getDb(), actor, bookId, true);
+    await postEntry(getDb(), actor, bookId, {
+      entryDate: "2026-02-03",
+      lines: [line(id("Food"), "5"), line(id("Checking"), "", "5")],
+    });
   });
 });

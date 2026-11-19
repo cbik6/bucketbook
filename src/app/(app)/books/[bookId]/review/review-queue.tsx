@@ -8,6 +8,7 @@ import {
   Link2,
   Plus,
   Search,
+  Sparkles,
   Split as SplitIcon,
   Undo2,
   Wand2,
@@ -30,6 +31,7 @@ import { suggestRuleText } from "@/lib/rules";
 import type { Decision, QueueItem } from "@/server/bank/review-service";
 import { type AttachmentInfo, Attachments } from "../attachments";
 import { RuleEditor } from "../rules/rules-manager";
+import { CategoryPicker } from "./category-picker";
 import {
   type ReviewResult,
   approveAction,
@@ -86,10 +88,12 @@ function defaultDraft(item: QueueItem): Draft {
     ? `link:${link.entryId}`
     : item.transfer && (item.suggestedTransfer || !item.suggestedAccountId)
       ? `transfer:${item.transfer.id}`
-      : (item.suggestedAccountId ?? (item.transfer ? `transfer:${item.transfer.id}` : ""));
+      : (item.suggestedAccountId ??
+        item.guess?.categoryId ??
+        (item.transfer ? `transfer:${item.transfer.id}` : ""));
   return {
     choice,
-    payee: item.suggestedPayee ?? item.payee ?? item.description,
+    payee: item.suggestedPayee ?? item.guess?.payee ?? item.payee ?? item.description,
     memo: item.suggestedMemo ?? "",
     saveRule: false,
     splits: [],
@@ -130,7 +134,7 @@ function matchesSearch(item: QueueItem, query: string) {
  */
 export function ReviewQueue({
   bookId,
-  items,
+  items: rawItems,
   groups,
   partnerGroups,
   attachments,
@@ -153,6 +157,20 @@ export function ReviewQueue({
   attachments: Record<string, AttachmentInfo[]>;
   canEdit: boolean;
 }) {
+  // A guess is only offered for an account that can be picked right now.
+  const items = useMemo(() => {
+    const usable = new Set(
+      groups
+        .flatMap((g) => g.options)
+        .filter((o) => !o.disabled)
+        .map((o) => o.id),
+    );
+    return rawItems.map((i) => ({
+      ...i,
+      guess: i.guess && usable.has(i.guess.categoryId) ? i.guess : null,
+      likely: i.likely.filter((id) => usable.has(id)),
+    }));
+  }, [rawItems, groups]);
   const router = useRouter();
   const uid = useId();
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
@@ -594,7 +612,7 @@ type RowData = Omit<RowProps, "refCallback">;
 function Row({ refCallback, ...p }: RowProps) {
   const { item, draft } = p;
   const base = `${p.uid}-${item.id}`;
-  const title = item.suggestedPayee ?? item.payee ?? item.description;
+  const title = item.suggestedPayee ?? item.guess?.payee ?? item.payee ?? item.description;
   const transfer = item.transfer;
   const crossBook = transfer && transfer.bookId !== p.bookId;
   const isSplit = draft.choice === "split";
@@ -721,38 +739,42 @@ function Row({ refCallback, ...p }: RowProps) {
             </SelectInput>
           ) : null}
           {/* Split stays a choice in the same list, so picking a category backs out of it. */}
-          <SelectInput
+          <CategoryPicker
             id={`${base}-category`}
-            aria-label={`Category for ${title}`}
+            label={`Category for ${title}`}
             value={draft.choice}
-            onChange={(e) => chooseCategory(e.target.value)}
+            onChange={chooseCategory}
             disabled={!p.canEdit}
             invalid={Boolean(p.error) && !draft.choice}
-            className="lg:h-9 lg:text-[0.8125rem]"
-          >
-            <option value="">Choose a category</option>
-            {item.linkCandidates.length || transfer ? (
-              <optgroup label="Matches">
-                {item.linkCandidates.map((c) => (
-                  <option key={c.entryId} value={`link:${c.entryId}`}>
-                    Already recorded: {formatEntryNumber(c.entryNumber)}, {formatDay(c.entryDate)}
-                  </option>
-                ))}
-                {transfer ? (
-                  <option value={`transfer:${transfer.id}`}>
-                    Transfer {spent ? "to" : "from"} {transfer.accountName}
-                    {crossBook ? ` (${transfer.bookName})` : ""}
-                  </option>
-                ) : null}
-              </optgroup>
-            ) : null}
-            <AccountSelectOptions groups={p.groups} value={draft.choice} exclude={item.accountId} />
-            <optgroup label="More">
-              <option value="split">
-                {isSplit ? `Split into ${draft.splits.length} lines` : "Split across accounts"}
-              </option>
-            </optgroup>
-          </SelectInput>
+            groups={p.groups}
+            exclude={item.accountId}
+            moneyOut={spent}
+            matches={[
+              ...item.linkCandidates.map((c) => ({
+                value: `link:${c.entryId}`,
+                label: `Already recorded: ${formatEntryNumber(c.entryNumber)}, ${formatDay(c.entryDate)}`,
+              })),
+              ...(transfer
+                ? [
+                    {
+                      value: `transfer:${transfer.id}`,
+                      label: `Transfer ${spent ? "to" : "from"} ${transfer.accountName}${crossBook ? ` (${transfer.bookName})` : ""}`,
+                    },
+                  ]
+                : []),
+            ]}
+            suggested={[
+              ...(item.suggestedAccountId
+                ? [{ value: item.suggestedAccountId, hint: "rule" as const }]
+                : []),
+              ...item.likely
+                .filter((id) => id !== item.suggestedAccountId)
+                .map((id) => ({ value: id, hint: "learned" as const })),
+            ]}
+            splitLabel={
+              isSplit ? `Split into ${draft.splits.length} lines` : "Split across accounts"
+            }
+          />
         </div>
         <div className="tabular hidden text-right text-sm font-medium text-ink lg:col-start-5 lg:row-start-1 lg:block">
           {spent ? formatCents(-item.amountCents) : null}
@@ -821,9 +843,25 @@ function Row({ refCallback, ...p }: RowProps) {
   );
 }
 
+/** Why the learner picked this category, in a sentence. */
+function guessReason(guess: NonNullable<QueueItem["guess"]>) {
+  return guess.basis === "store"
+    ? `${guess.seen === 1 ? "The last time" : `The last ${guess.seen} times`} at \u201c${guess.store}\u201d went here.`
+    : `${guess.seen} similar transactions went here.`;
+}
+
 function Badges({ item }: { item: QueueItem }) {
   return (
     <>
+      {item.guess && !item.transfer && !item.linkCandidates.length ? (
+        <span
+          title={guessReason(item.guess)}
+          className="inline-flex items-center gap-1 rounded bg-sunken px-1.5 py-px text-xs text-ink-muted"
+        >
+          <Sparkles size={11} aria-hidden />
+          From your history
+        </span>
+      ) : null}
       {item.suggestedRuleName ? (
         <span className="inline-flex items-center gap-1 rounded bg-sunken px-1.5 py-px text-xs text-ink-muted">
           <Wand2 size={11} aria-hidden />
@@ -928,6 +966,16 @@ function Details(
             : "From the bank: "}
           {item.description}
           {item.bankMemo && item.bankMemo !== item.description ? `, ${item.bankMemo}` : ""}
+        </p>
+      ) : null}
+
+      {item.guess && mode === "categorize" && choice === item.guess.categoryId ? (
+        <p className="flex items-start gap-1.5 text-[0.8125rem] text-ink-muted">
+          <Sparkles size={14} aria-hidden className="mt-0.5 shrink-0" />
+          <span>
+            Guessed from your history: {guessReason(item.guess)} Change it if it&apos;s wrong; the
+            next guess learns from what you add.
+          </span>
         </p>
       ) : null}
 

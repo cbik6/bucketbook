@@ -12,6 +12,7 @@ import { recordAudit } from "../audit/record";
 import type { Database, DbOrTx } from "../db/client";
 import { accounts, bankRules, bankTransactions } from "../db/schema";
 import { NotFoundError, UserFacingError } from "../errors";
+import { parentsBlocked } from "../ledger/service";
 
 type Actor = { userId: string };
 
@@ -87,6 +88,15 @@ async function checkRuleAccounts(
   if (actions.offsetAccountId && !byId.get(actions.offsetAccountId)!.allowsPosting) {
     throw new UserFacingError(
       `${byId.get(actions.offsetAccountId)!.name} holds buckets. Pick one of its buckets.`,
+      "actions",
+    );
+  }
+  if (
+    actions.offsetAccountId &&
+    (await parentsBlocked(tx, bookId, [actions.offsetAccountId])).has(actions.offsetAccountId)
+  ) {
+    throw new UserFacingError(
+      `${byId.get(actions.offsetAccountId)!.name} is a parent account. Pick one of its sub-accounts.`,
       "actions",
     );
   }

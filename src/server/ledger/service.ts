@@ -15,6 +15,7 @@ import {
   type EntryKind,
   accounts,
   bankTransactions,
+  books,
   journalEntries,
   journalEntryVersions,
   journalLines,
@@ -109,11 +110,17 @@ async function nextEntryNumber(tx: DbOrTx, bookId: string): Promise<number> {
   return Number(result.rows[0]!.next);
 }
 
-/** Checks the lines balance and every account can take postings. Returns clean lines. */
+/**
+ * Checks the lines balance and every account can take postings. Returns clean
+ * lines. When the book keeps parent accounts as headings, a parent is refused
+ * unless it is in `allowParents` (opening balances, or a line an edited entry
+ * already had).
+ */
 export async function validateLines(
   tx: DbOrTx,
   bookId: string,
   lines: DraftLine[],
+  options: { allowParents?: "all" | string[] } = {},
 ): Promise<ParsedLine[]> {
   const { parsed, problems, debitTotal, creditTotal } = parseDraftLines(lines);
   if (problems.length > 0) {
@@ -155,7 +162,48 @@ export async function validateLines(
       );
     }
   });
+  if (options.allowParents !== "all") {
+    const blocked = await parentsBlocked(tx, bookId, ids);
+    const allowed = new Set(options.allowParents ?? []);
+    parsed.forEach((l, i) => {
+      if (blocked.has(l.accountId) && !allowed.has(l.accountId)) {
+        throw new UserFacingError(
+          `Line ${i + 1}: ${byId.get(l.accountId)!.name} is a parent account. Choose one of its sub-accounts.`,
+          "lines",
+        );
+      }
+    });
+  }
   return parsed;
+}
+
+/**
+ * Of these accounts, the parents that can't take postings: only when the book
+ * keeps parent accounts as headings, and only parents of real sub-accounts
+ * (buckets don't count; their parent is handled by the bucket rules).
+ */
+export async function parentsBlocked(
+  tx: DbOrTx,
+  bookId: string,
+  ids: string[],
+): Promise<Set<string>> {
+  if (ids.length === 0) return new Set();
+  const [book] = await tx
+    .select({ postToParents: books.postToParents })
+    .from(books)
+    .where(eq(books.id, bookId));
+  if (!book || book.postToParents) return new Set();
+  const rows = await tx
+    .selectDistinct({ id: accounts.parentAccountId })
+    .from(accounts)
+    .where(
+      and(
+        eq(accounts.bookId, bookId),
+        inArray(accounts.parentAccountId, ids),
+        eq(accounts.isBucket, false),
+      ),
+    );
+  return new Set(rows.map((r) => r.id).filter((id): id is string => Boolean(id)));
 }
 
 export function assertDateAllowed(entryDate: string, startDate: string) {
@@ -559,7 +607,7 @@ export async function saveOpeningBalances(
       const result = await editEntryInTx(tx, actor, book, state.entry.id, input);
       return result;
     }
-    const validated = await validateLines(tx, bookId, draft);
+    const validated = await validateLines(tx, bookId, draft, { allowParents: "all" });
     const entry = await createEntry(tx, {
       actor,
       bookId,
@@ -627,9 +675,12 @@ async function editEntryInTx(
   input: EntryInput,
 ) {
   const { entry } = await loadEntryForChange(tx, book.id, entryId);
-  const lines = await validateLines(tx, book.id, input.lines);
-  await assertBankLinksKept(tx, entryId, lines);
   const beforeLines = await currentLines(tx, entryId, entry.currentVersion);
+  // A parent the entry already used stays allowed, so older entries can still be edited.
+  const lines = await validateLines(tx, book.id, input.lines, {
+    allowParents: beforeLines.map((b) => b.accountId),
+  });
+  await assertBankLinksKept(tx, entryId, lines);
   const payee = input.payee === undefined ? entry.payee : input.payee;
   const same =
     input.entryDate === entry.entryDate &&

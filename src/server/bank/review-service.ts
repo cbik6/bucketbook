@@ -3,6 +3,7 @@ import { and, asc, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { DraftLine } from "@/lib/ledger-math";
 import { formatCents, parseCents } from "@/lib/money";
+import type { LearnedGuess } from "@/lib/category-learner";
 import { payeeKey } from "@/lib/rules";
 import { type MatchItem, pairTransfers } from "@/lib/transfer-match";
 import { recordAudit } from "../audit/record";
@@ -28,6 +29,7 @@ import {
   validateLines,
 } from "../ledger/service";
 import { allocateDepositInTx, unassignedOf } from "../buckets/service";
+import { bankText, bookLearner } from "./learner-service";
 import { applyRules } from "./rules-service";
 
 type Actor = { userId: string };
@@ -742,6 +744,9 @@ export type QueueItem = {
   } | null;
   linkCandidates: LinkCandidate[];
   attachmentCount: number;
+  /** What your history says, when no rule decides: a confident guess, and likely picks. */
+  guess: LearnedGuess | null;
+  likely: string[];
 };
 
 export async function queueCounts(db: DbOrTx, bookId: string): Promise<Record<QueueTab, number>> {
@@ -825,8 +830,22 @@ export async function listQueue(
     );
   }
 
+  // Learn from what you've already added, on this server; only the review tab needs it.
+  const learner = tab === "review" && rows.length > 0 ? await bookLearner(db, bookId) : null;
+
   return rows.map(({ item, accountName, entryNumber, entryKind, ruleName, attachmentCount }) => {
     const partner = transfers.get(item.id);
+    const learned =
+      learner && !item.suggestedAccountId && !item.suggestedTransfer
+        ? learner.guess(
+            {
+              text: bankText(item.description, item.payee),
+              amountCents: item.amountCents,
+              bankAccountId: item.accountId,
+            },
+            item.accountId,
+          )
+        : null;
     const dup = item.duplicateOfId ? dupById.get(item.duplicateOfId) : undefined;
     return {
       id: item.id,
@@ -864,6 +883,8 @@ export async function listQueue(
         : null,
       linkCandidates: links.get(item.id) ?? [],
       attachmentCount: Number(attachmentCount),
+      guess: learned?.guess ?? null,
+      likely: learned?.likely ?? [],
     };
   });
 }
