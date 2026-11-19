@@ -3,8 +3,8 @@ import { Archive, Lock, Pencil, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
-import { ButtonLink, buttonClass } from "@/components/ui/button";
+import { PageFallback, PageHeader } from "@/components/app-shell";
+import { buttonClass, ButtonLink, iconButtonClass } from "@/components/ui/button";
 import { type AccountNode, buildAccountTree, descendantIds, flattenTree } from "@/lib/account-tree";
 import {
   ACCOUNT_TYPES,
@@ -173,7 +173,7 @@ async function AccountsContent({ params, searchParams }: PageProps<"/books/[book
               scroll={false}
               tabIndex={-1}
               aria-hidden
-              className="fixed inset-0 z-40 bg-scrim lg:hidden"
+              className="fixed inset-0 z-40 animate-[scrim-in_200ms_var(--ease-out)] bg-scrim lg:hidden"
             />
             <MobileSheetGuard />
             <aside
@@ -346,7 +346,7 @@ function TypeSection({
                         scroll={false}
                         aria-label={`Edit ${n.name}`}
                         title="Edit account"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted transition-[opacity,background-color,transform] duration-150 hover:bg-surface hover:text-ink active:scale-[0.95] [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-visible:opacity-100"
+                        className={rowAction}
                       >
                         <Pencil size={14} aria-hidden />
                       </Link>
@@ -357,7 +357,7 @@ function TypeSection({
                         scroll={false}
                         aria-label={`Add sub-account under ${n.name}`}
                         title="Add sub-account"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted transition-[opacity,background-color,transform] duration-150 hover:bg-surface hover:text-ink active:scale-[0.95] [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-visible:opacity-100"
+                        className={rowAction}
                       >
                         <Plus size={15} aria-hidden />
                       </Link>
@@ -373,15 +373,17 @@ function TypeSection({
   );
 }
 
+/** Row actions show on hover where a pointer can hover, and always on touch screens. */
+const rowAction = iconButtonClass({
+  size: "sm",
+  tone: "raised",
+  extra:
+    "[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-visible:opacity-100",
+});
+
 export default function AccountsPage(props: PageProps<"/books/[bookId]/accounts">) {
   return (
-    <Suspense
-      fallback={
-        <div className="px-5 pt-10 lg:px-10">
-          <div className="h-7 w-56 animate-pulse rounded bg-rule" />
-        </div>
-      }
-    >
+    <Suspense fallback={<PageFallback />}>
       <AccountsContent {...props} />
     </Suspense>
   );

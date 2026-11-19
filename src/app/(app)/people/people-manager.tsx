@@ -262,8 +262,8 @@ function InviteForm({ books }: { books: Book[] }) {
           />
         </fieldset>
         <div>
-          <Button type="submit" variant="primary" disabled={pending}>
-            {pending ? "Making the link" : "Make invite link"}
+          <Button type="submit" variant="primary" pending={pending} pendingLabel="Making the link">
+            Make invite link
           </Button>
         </div>
       </form>

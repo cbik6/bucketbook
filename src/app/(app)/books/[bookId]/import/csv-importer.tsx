@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useId, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Money } from "@/components/money";
-import { Button, buttonClass } from "@/components/ui/button";
+import { Button, buttonClass, PendingLabel } from "@/components/ui/button";
 import { Field, FormError, SelectInput } from "@/components/ui/field";
 import {
   type CsvMapping,
@@ -373,7 +373,9 @@ export function CsvImporter({
                 onClick={check}
                 disabled={pending || !accountId || mapped.rows.length === 0}
               >
-                {pending ? "Checking" : "Check for duplicates"}
+                <PendingLabel pending={pending} label="Checking">
+                  Check for duplicates
+                </PendingLabel>
               </Button>
             ) : (
               <>
@@ -382,7 +384,9 @@ export function CsvImporter({
                   onClick={doImport}
                   disabled={pending || counts!.fresh + counts!.dup === 0}
                 >
-                  {pending ? "Importing" : `Send ${counts!.fresh + counts!.dup} to review`}
+                  <PendingLabel pending={pending} label="Importing">
+                    Send {counts!.fresh + counts!.dup} to review
+                  </PendingLabel>
                 </Button>
                 <p className="text-sm text-ink-muted">
                   {counts!.fresh} new

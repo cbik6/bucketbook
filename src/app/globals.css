@@ -210,10 +210,12 @@ body {
   color: var(--ink);
 }
 
-:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-  border-radius: 4px;
+/* In the base layer so a component's own focus style (inputs use a ring) wins. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
 }
 
 a {
@@ -266,6 +268,61 @@ table {
 @keyframes sheet-rise {
   from {
     transform: translateY(100%);
+  }
+}
+
+/*
+ * Touch screens get a taller hit area (44px) on small controls, without
+ * changing how they look. Vertical only, so neighbors never steal taps.
+ */
+@utility tap-target-y {
+  @media (pointer: coarse) {
+    position: relative;
+    &::before {
+      content: "";
+      position: absolute;
+      inset-inline: 0;
+      top: 50%;
+      height: max(100%, 44px);
+      translate: 0 -50%;
+    }
+  }
+}
+
+/* The scrim behind a sheet fades in while the sheet rises. */
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Pop-up dialogs fade and grow from 96% on open, and reverse on close. */
+@layer components {
+  dialog.dialog-motion,
+  dialog.dialog-motion::backdrop {
+    opacity: 0;
+    transition:
+      opacity 200ms var(--ease-out),
+      scale 200ms var(--ease-out),
+      overlay 200ms allow-discrete,
+      display 200ms allow-discrete;
+  }
+  dialog.dialog-motion {
+    scale: 0.96;
+  }
+  dialog.dialog-motion[open],
+  dialog.dialog-motion[open]::backdrop {
+    opacity: 1;
+    scale: 1;
+  }
+  @starting-style {
+    dialog.dialog-motion[open],
+    dialog.dialog-motion[open]::backdrop {
+      opacity: 0;
+    }
+    dialog.dialog-motion[open] {
+      scale: 0.96;
+    }
   }
 }
 

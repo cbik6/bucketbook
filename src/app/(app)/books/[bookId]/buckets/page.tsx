@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import { bucketOverview } from "@/server/buckets/service";
 import { getDb } from "@/server/db/client";
 import { loadBookForPage } from "@/server/guards";
@@ -38,7 +38,7 @@ async function BucketsContent({ params }: PageProps<"/books/[bookId]/buckets">) 
 
 export default function BucketsPage(props: PageProps<"/books/[bookId]/buckets">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <BucketsContent {...props} />
     </Suspense>
   );

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Money } from "@/components/money";
-import { Button } from "@/components/ui/button";
+import { Button, iconButtonClass, PendingLabel } from "@/components/ui/button";
 import { FormError, inputClass } from "@/components/ui/field";
 import { formatCents, parseCents } from "@/lib/money";
 import { copyBudgetAction, saveBudgetAction } from "./actions";
@@ -178,7 +178,7 @@ export function BudgetEditor({
           <Link
             href={`${base}?month=${shift(month, -1)}`}
             aria-label="Previous month"
-            className="grid size-9 place-items-center rounded-full hover:bg-sunken"
+            className={iconButtonClass()}
           >
             <ChevronLeft size={18} aria-hidden />
           </Link>
@@ -188,7 +188,7 @@ export function BudgetEditor({
           <Link
             href={`${base}?month=${shift(month, 1)}`}
             aria-label="Next month"
-            className="grid size-9 place-items-center rounded-full hover:bg-sunken"
+            className={iconButtonClass()}
           >
             <ChevronRight size={18} aria-hidden />
           </Link>
@@ -225,7 +225,9 @@ export function BudgetEditor({
                 })
               }
             >
-              {pending ? "Saving" : "Save budget"}
+              <PendingLabel pending={pending} label="Saving">
+                Save budget
+              </PendingLabel>
             </Button>
           </div>
         ) : null}

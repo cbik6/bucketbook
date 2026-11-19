@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import { Money } from "@/components/money";
 import { RangePicker } from "@/components/range-picker";
 import { FillLine } from "@/components/ui/fill-line";
@@ -76,7 +76,7 @@ async function Content({ params, searchParams }: PageProps<"/books/[bookId]/repo
                       (b) => !b.archived || b.endCents !== 0 || b.inflowCents || b.outflowCents,
                     )
                     .map((b) => (
-                      <tr key={b.id} className="border-b border-rule hover:bg-sunken">
+                      <tr key={b.id} className="border-b border-rule hover:bg-sunken/70">
                         <td className="py-2 pr-3">
                           <Link href={`${base}/accounts/${b.id}?${q}`} className="hover:underline">
                             {b.name}
@@ -128,7 +128,7 @@ async function Content({ params, searchParams }: PageProps<"/books/[bookId]/repo
 
 export default function Page(props: PageProps<"/books/[bookId]/reports/buckets">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <Content {...props} />
     </Suspense>
   );

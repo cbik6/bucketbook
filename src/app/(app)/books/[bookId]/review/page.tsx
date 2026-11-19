@@ -3,8 +3,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
-import { ButtonLink } from "@/components/ui/button";
+import { PageFallback, PageHeader } from "@/components/app-shell";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { SelectInput } from "@/components/ui/field";
 import type { AccountOptionGroup } from "@/lib/account-options";
 import { bankableAccounts } from "@/server/bank/accounts";
 import { listAttachments } from "@/server/bank/attachments-service";
@@ -182,32 +183,24 @@ function AccountFilter({
       <label htmlFor="review-account-filter" className="text-ink-muted">
         Account
       </label>
-      <select
-        id="review-account-filter"
-        name="account"
-        defaultValue={value}
-        className="h-8 rounded-lg border border-field-border bg-surface px-2 text-sm text-ink"
-      >
+      <SelectInput compact id="review-account-filter" name="account" defaultValue={value}>
         <option value="">All accounts</option>
         {accounts.map((a) => (
           <option key={a.id} value={a.id}>
             {a.name}
           </option>
         ))}
-      </select>
-      <button
-        type="submit"
-        className="h-8 rounded-full border border-field-border px-3 text-[0.8125rem] text-ink hover:border-ink-muted"
-      >
+      </SelectInput>
+      <Button type="submit" size="sm">
         Show
-      </button>
+      </Button>
     </>
   );
 }
 
 export default function ReviewPage(props: PageProps<"/books/[bookId]/review">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <ReviewContent {...props} />
     </Suspense>
   );

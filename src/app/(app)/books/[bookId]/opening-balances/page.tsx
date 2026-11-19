@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import { buildAccountTree, flattenTree } from "@/lib/account-tree";
 import type { AccountType } from "@/lib/account-types";
 import { formatDay } from "@/lib/dates";
@@ -110,7 +110,7 @@ async function OpeningContent({
 
 export default function OpeningBalancesPage(props: PageProps<"/books/[bookId]/opening-balances">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <OpeningContent {...props} />
     </Suspense>
   );

@@ -219,9 +219,19 @@ export function ConnectionCard({
             hours.
           </p>
         </div>
-        <Button variant="primary" onClick={syncNow} aria-disabled={busy} disabled={busy}>
-          <RefreshCw size={15} aria-hidden className={busy ? "motion-safe:animate-spin" : ""} />
-          {busy ? "Syncing" : "Sync now"}
+        <Button
+          variant="primary"
+          onClick={syncNow}
+          pending={busy}
+          pendingLabel={
+            <>
+              <RefreshCw size={15} aria-hidden className="motion-safe:animate-spin" />
+              Syncing
+            </>
+          }
+        >
+          <RefreshCw size={15} aria-hidden />
+          Sync now
         </Button>
       </div>
 

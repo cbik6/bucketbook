@@ -3,7 +3,7 @@
 import { FileText, ImageIcon, Paperclip, X } from "lucide-react";
 import { useId, useRef, useTransition } from "react";
 import { toast } from "sonner";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass, PendingLabel } from "@/components/ui/button";
 import { deleteAttachmentAction, uploadAttachmentsAction } from "./attachment-actions";
 
 export type AttachmentInfo = { id: string; fileName: string; contentType: string };
@@ -59,7 +59,7 @@ export function Attachments({
           {files.map((f) => (
             <li
               key={f.id}
-              className="flex h-8 max-w-full items-center gap-1 rounded-full border border-rule bg-surface pl-3 pr-1 text-[0.8125rem]"
+              className="flex h-8 max-w-full items-center gap-1 rounded-full border border-rule bg-surface pl-3 pr-0.5 text-[0.8125rem]"
             >
               {f.contentType === "application/pdf" ? (
                 <FileText size={14} aria-hidden className="shrink-0 text-ink-muted" />
@@ -87,7 +87,7 @@ export function Attachments({
                       else toast.error(r.error);
                     })
                   }
-                  className="grid size-6 shrink-0 place-items-center rounded-full text-ink-muted hover:bg-sunken hover:text-ink"
+                  className="tap-target-y grid size-7 shrink-0 place-items-center rounded-full text-ink-muted transition-colors duration-150 hover:bg-sunken hover:text-ink active:bg-sunken"
                 >
                   <X size={13} aria-hidden />
                 </button>
@@ -117,7 +117,9 @@ export function Attachments({
               onChange={(e) => upload(e.target.files)}
             />
             <Paperclip size={14} aria-hidden />
-            {pending ? "Uploading" : "Attach receipt"}
+            <PendingLabel pending={pending} label="Uploading">
+              Attach receipt
+            </PendingLabel>
           </label>
         </div>
       ) : null}

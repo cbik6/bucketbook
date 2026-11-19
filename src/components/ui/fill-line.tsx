@@ -28,7 +28,7 @@ export function FillLine({
       className={`relative h-1.5 w-full overflow-hidden rounded-full bg-rule ${className ?? ""}`}
     >
       <div
-        className={`absolute inset-0 rounded-full bg-signal ${instant ? "" : "transition-[clip-path] duration-500 ease-[var(--ease-in-out)]"}`}
+        className={`absolute inset-0 rounded-full bg-signal ${instant ? "" : "transition-[clip-path] duration-300 ease-in-out"}`}
         style={{ clipPath: `inset(0 ${100 - pct}% 0 0 round 999px)` }}
       />
     </div>

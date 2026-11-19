@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import { buttonClass } from "@/components/ui/button";
 import { listAccounts } from "@/server/accounts/service";
 import { describeAudit } from "@/server/audit/describe";
@@ -112,7 +112,7 @@ async function ActivityContent({ params, searchParams }: PageProps<"/books/[book
 
 export default function ActivityPage(props: PageProps<"/books/[bookId]/activity">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <ActivityContent {...props} />
     </Suspense>
   );

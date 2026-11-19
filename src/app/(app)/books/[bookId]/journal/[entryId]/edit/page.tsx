@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import { formatEntryNumber } from "@/lib/ledger-math";
 import { formatCents } from "@/lib/money";
 import { getDb } from "@/server/db/client";
@@ -78,7 +78,7 @@ async function EditContent({ params }: PageProps<"/books/[bookId]/journal/[entry
 
 export default function EditEntryPage(props: PageProps<"/books/[bookId]/journal/[entryId]/edit">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <EditContent {...props} />
     </Suspense>
   );

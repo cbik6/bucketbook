@@ -4,7 +4,7 @@ import { Check, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Field, FormError, SelectInput, TextInput, inputClass } from "@/components/ui/field";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass, IconButton, PendingLabel } from "@/components/ui/button";
 import { FillLine } from "@/components/ui/fill-line";
 import type { AccountOptionGroup } from "@/lib/account-options";
 import { todayIso } from "@/lib/dates";
@@ -269,15 +269,14 @@ export function EntryForm({
                       </optgroup>
                     ))}
                   </SelectInput>
-                  <button
-                    type="button"
+                  <IconButton
                     onClick={() => removeLine(l.key)}
                     aria-label={`Remove line ${i + 1}`}
                     title="Remove line"
-                    className="flex h-10 w-9 shrink-0 items-center justify-center rounded-lg text-ink-muted transition-[background-color,transform] duration-150 hover:bg-sunken hover:text-ink active:scale-[0.95] sm:hidden"
+                    className="sm:hidden"
                   >
                     <X size={16} aria-hidden />
-                  </button>
+                  </IconButton>
                 </div>
                 <AmountInput
                   id={`${uid}-line-${l.key}-debit`}
@@ -306,15 +305,14 @@ export function EntryForm({
                   className="col-span-2 sm:col-span-1"
                   autoComplete="off"
                 />
-                <button
-                  type="button"
+                <IconButton
                   onClick={() => removeLine(l.key)}
                   aria-label={`Remove line ${i + 1}`}
                   title="Remove line"
-                  className="hidden h-9 w-9 items-center justify-center rounded-lg text-ink-muted transition-[background-color,transform] duration-150 hover:bg-sunken hover:text-ink active:scale-[0.95] sm:flex"
+                  className="max-sm:hidden"
                 >
                   <X size={16} aria-hidden />
-                </button>
+                </IconButton>
               </li>
             );
           })}
@@ -376,7 +374,9 @@ export function EntryForm({
           className={buttonClass("primary")}
           onClick={(e) => pending && e.preventDefault()}
         >
-          {pending ? "Saving" : mode === "new" ? "Post entry" : "Save new version"}
+          <PendingLabel pending={pending} label="Saving">
+            {mode === "new" ? "Post entry" : "Save new version"}
+          </PendingLabel>
         </button>
         {mode === "new" ? (
           <button

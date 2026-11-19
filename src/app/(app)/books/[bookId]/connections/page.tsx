@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import { accountPath } from "@/lib/account-tree";
 import { listAccounts } from "@/server/accounts/service";
 import { getDb } from "@/server/db/client";
@@ -82,7 +82,7 @@ async function ConnectionsContent({
 
 export default function ConnectionsPage(props: PageProps<"/books/[bookId]/connections">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <ConnectionsContent {...props} />
     </Suspense>
   );

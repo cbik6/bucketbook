@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import { getDb } from "@/server/db/client";
 import { loadBookForPage } from "@/server/guards";
 import { serverToday } from "@/server/ledger/page-data";
@@ -59,7 +59,7 @@ async function Content({ params, searchParams }: PageProps<"/books/[bookId]/budg
 
 export default function BudgetPage(props: PageProps<"/books/[bookId]/budget">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <Content {...props} />
     </Suspense>
   );

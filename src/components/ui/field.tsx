@@ -1,10 +1,15 @@
 import type { ComponentProps, ReactNode } from "react";
 
-export const inputClass =
-  "block h-10 w-full rounded-lg border border-field-border bg-surface px-3 text-sm text-ink " +
+const fieldLook =
+  "rounded-lg border border-field-border bg-surface px-3 text-ink " +
   "placeholder:text-ink-muted transition-[border-color,box-shadow] duration-150 " +
   "focus:border-[var(--focus)] focus:outline-none focus:ring-2 focus:ring-[var(--focus)]/25 " +
   "aria-invalid:border-negative disabled:bg-sunken disabled:text-ink-muted";
+
+export const inputClass = `block h-10 w-full text-sm ${fieldLook}`;
+
+/** A smaller field that sits inline in a toolbar, sized to its content. */
+const compactInputClass = `h-8 text-[0.8125rem] ${fieldLook}`;
 
 export function Field({
   label,
@@ -58,14 +63,15 @@ export function TextInput({
 
 export function SelectInput({
   invalid,
+  compact,
   className,
   children,
   ...props
-}: ComponentProps<"select"> & { invalid?: boolean }) {
+}: ComponentProps<"select"> & { invalid?: boolean; compact?: boolean }) {
   return (
     <select
       aria-invalid={invalid || undefined}
-      className={`${inputClass} appearance-none bg-[image:var(--select-chevron)] bg-[position:right_0.6rem_center] bg-no-repeat pr-9 ${className ?? ""}`}
+      className={`${compact ? compactInputClass : inputClass} appearance-none bg-[image:var(--select-chevron)] bg-[position:right_0.6rem_center] bg-no-repeat pr-9 ${className ?? ""}`}
       {...props}
     >
       {children}

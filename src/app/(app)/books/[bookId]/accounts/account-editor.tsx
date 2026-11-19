@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useId, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { Button, ButtonLink, iconButtonClass } from "@/components/ui/button";
 import { Field, FormError, SelectInput, TextInput, inputClass } from "@/components/ui/field";
 import { HoldButton } from "@/components/ui/hold-button";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -108,7 +108,7 @@ export function AccountEditor({
           href={closeHref}
           scroll={false}
           aria-label="Close"
-          className="-mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink-muted transition-[background-color,transform] duration-150 hover:bg-sunken hover:text-ink active:scale-[0.95]"
+          className={iconButtonClass({ size: "sm", extra: "-mr-1" })}
         >
           <X size={18} aria-hidden />
         </Link>

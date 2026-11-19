@@ -36,7 +36,7 @@ export function BookSwitcher({
       <Menu.Trigger
         onPointerDown={() => setFromKeyboard(false)}
         onKeyDown={() => setFromKeyboard(true)}
-        className={`flex h-11 w-full min-w-0 items-center gap-2.5 rounded-lg px-3 text-left transition-[background-color,transform] duration-150 active:scale-[0.98] ${triggerTone}`}
+        className={`flex h-11 w-full min-w-0 items-center gap-2.5 rounded-lg px-3 text-left transition-[background-color,scale] duration-150 active:scale-[0.98] ${triggerTone}`}
       >
         <span className="flex min-w-0 flex-1 flex-col leading-tight">
           <span className="truncate text-sm font-medium">{current?.name ?? "Choose a book"}</span>
@@ -53,7 +53,7 @@ export function BookSwitcher({
       <Menu.Portal>
         <Menu.Positioner sideOffset={6} align="start" className="z-50 outline-none">
           <Menu.Popup
-            className={`w-[min(18rem,calc(100vw-2rem))] origin-[var(--transform-origin)] rounded-xl border border-rule bg-surface p-1.5 shadow-[var(--shadow-float)] outline-none transition-[scale,opacity] duration-150 ease-[var(--ease-out)] data-[ending-style]:scale-[0.96] data-[ending-style]:opacity-0 data-[ending-style]:duration-100 data-[starting-style]:scale-[0.96] data-[starting-style]:opacity-0 ${fromKeyboard ? "!transition-none" : ""}`}
+            className={`w-[min(18rem,calc(100vw-2rem))] origin-[var(--transform-origin)] rounded-xl border border-rule bg-surface p-1.5 shadow-[var(--shadow-float)] outline-none transition-[scale,opacity] duration-150 ease-out data-[ending-style]:scale-[0.96] data-[ending-style]:opacity-0 data-[ending-style]:duration-100 data-[starting-style]:scale-[0.96] data-[starting-style]:opacity-0 ${fromKeyboard ? "!transition-none" : ""}`}
           >
             <Menu.Group>
               <Menu.GroupLabel className="px-2.5 pb-1 pt-1.5 text-xs font-medium text-ink-muted">

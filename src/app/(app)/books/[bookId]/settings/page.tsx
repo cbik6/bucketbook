@@ -1,7 +1,7 @@
 import { connection } from "next/server";
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import { CHART_TEMPLATES } from "@/server/accounts/templates";
 import { loadBookForPage } from "@/server/guards";
 import { ArchiveBookControl, DeleteBookControl, RenameBookForm } from "./settings-forms";
@@ -86,7 +86,7 @@ async function SettingsContent({ params }: PageProps<"/books/[bookId]/settings">
 
 export default function BookSettingsPage(props: PageProps<"/books/[bookId]/settings">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <SettingsContent {...props} />
     </Suspense>
   );

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import { bankableAccounts } from "@/server/bank/accounts";
 import { listRules } from "@/server/bank/rules-service";
 import { bucketChoices } from "@/server/buckets/service";
@@ -49,7 +49,7 @@ async function RulesContent({ params }: PageProps<"/books/[bookId]/rules">) {
 
 export default function RulesPage(props: PageProps<"/books/[bookId]/rules">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <RulesContent {...props} />
     </Suspense>
   );

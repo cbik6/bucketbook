@@ -76,7 +76,7 @@ export function NavLinks({
 
   if (layout === "bar") {
     return (
-      <nav aria-label="Book" className="flex gap-1 overflow-x-auto">
+      <nav aria-label="Book" className="-my-1.5 flex gap-1 overflow-x-auto py-1.5">
         {barLinks.map(({ href, label, count }) => {
           const active = pathname.startsWith(href);
           return (
@@ -84,7 +84,7 @@ export function NavLinks({
               key={href}
               href={href}
               aria-current={active ? "page" : undefined}
-              className={`flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors duration-150 ${
+              className={`tap-target-y flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors duration-150 ${
                 active ? "bg-rail-active text-rail-ink" : "text-rail-muted hover:text-rail-ink"
               }`}
             >

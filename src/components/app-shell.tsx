@@ -25,7 +25,7 @@ function SignOutButton({ compact }: { compact?: boolean }) {
         type="submit"
         aria-label="Sign out"
         title="Sign out"
-        className="flex h-8 items-center gap-2 rounded-lg px-2 text-sm text-rail-muted transition-colors duration-150 hover:bg-rail-raised hover:text-rail-ink"
+        className={`flex items-center gap-2 rounded-lg text-sm text-rail-muted transition-colors duration-150 hover:bg-rail-raised hover:text-rail-ink ${compact ? "tap-target-y h-10 px-2.5" : "h-8 px-2"}`}
       >
         <LogOut size={15} strokeWidth={1.75} aria-hidden />
         {compact ? null : <span>Sign out</span>}
@@ -174,14 +174,41 @@ export function PageHeader({
   );
 }
 
+/** Stands in for a page while its data loads, shaped like PageHeader so nothing jumps. */
+export function PageFallback() {
+  return (
+    <div aria-busy="true">
+      <div className="border-b border-rule px-5 pb-5 pt-6 lg:px-10 lg:pt-10">
+        <div className="flex h-8 items-center">
+          <div className="h-6 w-48 animate-pulse rounded bg-rule" />
+        </div>
+        <div className="mt-1 flex h-5 items-center">
+          <div className="h-3.5 w-72 max-w-full animate-pulse rounded bg-sunken" />
+        </div>
+      </div>
+      <div className="flex flex-col gap-3 px-5 pt-6 lg:px-10">
+        <div className="h-4 w-full max-w-[40rem] animate-pulse rounded bg-sunken" />
+        <div className="h-4 w-4/5 max-w-[32rem] animate-pulse rounded bg-sunken" />
+        <div className="h-4 w-3/5 max-w-[24rem] animate-pulse rounded bg-sunken" />
+      </div>
+    </div>
+  );
+}
+
+/** The frame before the shell's data arrives. The phone bar matches the real one's height. */
 export function AppShellFallback() {
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[16rem_1fr] lg:bg-[linear-gradient(to_right,var(--rail)_16rem,transparent_16rem)]">
       <aside className="hidden h-dvh bg-rail lg:block" />
-      <header className="h-28 bg-rail lg:hidden" />
-      <div className="px-5 pt-10 lg:px-10">
-        <div className="h-7 w-56 animate-pulse rounded bg-rule" />
-      </div>
+      <header className="bg-rail pt-[env(safe-area-inset-top)] lg:hidden">
+        {/* Top row, book switcher, then the nav links: 56 + 44 + 8 + 32 + 12 px. */}
+        <div className="h-14" />
+        <div className="flex flex-col gap-2 px-4 pb-3">
+          <div className="h-11 rounded-lg bg-rail-raised" />
+          <div className="h-8" />
+        </div>
+      </header>
+      <PageFallback />
     </div>
   );
 }

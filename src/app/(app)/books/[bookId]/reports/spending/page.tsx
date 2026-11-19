@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import { monthLabel } from "@/components/charts/chart-utils";
 import { StackedColumns } from "@/components/charts/stacked-columns";
 import { Money } from "@/components/money";
@@ -118,7 +118,7 @@ async function Content({ params, searchParams }: PageProps<"/books/[bookId]/repo
 
 export default function Page(props: PageProps<"/books/[bookId]/reports/spending">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <Content {...props} />
     </Suspense>
   );

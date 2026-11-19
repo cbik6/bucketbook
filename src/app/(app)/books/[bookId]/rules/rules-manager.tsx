@@ -465,8 +465,8 @@ export function RuleEditor({
       </label>
 
       <div className="flex flex-wrap items-center gap-2 border-t border-rule pt-4">
-        <Button type="submit" variant="primary" disabled={pending}>
-          {pending ? "Saving" : rule ? "Save rule" : "Create rule"}
+        <Button type="submit" variant="primary" pending={pending} pendingLabel="Saving">
+          {rule ? "Save rule" : "Create rule"}
         </Button>
         <Button variant="ghost" onClick={onDone}>
           Cancel

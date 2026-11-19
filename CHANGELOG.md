@@ -6,6 +6,29 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-11-19
+
+### Fixed
+
+- Buttons ease into their press instead of jumping.
+- Keyboard focus outlines follow each control's shape, and fields show one focus ring
+  instead of two.
+- In For review, approving a second transaction while the first is still saving no longer
+  moves "Saving" to the new row or turns the first row's button back on early.
+- Pages show a placeholder while they load instead of a blank screen, and the phone
+  header no longer makes the page jump once it loads.
+- The reconcile Difference figure keeps its digits steady as it changes.
+
+### Changed
+
+- The bank setup guide fades in and out, and the account editor's backdrop fades in with
+  its sheet on phones.
+- Buttons keep their width while they show "Saving" and similar labels.
+- Small controls on phones (menu links, sign out, theme, remove receipt) have taller
+  touch areas.
+- Icon buttons share one look with a press state, table rows share one hover color, and
+  the setup guide's choices show a hover cue.
+
 ## [1.9.0] - 2026-11-18
 
 ### Changed

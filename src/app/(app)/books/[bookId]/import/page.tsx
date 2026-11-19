@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import type { CsvMapping } from "@/lib/csv-import";
 import { bankableAccounts } from "@/server/bank/accounts";
 import { getCsvPreset } from "@/server/bank/csv-service";
@@ -46,7 +46,7 @@ async function ImportContent({ params, searchParams }: PageProps<"/books/[bookId
 
 export default function ImportPage(props: PageProps<"/books/[bookId]/import">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <ImportContent {...props} />
     </Suspense>
   );

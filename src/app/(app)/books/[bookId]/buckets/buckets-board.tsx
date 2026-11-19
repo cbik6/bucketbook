@@ -4,7 +4,7 @@ import { ArrowDown, ArrowLeftRight, ArrowUp, Pencil, Plus } from "lucide-react";
 import { useId, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Money } from "@/components/money";
-import { Button } from "@/components/ui/button";
+import { Button, IconButton } from "@/components/ui/button";
 import { Field, FormError, SelectInput, TextInput } from "@/components/ui/field";
 import { FillLine } from "@/components/ui/fill-line";
 import { HoldButton } from "@/components/ui/hold-button";
@@ -204,15 +204,16 @@ function BucketCard({
           ) : null}
         </div>
         {canEdit ? (
-          <button
-            type="button"
+          <IconButton
             onClick={onEdit}
             aria-label={`Edit ${bucket.name}`}
             title="Edit"
-            className="-m-1 grid size-8 shrink-0 place-items-center rounded-full opacity-70 hover:bg-black/5 hover:opacity-100"
+            size="sm"
+            tone="tint"
+            className="-m-1"
           >
             <Pencil size={14} aria-hidden />
-          </button>
+          </IconButton>
         ) : null}
       </div>
       <Money cents={bucket.balanceCents} className="text-2xl font-semibold" />
@@ -332,8 +333,8 @@ function BucketForm({
         ) : null}
       </div>
       <div className="flex gap-2">
-        <Button type="submit" variant="primary" disabled={pending}>
-          {pending ? "Saving" : bucket ? "Save bucket" : "Add bucket"}
+        <Button type="submit" variant="primary" pending={pending} pendingLabel="Saving">
+          {bucket ? "Save bucket" : "Add bucket"}
         </Button>
         <Button variant="ghost" onClick={onDone}>
           Cancel
@@ -441,8 +442,8 @@ function MoveForm({
         />
       </Field>
       <div className="flex gap-2">
-        <Button type="submit" variant="primary" disabled={pending}>
-          {pending ? "Moving" : "Move"}
+        <Button type="submit" variant="primary" pending={pending} pendingLabel="Moving">
+          Move
         </Button>
         <Button variant="ghost" onClick={onDone}>
           Cancel

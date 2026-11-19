@@ -100,8 +100,8 @@ export function BalanceForm({
         </Field>
       </div>
       <div className="flex gap-2">
-        <Button type="submit" variant="primary" disabled={pending}>
-          {pending ? "Saving" : "Record balance"}
+        <Button type="submit" variant="primary" pending={pending} pendingLabel="Saving">
+          Record balance
         </Button>
         <Button variant="ghost" onClick={() => setOpen(false)}>
           Cancel

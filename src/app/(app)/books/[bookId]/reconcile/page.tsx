@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import { Money } from "@/components/money";
 import { formatDay } from "@/lib/dates";
 import { bankableAccounts } from "@/server/bank/accounts";
@@ -119,7 +119,7 @@ async function ReconcileContent({ params }: PageProps<"/books/[bookId]/reconcile
 
 export default function ReconcilePage(props: PageProps<"/books/[bookId]/reconcile">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <ReconcileContent {...props} />
     </Suspense>
   );

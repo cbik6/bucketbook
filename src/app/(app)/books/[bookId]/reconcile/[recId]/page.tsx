@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import { formatDay } from "@/lib/dates";
 import { getDb } from "@/server/db/client";
 import { NotFoundError } from "@/server/errors";
@@ -54,7 +54,7 @@ async function RecContent({ params }: PageProps<"/books/[bookId]/reconcile/[recI
 
 export default function RecPage(props: PageProps<"/books/[bookId]/reconcile/[recId]">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <RecContent {...props} />
     </Suspense>
   );

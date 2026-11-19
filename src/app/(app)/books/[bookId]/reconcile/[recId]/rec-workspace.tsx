@@ -101,7 +101,7 @@ export function RecWorkspace({
                 difference === 0 ? "font-semibold text-positive" : "font-semibold text-ink"
               }
             >
-              {formatCents(Math.abs(difference))}
+              <span className="tabular">{formatCents(Math.abs(difference))}</span>
               <span className="block text-xs font-normal">
                 {difference === 0 ? "Matches the statement." : "Keep checking off items."}
               </span>

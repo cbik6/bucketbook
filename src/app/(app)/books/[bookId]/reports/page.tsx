@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import { loadBookForPage } from "@/server/guards";
 
 export const metadata: Metadata = { title: "Reports" };
@@ -92,7 +92,7 @@ async function ReportsContent({ params }: PageProps<"/books/[bookId]/reports">) 
 
 export default function ReportsPage(props: PageProps<"/books/[bookId]/reports">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <ReportsContent {...props} />
     </Suspense>
   );

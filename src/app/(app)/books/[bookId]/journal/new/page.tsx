@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import { loadBookForPage } from "@/server/guards";
 import { entryFormAccounts, serverToday } from "@/server/ledger/page-data";
 import { saveEntryAction } from "../actions";
@@ -50,7 +50,7 @@ async function NewEntryContent({ params, searchParams }: PageProps<"/books/[book
 
 export default function NewEntryPage(props: PageProps<"/books/[bookId]/journal/new">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <NewEntryContent {...props} />
     </Suspense>
   );

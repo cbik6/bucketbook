@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import { Money } from "@/components/money";
 import { RangePicker } from "@/components/range-picker";
 import { ButtonLink } from "@/components/ui/button";
@@ -235,7 +235,7 @@ async function RegisterContent({
 
 export default function RegisterPage(props: PageProps<"/books/[bookId]/accounts/[accountId]">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <RegisterContent {...props} />
     </Suspense>
   );

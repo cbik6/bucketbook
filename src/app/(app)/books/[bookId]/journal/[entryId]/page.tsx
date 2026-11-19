@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import { Money } from "@/components/money";
 import { ButtonLink } from "@/components/ui/button";
 import { formatDay } from "@/lib/dates";
@@ -317,7 +317,7 @@ async function EntryContent({
 
 export default function EntryPage(props: PageProps<"/books/[bookId]/journal/[entryId]">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <EntryContent {...props} />
     </Suspense>
   );

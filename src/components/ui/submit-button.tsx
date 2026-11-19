@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
-import { type ButtonSize, type ButtonVariant, buttonClass } from "./button";
+import { type ButtonSize, type ButtonVariant, PendingLabel, buttonClass } from "./button";
 
 /** A submit button that shows the pending state of its form. */
 export function SubmitButton({
@@ -27,7 +27,13 @@ export function SubmitButton({
         if (pending) e.preventDefault();
       }}
     >
-      {pending ? (pendingLabel ?? children) : children}
+      {pendingLabel === undefined ? (
+        children
+      ) : (
+        <PendingLabel pending={pending} label={pendingLabel}>
+          {children}
+        </PendingLabel>
+      )}
     </button>
   );
 }

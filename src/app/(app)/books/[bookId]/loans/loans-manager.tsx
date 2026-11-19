@@ -375,8 +375,8 @@ function LoanForm({
         </Field>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" variant="primary" disabled={pending}>
-          {pending ? "Saving" : loan ? "Save loan" : "Add loan"}
+        <Button type="submit" variant="primary" pending={pending} pendingLabel="Saving">
+          {loan ? "Save loan" : "Add loan"}
         </Button>
         <Button variant="ghost" onClick={onDone}>
           Cancel

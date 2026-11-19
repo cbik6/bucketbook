@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import { Money } from "@/components/money";
 import { RangePicker } from "@/components/range-picker";
 import { getDb } from "@/server/db/client";
@@ -113,7 +113,7 @@ async function Content({
 
 export default function Page(props: PageProps<"/books/[bookId]/reports/budget-vs-actuals">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <Content {...props} />
     </Suspense>
   );

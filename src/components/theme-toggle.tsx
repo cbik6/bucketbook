@@ -56,7 +56,7 @@ export function ThemeToggle({ className }: { className?: string }) {
               setTheme(value);
               applyTheme(value);
             }}
-            className={`flex h-7 w-8 items-center justify-center rounded-md transition-colors duration-150 ${
+            className={`tap-target-y flex h-7 w-8 items-center justify-center rounded-md transition-colors duration-150 ${
               active ? "bg-rail-active text-rail-ink" : "text-rail-muted hover:text-rail-ink"
             }`}
           >

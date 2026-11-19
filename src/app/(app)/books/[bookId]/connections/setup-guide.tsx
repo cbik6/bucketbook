@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Money } from "@/components/money";
-import { Button } from "@/components/ui/button";
+import { Button, IconButton, PendingLabel } from "@/components/ui/button";
 import { FormError, SelectInput, TextInput } from "@/components/ui/field";
 import { FillLine } from "@/components/ui/fill-line";
 import { formatCents } from "@/lib/money";
@@ -64,7 +64,7 @@ export function SetupGuide({
         router.refresh();
       }}
       aria-labelledby="setup-guide-title"
-      className="m-auto w-[min(34rem,calc(100vw-1.5rem))] rounded-2xl border border-rule bg-surface p-0 text-ink shadow-[var(--shadow-float)] backdrop:bg-[var(--scrim)]"
+      className="dialog-motion m-auto w-[min(34rem,calc(100vw-1.5rem))] rounded-2xl border border-rule bg-surface p-0 text-ink shadow-[var(--shadow-float)] backdrop:bg-[var(--scrim)]"
     >
       <div className="flex flex-col gap-4 p-5 sm:p-6">
         <div className="flex items-start justify-between gap-3">
@@ -78,14 +78,9 @@ export function SetupGuide({
                 : `Account ${index + 1} of ${list.length}. Bank history comes in from today.`}
             </p>
           </div>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={() => ref.current?.close()}
-            className="-m-1 grid size-9 shrink-0 place-items-center rounded-full text-ink-muted hover:bg-sunken hover:text-ink"
-          >
+          <IconButton aria-label="Close" onClick={() => ref.current?.close()} className="-m-1">
             <X size={18} aria-hidden />
-          </button>
+          </IconButton>
         </div>
         <FillLine
           value={Math.min(index, list.length)}
@@ -216,9 +211,11 @@ function Step({
         ).map(([value, label, hint]) => (
           <label
             key={value}
-            className={`flex items-start gap-2 rounded-lg border px-3 py-2.5 text-sm ${
-              choice === value ? "border-signal bg-signal-soft/50" : "border-rule"
-            } ${value === "existing" && free.length === 0 ? "opacity-50" : ""}`}
+            className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2.5 text-sm transition-[border-color,background-color] duration-150 ease-out ${
+              choice === value
+                ? "border-signal bg-signal-soft/50"
+                : "border-rule hover:border-ink-muted"
+            } ${value === "existing" && free.length === 0 ? "pointer-events-none opacity-50" : ""}`}
           >
             <input
               type="radio"
@@ -321,8 +318,14 @@ function Step({
         <Button variant="ghost" onClick={onLater} disabled={pending}>
           Decide later
         </Button>
-        <Button type="submit" variant="primary" className="ml-auto" disabled={pending}>
-          {pending ? "Saving" : choice === "ignore" ? "Skip and continue" : "Connect and continue"}
+        <Button
+          type="submit"
+          variant="primary"
+          className="ml-auto"
+          pending={pending}
+          pendingLabel="Saving"
+        >
+          {choice === "ignore" ? "Skip and continue" : "Connect and continue"}
         </Button>
       </div>
     </form>
@@ -376,7 +379,9 @@ function Summary({
             })
           }
         >
-          {pending ? "Syncing" : "Sync now"}
+          <PendingLabel pending={pending} label="Syncing">
+            Sync now
+          </PendingLabel>
         </Button>
       </div>
     </div>

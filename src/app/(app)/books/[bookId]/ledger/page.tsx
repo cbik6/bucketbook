@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import { Money } from "@/components/money";
 import { RangePicker } from "@/components/range-picker";
 import { buildAccountTree, flattenTree } from "@/lib/account-tree";
@@ -170,7 +170,7 @@ async function LedgerContent({ params, searchParams }: PageProps<"/books/[bookId
 
 export default function LedgerPage(props: PageProps<"/books/[bookId]/ledger">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <LedgerContent {...props} />
     </Suspense>
   );

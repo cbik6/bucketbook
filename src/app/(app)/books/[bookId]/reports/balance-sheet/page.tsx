@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import { Money } from "@/components/money";
+import { Button } from "@/components/ui/button";
+import { inputClass } from "@/components/ui/field";
 import { formatDay, isIsoDate } from "@/lib/dates";
 import { getDb } from "@/server/db/client";
 import { loadBookForPage } from "@/server/guards";
@@ -55,15 +57,10 @@ async function Content({
               type="date"
               name="asOf"
               defaultValue={asOf}
-              className="tabular h-10 rounded-lg border border-field-border bg-surface px-3 text-sm"
+              className={`${inputClass} tabular`}
             />
           </label>
-          <button
-            type="submit"
-            className="h-10 rounded-full border border-field-border px-4 text-sm hover:border-ink-muted"
-          >
-            Show
-          </button>
+          <Button type="submit">Show</Button>
         </form>
         <div>
           <EmptyToggle href={emptyHref} hidden={hiddenCount} showing={showEmpty} />
@@ -131,7 +128,7 @@ async function Content({
 
 export default function Page(props: PageProps<"/books/[bookId]/reports/balance-sheet">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <Content {...props} />
     </Suspense>
   );

@@ -66,7 +66,7 @@ export function LineRows<L extends ReportLine>({
   return (
     <>
       {lines.map((l) => (
-        <tr key={l.id} className="border-b border-rule hover:bg-sunken">
+        <tr key={l.id} className="border-b border-rule hover:bg-sunken/70">
           <td className="py-2 pr-3" style={{ paddingLeft: `${l.depth * 1.25}rem` }}>
             <Link
               href={`${base}/accounts/${l.id}?${q}`}

@@ -128,7 +128,15 @@ export function ReviewQueue({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(items[0]?.id ?? null);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  // Each row saves on its own, so a second approve never steals the first row's state.
+  const [busy, setBusy] = useState<ReadonlySet<string>>(new Set());
+  const markBusy = (id: string, on: boolean) =>
+    setBusy((b) => {
+      const n = new Set(b);
+      if (on) n.add(id);
+      else n.delete(id);
+      return n;
+    });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [bulkPending, startBulk] = useTransition();
   const [, startRow] = useTransition();
@@ -153,7 +161,7 @@ export function ReviewQueue({
   };
 
   const finish = (item: QueueItem, r: ReviewResult, undo?: "approve" | "exclude") => {
-    setBusyId(null);
+    markBusy(item.id, false);
     if (!r.ok) {
       setErrors((e) => ({ ...e, [item.id]: r.error ?? "That didn't work." }));
       if (r.field === "counterpart" || r.field === "splits") setExpanded(item.id);
@@ -192,9 +200,9 @@ export function ReviewQueue({
   };
 
   const approve = (item: QueueItem) => {
-    if (!canEdit) return;
+    if (!canEdit || busy.has(item.id)) return;
     const d = draftFor(item);
-    setBusyId(item.id);
+    markBusy(item.id, true);
     startRow(async () => {
       let r: ReviewResult;
       if (d.choice === "split") {
@@ -229,8 +237,8 @@ export function ReviewQueue({
   };
 
   const exclude = (item: QueueItem) => {
-    if (!canEdit) return;
-    setBusyId(item.id);
+    if (!canEdit || busy.has(item.id)) return;
+    markBusy(item.id, true);
     startRow(async () => finish(item, await excludeAction(bookId, item.id), "exclude"));
   };
 
@@ -375,8 +383,14 @@ export function ReviewQueue({
         ) : null}
         {selected.size > 0 ? (
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="primary" onClick={approveSelected} disabled={bulkPending}>
-              {bulkPending ? "Approving" : `Approve ${selected.size}`}
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={approveSelected}
+              pending={bulkPending}
+              pendingLabel="Approving"
+            >
+              Approve {selected.size}
             </Button>
             <Button size="sm" variant="ghost" onClick={excludeSelected} disabled={bulkPending}>
               Exclude {selected.size}
@@ -419,7 +433,7 @@ export function ReviewQueue({
             active={item.id === activeId}
             selected={selected.has(item.id)}
             expanded={expanded === item.id}
-            busy={busyId === item.id}
+            busy={busy.has(item.id)}
             error={errors[item.id]}
             canEdit={canEdit}
             onFocus={() => setActiveId(item.id)}
@@ -435,10 +449,11 @@ export function ReviewQueue({
             onApprove={() => approve(item)}
             onExclude={() => exclude(item)}
             onKeepBoth={() => {
-              setBusyId(item.id);
+              if (busy.has(item.id)) return;
+              markBusy(item.id, true);
               startRow(async () => {
                 const r = await keepBothAction(bookId, item.id);
-                setBusyId(null);
+                markBusy(item.id, false);
                 if (r.ok) toast.success(r.message);
                 else toast.error(r.error);
               });
@@ -662,14 +677,13 @@ function Row({ refCallback, ...p }: RowProps) {
               variant={p.active ? "primary" : "secondary"}
               className="lg:h-8 lg:px-3 lg:text-[0.8125rem]"
               onClick={p.onApprove}
-              disabled={p.busy}
+              pending={p.busy}
+              pendingLabel="Saving"
               aria-label={`Approve ${title}`}
             >
-              {p.busy
-                ? "Saving"
-                : draft.choice.startsWith("transfer:") || draft.choice.startsWith("link:")
-                  ? "Match"
-                  : "Approve"}
+              {draft.choice.startsWith("transfer:") || draft.choice.startsWith("link:")
+                ? "Match"
+                : "Approve"}
             </Button>
           ) : null}
         </div>

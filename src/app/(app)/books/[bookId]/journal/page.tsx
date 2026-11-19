@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/app-shell";
+import { PageFallback, PageHeader } from "@/components/app-shell";
 import { Money } from "@/components/money";
 import { ButtonLink, buttonClass } from "@/components/ui/button";
 import { formatDay } from "@/lib/dates";
@@ -165,7 +165,7 @@ async function JournalContent({ params, searchParams }: PageProps<"/books/[bookI
 
 export default function JournalPage(props: PageProps<"/books/[bookId]/journal">) {
   return (
-    <Suspense>
+    <Suspense fallback={<PageFallback />}>
       <JournalContent {...props} />
     </Suspense>
   );

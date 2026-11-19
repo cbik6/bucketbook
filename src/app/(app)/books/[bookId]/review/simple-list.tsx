@@ -54,7 +54,7 @@ export function SimpleList({
       </thead>
       <tbody>
         {items.map((i) => (
-          <tr key={i.id} className="border-b border-rule align-top hover:bg-sunken">
+          <tr key={i.id} className="border-b border-rule align-top hover:bg-sunken/70">
             <td className="tabular whitespace-nowrap py-2.5 pr-3 text-ink-muted">
               {formatDay(i.postedDate)}
             </td>
