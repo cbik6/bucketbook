@@ -1,4 +1,4 @@
-import { LogOut, Users } from "lucide-react";
+import { LogOut } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { signOutAction } from "@/app/(auth)/login/actions";

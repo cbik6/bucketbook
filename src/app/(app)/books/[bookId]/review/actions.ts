@@ -57,7 +57,7 @@ export async function approveAction(bookId: string, itemId: string, input: Appro
     const { entry, ruleCreated } = await approveItem(getDb(), actor, bookId, itemId, input);
     return {
       entryId: entry.id,
-      message: ruleCreated ? "Approved and saved as a rule." : "Approved.",
+      message: ruleCreated ? "Added and saved as a rule." : "Added.",
     };
   });
 }
@@ -94,7 +94,7 @@ export async function bulkAction(bookId: string, decisions: Decision[]) {
     const r = await applyDecisions(getDb(), actor, bookId, decisions);
     const skipped = r.skipped.length;
     return {
-      message: `Approved ${r.approved}.${skipped ? ` ${skipped} skipped: ${r.skipped[0]!.reason}` : ""}`,
+      message: `Added ${r.approved}.${skipped ? ` ${skipped} skipped: ${r.skipped[0]!.reason}` : ""}`,
     };
   });
 }

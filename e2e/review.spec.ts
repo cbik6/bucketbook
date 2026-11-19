@@ -60,10 +60,22 @@ test("review: CSV import, transfer match, approve, save a rule, rule suggests", 
   );
   await expect(nav.getByRole("link", { name: /For review/ })).toContainText("4");
 
+  // A card per bank account, with its own count; the search box narrows the list.
+  const cards = page.getByRole("navigation", { name: "Bank accounts" }).filter({ visible: true });
+  await expect(cards.getByRole("link", { name: /^Checking/ })).toContainText("3 to review");
+  await expect(cards.getByRole("link", { name: /^Credit Card/ })).toContainText("1 to review");
+  const search = page.getByRole("searchbox", { name: "Search transactions" });
+  await expect(async () => {
+    await search.fill("payroll");
+    await expect(page.getByText("1 of 4")).toBeVisible({ timeout: 1000 });
+  }).toPass();
+  await expect(page.getByRole("listitem").filter({ hasText: "LOCAL GROCER #12" })).toHaveCount(0);
+  await search.fill("");
+
   // The card payment pairs with the checking side and records both at once.
   const transfer = page.getByRole("listitem").filter({ hasText: "PAYMENT TO CARD" });
   await expect(transfer.getByLabel(/Category for/)).toHaveValue(/^transfer:/);
-  await transfer.getByRole("button", { name: /Approve PAYMENT TO CARD/ }).click();
+  await transfer.getByRole("button", { name: /Match PAYMENT TO CARD/ }).click();
   await expect(page.getByText("Transfer recorded.")).toBeVisible();
   await expect(page.getByRole("listitem").filter({ hasText: "PAYMENT THANK YOU" })).toHaveCount(0);
 
@@ -80,8 +92,8 @@ test("review: CSV import, transfer match, approve, save a rule, rule suggests", 
   await expect(category).toHaveValue(groceries!);
   // Splitting opened the details, so the rule checkbox is already showing.
   await grocery.getByLabel(/Always use this category/).check();
-  await grocery.getByRole("button", { name: /Approve LOCAL GROCER/ }).click();
-  await expect(page.getByText("Approved and saved as a rule.")).toBeVisible();
+  await grocery.getByRole("button", { name: /Add LOCAL GROCER/ }).click();
+  await expect(page.getByText("Added and saved as a rule.")).toBeVisible();
 
   // Paycheck with the keyboard: focus the row, then A approves.
   const pay = page.getByRole("listitem").filter({ hasText: "PAYROLL ACME" });
@@ -116,12 +128,12 @@ test("review: CSV import, transfer match, approve, save a rule, rule suggests", 
 
   // Select all and approve together.
   await page.getByLabel("Select all").check();
-  await page.getByRole("button", { name: "Approve 2" }).click();
-  await expect(page.getByText("Approved 2.")).toBeVisible();
+  await page.getByRole("button", { name: "Add 2" }).click();
+  await expect(page.getByText("Added 2.")).toBeVisible();
   await expect(page.getByText("All caught up.")).toBeVisible();
 
   await page.getByRole("link", { name: "Posted" }).click();
-  await expect(page.getByRole("cell", { name: "PAYMENT TO CARD" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "PAYMENT TO CARD", exact: true })).toBeVisible();
 
   // Rules page lists the saved rule; the book's bank connections offer SimpleFIN.
   await clickSetupLink(page, "Rules");

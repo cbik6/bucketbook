@@ -1,6 +1,17 @@
 "use client";
 
-import { ArrowLeftRight, ChevronDown, Copy, Link2, Plus, Undo2, Wand2, X } from "lucide-react";
+import {
+  ArrowLeftRight,
+  ChevronDown,
+  Copy,
+  Link2,
+  Plus,
+  Search,
+  Split as SplitIcon,
+  Undo2,
+  Wand2,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
@@ -94,11 +105,26 @@ const isTyping = (el: EventTarget | null) =>
     el.tagName === "TEXTAREA" ||
     el.isContentEditable);
 
+/** Does a row match the search box: words in its text, or digits in its amount. */
+function matchesSearch(item: QueueItem, query: string) {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const text = [item.description, item.payee, item.suggestedPayee, item.bankMemo, item.accountName]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  if (text.includes(q)) return true;
+  const digits = q.replace(/[$,\s]/g, "");
+  return (
+    /^\d*\.?\d+$/.test(digits) && plainAmount(item.amountCents).replace(/,/g, "").includes(digits)
+  );
+}
+
 /**
- * The review queue: one row per bank transaction, prefilled from rules,
- * transfer matches and existing entries. Approve one at a time or select
- * several. Keyboard: J and K (or arrows) move, Enter opens details, A
- * approves, X selects, E excludes.
+ * The review queue, laid out like a bank feed: one row per bank transaction
+ * with Spent and Received columns, prefilled from rules, transfer matches and
+ * existing entries. Add one at a time or select several. Keyboard: J and K
+ * (or arrows) move, Enter opens details, A adds, X selects, E excludes.
  */
 export function ReviewQueue({
   bookId,
@@ -110,8 +136,11 @@ export function ReviewQueue({
   loans,
   ruleOptions,
   canEdit,
+  showAccount,
 }: {
   bookId: string;
+  /** False when one account is showing, so rows skip its name. */
+  showAccount: boolean;
   /** What the rule editor offers: bank accounts to limit to, and buckets. */
   ruleOptions: RuleOptions;
   loans: LoanHint[];
@@ -127,6 +156,7 @@ export function ReviewQueue({
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const [activeId, setActiveId] = useState<string | null>(items[0]?.id ?? null);
   // Each row saves on its own, so a second approve never steals the first row's state.
   const [busy, setBusy] = useState<ReadonlySet<string>>(new Set());
@@ -142,7 +172,8 @@ export function ReviewQueue({
   const [, startRow] = useTransition();
   const rowRefs = useRef(new Map<string, HTMLLIElement>());
 
-  const ids = useMemo(() => new Set(items.map((i) => i.id)), [items]);
+  const shown = useMemo(() => items.filter((i) => matchesSearch(i, query)), [items, query]);
+  const ids = useMemo(() => new Set(shown.map((i) => i.id)), [shown]);
   const draftFor = (item: QueueItem) => drafts[item.id] ?? defaultDraft(item);
   const setDraft = (item: QueueItem, patch: Partial<Draft>) => {
     setDrafts((d) => ({ ...d, [item.id]: { ...(d[item.id] ?? defaultDraft(item)), ...patch } }));
@@ -159,8 +190,8 @@ export function ReviewQueue({
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- rows vanish when the server list changes
     setSelected((s) => new Set([...s].filter((id) => ids.has(id))));
-    if (activeId && !ids.has(activeId)) setActiveId(items[0]?.id ?? null);
-  }, [ids, activeId, items]);
+    if (activeId && !ids.has(activeId)) setActiveId(shown[0]?.id ?? null);
+  }, [ids, activeId, shown]);
 
   const focusRow = (id: string | undefined) => {
     if (!id) return;
@@ -179,8 +210,8 @@ export function ReviewQueue({
       const { [item.id]: _, ...rest } = e;
       return rest;
     });
-    const index = items.findIndex((i) => i.id === item.id);
-    const next = items[index + 1] ?? items[index - 1];
+    const index = shown.findIndex((i) => i.id === item.id);
+    const next = shown[index + 1] ?? shown[index - 1];
     if (next) setActiveId(next.id);
     if (expanded === item.id) setExpanded(null);
     const entryId = r.entryId;
@@ -250,7 +281,7 @@ export function ReviewQueue({
     startRow(async () => finish(item, await excludeAction(bookId, item.id), "exclude"));
   };
 
-  const selectedItems = items.filter((i) => selected.has(i.id));
+  const selectedItems = shown.filter((i) => selected.has(i.id));
   const approveSelected = () =>
     startBulk(async () => {
       const decisions: Decision[] = [];
@@ -298,18 +329,18 @@ export function ReviewQueue({
       }
       return;
     }
-    const index = items.findIndex((i) => i.id === activeId);
-    const item = items[index];
+    const index = shown.findIndex((i) => i.id === activeId);
+    const item = shown[index];
     switch (e.key) {
       case "j":
       case "ArrowDown":
         e.preventDefault();
-        focusRow(items[Math.min(index + 1, items.length - 1)]?.id);
+        focusRow(shown[Math.min(index + 1, shown.length - 1)]?.id);
         break;
       case "k":
       case "ArrowUp":
         e.preventDefault();
-        focusRow(items[Math.max(index - 1, 0)]?.id);
+        focusRow(shown[Math.max(index - 1, 0)]?.id);
         break;
       case "Enter":
         if (item && e.target === rowRefs.current.get(item.id)) {
@@ -368,12 +399,12 @@ export function ReviewQueue({
     );
   }
 
-  const allSelected = selected.size === items.length;
+  const allSelected = shown.length > 0 && shown.every((i) => selected.has(i.id));
 
   return (
     <div className="flex flex-col">
       <div
-        className="sticky top-0 z-10 flex min-h-12 flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule-strong bg-paper py-2"
+        className="sticky top-0 z-10 flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule bg-paper py-2.5"
         aria-live="polite"
       >
         {canEdit ? (
@@ -383,7 +414,7 @@ export function ReviewQueue({
               className="size-4 accent-[var(--signal)]"
               checked={allSelected}
               onChange={() =>
-                setSelected(allSelected ? new Set() : new Set(items.map((i) => i.id)))
+                setSelected(allSelected ? new Set() : new Set(shown.map((i) => i.id)))
               }
             />
             {selected.size > 0 ? `${selected.size} selected` : "Select all"}
@@ -396,35 +427,62 @@ export function ReviewQueue({
               variant="primary"
               onClick={approveSelected}
               pending={bulkPending}
-              pendingLabel="Approving"
+              pendingLabel="Adding"
             >
-              Approve {selected.size}
+              Add {selected.size}
             </Button>
             <Button size="sm" variant="ghost" onClick={excludeSelected} disabled={bulkPending}>
               Exclude {selected.size}
             </Button>
           </div>
         ) : (
-          <span className="text-[0.8125rem] text-ink-muted">{items.length} waiting</span>
+          <span className="tabular text-[0.8125rem] text-ink-muted">
+            {query ? `${shown.length} of ${items.length}` : `${items.length} waiting`}
+          </span>
         )}
-        <span className="ml-auto hidden text-xs text-ink-muted lg:inline">
-          <Kbd>J</Kbd> <Kbd>K</Kbd> move, <Kbd>Enter</Kbd> details, <Kbd>A</Kbd> approve,{" "}
-          <Kbd>X</Kbd> select, <Kbd>E</Kbd> exclude
-        </span>
+        <label className="relative ml-auto w-full sm:w-72">
+          <span className="sr-only">Search transactions</span>
+          <Search
+            size={15}
+            aria-hidden
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint"
+          />
+          <TextInput
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by description or amount"
+            autoComplete="off"
+            className="h-9 pl-9 text-[0.8125rem]"
+          />
+        </label>
       </div>
       <div
         aria-hidden
-        className="hidden grid-cols-[1.75rem_6rem_minmax(0,1fr)_8rem_minmax(14rem,20rem)_7.5rem] gap-3 border-b border-rule pb-2 pt-3 text-xs font-medium text-ink-muted lg:grid"
+        className="hidden grid-cols-[1.75rem_5.75rem_minmax(0,1fr)_minmax(13rem,19rem)_6.5rem_6.5rem_5.5rem] gap-3 border-b border-rule-strong bg-sunken/60 px-2 py-2 text-xs font-medium uppercase tracking-wide text-ink-muted lg:grid"
       >
         <span />
         <span>Date</span>
         <span>Description</span>
-        <span className="text-right">Amount</span>
-        <span>Category</span>
-        <span />
+        <span>Category or match</span>
+        <span className="text-right">Spent</span>
+        <span className="text-right">Received</span>
+        <span className="text-right">Action</span>
       </div>
+      {shown.length === 0 ? (
+        <p className="py-8 text-sm text-ink-muted">
+          Nothing matches &ldquo;{query}&rdquo;.{" "}
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            className="text-signal-ink underline underline-offset-2"
+          >
+            Clear the search
+          </button>
+        </p>
+      ) : null}
       <ol className="flex flex-col" onKeyDown={onKeyDown} aria-label="Transactions to review">
-        {items.map((item) => (
+        {shown.map((item) => (
           <Row
             key={item.id}
             uid={uid}
@@ -438,6 +496,7 @@ export function ReviewQueue({
             buckets={buckets[item.accountId]}
             loans={loans}
             ruleOptions={ruleOptions}
+            showAccount={showAccount}
             active={item.id === activeId}
             selected={selected.has(item.id)}
             expanded={expanded === item.id}
@@ -473,6 +532,10 @@ export function ReviewQueue({
           />
         ))}
       </ol>
+      <p className="mt-3 hidden text-xs text-ink-muted lg:block">
+        <Kbd>J</Kbd> <Kbd>K</Kbd> move, <Kbd>Enter</Kbd> details, <Kbd>A</Kbd> add, <Kbd>X</Kbd>{" "}
+        select, <Kbd>E</Kbd> exclude
+      </p>
     </div>
   );
 }
@@ -497,6 +560,7 @@ type RowProps = {
   buckets?: { id: string; name: string; isUnassigned: boolean }[];
   loans: LoanHint[];
   ruleOptions: RuleOptions;
+  showAccount: boolean;
   active: boolean;
   selected: boolean;
   expanded: boolean;
@@ -554,6 +618,9 @@ function Row({ refCallback, ...p }: RowProps) {
     }
   };
 
+  const spent = item.amountCents < 0;
+  const isMatch = draft.choice.startsWith("transfer:") || draft.choice.startsWith("link:");
+
   return (
     <li
       ref={refCallback}
@@ -563,11 +630,11 @@ function Row({ refCallback, ...p }: RowProps) {
       }}
       onClickCapture={p.onFocus}
       aria-label={`${formatDay(item.postedDate)}, ${title}, ${formatCents(item.amountCents)}`}
-      className={`group border-b border-rule outline-none focus-visible:bg-sunken focus-visible:shadow-[inset_3px_0_0_var(--focus)] focus-within:shadow-[inset_3px_0_0_var(--focus)] ${
-        p.selected ? "bg-signal-soft/60" : ""
+      className={`group border-b border-rule outline-none transition-colors duration-150 focus-visible:bg-sunken focus-visible:shadow-[inset_3px_0_0_var(--focus)] focus-within:shadow-[inset_3px_0_0_var(--focus)] ${
+        p.selected ? "bg-signal-soft/60" : p.expanded ? "bg-sunken/50" : "hover:bg-sunken/40"
       }`}
     >
-      <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_auto] gap-x-3 gap-y-2 py-3 lg:grid-cols-[1.75rem_6rem_minmax(0,1fr)_8rem_minmax(14rem,20rem)_7.5rem] lg:items-center lg:py-2.5">
+      <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_auto] gap-x-3 gap-y-2 px-2 py-3 lg:grid-cols-[1.75rem_5.75rem_minmax(0,1fr)_minmax(13rem,19rem)_6.5rem_6.5rem_5.5rem] lg:items-center lg:py-2">
         <div className="row-span-2 pt-0.5 lg:row-span-1 lg:pt-0">
           {p.canEdit ? (
             // The label pads the checkbox to a finger-sized target without moving it.
@@ -604,24 +671,30 @@ function Row({ refCallback, ...p }: RowProps) {
           </button>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.8125rem] text-ink-muted">
             <span className="tabular lg:hidden">{formatDay(item.postedDate)}</span>
-            <span>{item.accountName}</span>
+            {p.showAccount ? <span>{item.accountName}</span> : null}
             {title !== item.description ? (
-              <span className="truncate">
-                <span aria-hidden>· </span>
+              // On a phone the bank's text gets its own line under the date.
+              <span className="min-w-0 basis-full truncate lg:basis-auto">
+                {p.showAccount ? (
+                  <span aria-hidden className="hidden lg:inline">
+                    ·{" "}
+                  </span>
+                ) : null}
                 {item.description}
               </span>
             ) : null}
             <Badges item={item} />
           </div>
         </div>
-        <div className="text-right lg:pr-1">
+        {/* On a phone, one signed amount; on a wide screen, Spent and Received columns. */}
+        <div className="text-right lg:hidden">
           <Money cents={item.amountCents} className="font-medium" />
         </div>
 
-        <div className="col-start-2 row-start-2 flex min-w-0 flex-col gap-1.5 lg:col-start-auto lg:row-start-auto">
+        <div className="col-start-2 row-start-2 flex min-w-0 flex-col gap-1.5 lg:col-start-4 lg:row-start-1">
           {p.buckets && p.buckets.length > 0 ? (
             <SelectInput
-              aria-label={`${item.amountCents < 0 ? "Bucket it comes from" : "Bucket it goes to"} for ${title}`}
+              aria-label={`${spent ? "Bucket it comes from" : "Bucket it goes to"} for ${title}`}
               value={draft.bucketId || p.buckets.find((b) => b.isUnassigned)?.id || ""}
               onChange={(e) => p.setDraft({ bucketId: e.target.value })}
               disabled={!p.canEdit}
@@ -629,7 +702,7 @@ function Row({ refCallback, ...p }: RowProps) {
             >
               {p.buckets.map((b) => (
                 <option key={b.id} value={b.id}>
-                  {item.amountCents < 0 ? "From" : "Into"} {b.name}
+                  {spent ? "From" : "Into"} {b.name}
                 </option>
               ))}
             </SelectInput>
@@ -642,6 +715,7 @@ function Row({ refCallback, ...p }: RowProps) {
             onChange={(e) => chooseCategory(e.target.value)}
             disabled={!p.canEdit}
             invalid={Boolean(p.error) && !draft.choice}
+            className="lg:h-9 lg:text-[0.8125rem]"
           >
             <option value="">Choose a category</option>
             {item.linkCandidates.length || transfer ? (
@@ -653,7 +727,7 @@ function Row({ refCallback, ...p }: RowProps) {
                 ))}
                 {transfer ? (
                   <option value={`transfer:${transfer.id}`}>
-                    Transfer {item.amountCents < 0 ? "to" : "from"} {transfer.accountName}
+                    Transfer {spent ? "to" : "from"} {transfer.accountName}
                     {crossBook ? ` (${transfer.bookName})` : ""}
                   </option>
                 ) : null}
@@ -667,33 +741,37 @@ function Row({ refCallback, ...p }: RowProps) {
             </optgroup>
           </SelectInput>
         </div>
-        <div className="col-start-3 row-start-2 flex items-center justify-end gap-1 lg:col-start-auto lg:row-start-auto">
+        <div className="tabular hidden text-right text-sm font-medium text-ink lg:col-start-5 lg:row-start-1 lg:block">
+          {spent ? formatCents(-item.amountCents) : null}
+        </div>
+        <div className="tabular hidden text-right text-sm font-medium text-ink lg:col-start-6 lg:row-start-1 lg:block">
+          {spent ? null : formatCents(item.amountCents)}
+        </div>
+        <div className="col-start-3 row-start-2 flex items-center justify-end gap-1 lg:col-start-7 lg:row-start-1">
           {p.canEdit ? (
             <Button
               // Every row's button looks the same; the row itself shows keyboard focus.
               variant="secondary"
-              className="lg:h-8 lg:px-3 lg:text-[0.8125rem]"
+              className="min-w-[4.5rem] lg:h-8 lg:px-3 lg:text-[0.8125rem]"
               onClick={p.onApprove}
               pending={p.busy}
               pendingLabel="Saving"
-              aria-label={`Approve ${title}`}
+              aria-label={`${isMatch ? "Match" : "Add"} ${title}`}
             >
-              {draft.choice.startsWith("transfer:") || draft.choice.startsWith("link:")
-                ? "Match"
-                : "Approve"}
+              {isMatch ? "Match" : "Add"}
             </Button>
           ) : null}
         </div>
       </div>
 
       {p.error ? (
-        <p role="alert" className="-mt-1 pb-2 pl-10 text-[0.8125rem] text-negative">
+        <p role="alert" className="-mt-1 pb-2 pl-12 text-[0.8125rem] text-negative">
           {p.error}
         </p>
       ) : null}
 
       {item.duplicateOf ? (
-        <div className="mb-3 ml-10 flex flex-col gap-2 rounded-lg bg-sunken px-3 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-2 mb-3 flex flex-col lg:ml-12 gap-2 rounded-lg bg-sunken px-3 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between">
           <p className="text-ink">
             <Copy size={14} aria-hidden className="mr-1.5 inline text-ink-muted" />
             Looks like a duplicate of {formatDay(item.duplicateOf.postedDate)} &ldquo;
@@ -720,6 +798,7 @@ function Row({ refCallback, ...p }: RowProps) {
           crossBook={Boolean(crossBook)}
           isSplit={isSplit}
           title={title}
+          onSplit={() => chooseCategory("split")}
         />
       ) : (
         <div id={`${base}-details`} hidden />
@@ -749,37 +828,85 @@ function Badges({ item }: { item: QueueItem }) {
           Already recorded?
         </span>
       ) : null}
-      {item.source === "csv" || item.source === "pdf" ? (
-        <span className="rounded bg-sunken px-1.5 py-px text-xs text-ink-muted">
-          {item.source.toUpperCase()}
-        </span>
-      ) : null}
     </>
   );
 }
 
 const plainAmount = (cents: number) => formatCents(Math.abs(cents), { showSymbol: false });
 
+type Mode = "categorize" | "match" | "transfer";
+
 function Details(
-  p: RowData & { base: string; crossBook: boolean; isSplit: boolean; title: string },
+  p: RowData & {
+    base: string;
+    crossBook: boolean;
+    isSplit: boolean;
+    title: string;
+    onSplit: () => void;
+  },
 ) {
   const { item, draft } = p;
   const choice = draft.choice;
   const plainAccount = choice && !choice.includes(":") && choice !== "split";
   const [ruleOpen, setRuleOpen] = useState(false);
+  const mode: Mode = choice.startsWith("link:")
+    ? "match"
+    : choice.startsWith("transfer:")
+      ? "transfer"
+      : "categorize";
+  const modes: { id: Mode; label: string }[] = [
+    { id: "categorize", label: "Categorize" },
+    ...(item.linkCandidates.length ? [{ id: "match" as const, label: "Find match" }] : []),
+    ...(item.transfer ? [{ id: "transfer" as const, label: "Record as transfer" }] : []),
+  ];
+  const setMode = (m: Mode) => {
+    if (m === mode) return;
+    if (m === "match") p.setDraft({ choice: `link:${item.linkCandidates[0]!.entryId}` });
+    else if (m === "transfer") p.setDraft({ choice: `transfer:${item.transfer!.id}` });
+    else p.setDraft({ choice: item.suggestedAccountId ?? "" });
+  };
+  const isMatch = mode !== "categorize";
+
   return (
     <div
       id={`${p.base}-details`}
-      className="mb-4 ml-0 flex flex-col gap-4 rounded-xl border border-rule bg-surface p-4 lg:ml-10"
+      className="mx-2 mb-4 flex flex-col gap-4 rounded-xl border border-rule bg-surface p-4 lg:ml-12"
     >
-      {item.bankMemo || (item.payee && item.payee !== item.description) ? (
+      {modes.length > 1 && p.canEdit ? (
+        <div
+          role="radiogroup"
+          aria-label={`What to do with ${p.title}`}
+          className="flex flex-wrap gap-x-5 gap-y-2"
+        >
+          {modes.map((m) => (
+            <label key={m.id} className="flex items-center gap-2 text-sm font-medium text-ink">
+              <input
+                type="radio"
+                name={`${p.base}-mode`}
+                className="size-4 accent-[var(--signal)]"
+                checked={mode === m.id}
+                onChange={() => setMode(m.id)}
+              />
+              {m.label}
+            </label>
+          ))}
+        </div>
+      ) : null}
+
+      {item.bankMemo ||
+      (item.payee && item.payee !== item.description) ||
+      item.source === "csv" ||
+      item.source === "pdf" ? (
         <p className="text-[0.8125rem] text-ink-muted">
-          From the bank: {item.description}
+          {item.source === "csv" || item.source === "pdf"
+            ? `From a ${item.source.toUpperCase()} import: `
+            : "From the bank: "}
+          {item.description}
           {item.bankMemo && item.bankMemo !== item.description ? `, ${item.bankMemo}` : ""}
         </p>
       ) : null}
 
-      {choice.startsWith("transfer:") && item.transfer ? (
+      {mode === "transfer" && item.transfer ? (
         <div className="flex flex-col gap-3">
           <p className="text-sm text-ink">
             {formatCents(Math.abs(item.amountCents))} {item.amountCents < 0 ? "left" : "arrived in"}{" "}
@@ -830,20 +957,41 @@ function Details(
         </div>
       ) : null}
 
-      {choice.startsWith("link:") ? (
-        <p className="text-sm text-ink">
-          An entry already records this amount on {item.accountName}. Matching marks this bank
-          transaction as recorded by it and adds nothing to the books.{" "}
-          <Link
-            href={`/books/${p.bookId}/journal/${choice.slice(5)}`}
-            className="text-signal-ink underline underline-offset-2"
-          >
-            Open the entry
-          </Link>
-        </p>
+      {mode === "match" ? (
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-1 text-sm text-ink">
+            These entries already record {formatCents(Math.abs(item.amountCents))} on{" "}
+            {item.accountName}. Matching marks this bank transaction as recorded and adds nothing to
+            the books.
+          </legend>
+          {item.linkCandidates.map((c) => (
+            <label
+              key={c.entryId}
+              className="flex items-center gap-3 rounded-lg border border-rule px-3 py-2 text-sm has-[:checked]:border-signal has-[:checked]:bg-signal-soft/50"
+            >
+              <input
+                type="radio"
+                name={`${p.base}-match`}
+                className="size-4 accent-[var(--signal)]"
+                checked={choice === `link:${c.entryId}`}
+                onChange={() => p.setDraft({ choice: `link:${c.entryId}` })}
+              />
+              <span className="tabular text-ink-muted">{formatDay(c.entryDate)}</span>
+              <span className="min-w-0 flex-1 truncate text-ink">
+                {c.payee ?? c.memo ?? formatEntryNumber(c.entryNumber)}
+              </span>
+              <Link
+                href={`/books/${p.bookId}/journal/${c.entryId}`}
+                className="shrink-0 text-[0.8125rem] text-signal-ink underline underline-offset-2"
+              >
+                Open {formatEntryNumber(c.entryNumber)}
+              </Link>
+            </label>
+          ))}
+        </fieldset>
       ) : null}
 
-      {!choice.includes(":") ? (
+      {mode === "categorize" ? (
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1.5 text-[0.8125rem] font-medium text-ink">
             Payee
@@ -868,7 +1016,16 @@ function Details(
         </div>
       ) : null}
 
-      {p.isSplit ? <SplitEditor {...p} /> : null}
+      {p.isSplit ? (
+        <SplitEditor {...p} />
+      ) : mode === "categorize" && p.canEdit ? (
+        <div>
+          <Button size="sm" variant="ghost" onClick={p.onSplit}>
+            <SplitIcon size={14} aria-hidden />
+            Split
+          </Button>
+        </div>
+      ) : null}
 
       {plainAccount && p.canEdit ? (
         <label className="flex items-start gap-2 text-sm text-ink">
@@ -881,50 +1038,41 @@ function Details(
           <span>
             Always use this category for &ldquo;{item.payee ?? item.description}&rdquo;
             <span className="block text-[0.8125rem] text-ink-muted">
-              Saves a rule. Rules only suggest; you still approve each one.
+              Saves a rule. Rules only suggest; you still add each one.
             </span>
           </span>
         </label>
       ) : null}
 
-      {p.canEdit ? (
-        ruleOpen ? (
-          <RuleEditor
-            bookId={p.bookId}
-            groups={p.groups}
-            bankAccounts={p.ruleOptions.bankAccounts}
-            buckets={p.ruleOptions.buckets}
-            prefill={{
-              name: draft.payee || p.title,
-              conditions: {
-                text: {
-                  field: "any",
-                  op: "contains",
-                  value: suggestRuleText(item.payee ?? item.description),
-                },
-                direction: item.amountCents < 0 ? "outflow" : "inflow",
-                accountId: item.accountId,
+      {p.canEdit && ruleOpen ? (
+        <RuleEditor
+          bookId={p.bookId}
+          groups={p.groups}
+          bankAccounts={p.ruleOptions.bankAccounts}
+          buckets={p.ruleOptions.buckets}
+          prefill={{
+            name: draft.payee || p.title,
+            conditions: {
+              text: {
+                field: "any",
+                op: "contains",
+                value: suggestRuleText(item.payee ?? item.description),
               },
-              actions: {
-                offsetAccountId: plainAccount ? choice : null,
-                bucketAccountId: draft.bucketId || null,
-                payee:
-                  draft.payee && draft.payee !== (item.payee ?? item.description)
-                    ? draft.payee
-                    : null,
-                transfer: choice.startsWith("transfer:"),
-              },
-            }}
-            onDone={() => setRuleOpen(false)}
-          />
-        ) : (
-          <div>
-            <Button size="sm" variant="secondary" onClick={() => setRuleOpen(true)}>
-              <Wand2 size={14} aria-hidden />
-              Create a rule from this
-            </Button>
-          </div>
-        )
+              direction: item.amountCents < 0 ? "outflow" : "inflow",
+              accountId: item.accountId,
+            },
+            actions: {
+              offsetAccountId: plainAccount ? choice : null,
+              bucketAccountId: draft.bucketId || null,
+              payee:
+                draft.payee && draft.payee !== (item.payee ?? item.description)
+                  ? draft.payee
+                  : null,
+              transfer: choice.startsWith("transfer:"),
+            },
+          }}
+          onDone={() => setRuleOpen(false)}
+        />
       ) : null}
 
       <Attachments
@@ -935,14 +1083,34 @@ function Details(
       />
 
       {p.canEdit ? (
-        <div className="flex flex-wrap gap-2 border-t border-rule pt-3">
-          <Button size="sm" variant="ghost" onClick={p.onExclude} disabled={p.busy}>
-            <X size={14} aria-hidden />
-            Exclude
-          </Button>
-          <span className="self-center text-[0.8125rem] text-ink-muted">
-            Excluded transactions never reach the books. You can restore them later.
-          </span>
+        <div className="flex flex-wrap items-center gap-2 border-t border-rule pt-3">
+          {ruleOpen ? null : (
+            <Button size="sm" variant="ghost" onClick={() => setRuleOpen(true)}>
+              <Wand2 size={14} aria-hidden />
+              Create a rule from this
+            </Button>
+          )}
+          <div className="ml-auto flex gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={p.onExclude}
+              disabled={p.busy}
+              title="Excluded transactions never reach the books. You can restore them from the Excluded tab."
+            >
+              <X size={14} aria-hidden />
+              Exclude
+            </Button>
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={p.onApprove}
+              pending={p.busy}
+              pendingLabel="Saving"
+            >
+              {isMatch ? "Match" : "Add"}
+            </Button>
+          </div>
         </div>
       ) : null}
     </div>

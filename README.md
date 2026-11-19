@@ -147,10 +147,13 @@ a small paid service that connects to most US banks and credit cards.
    shows the bank's balance). After that it syncs once a day at the hour you pick (in the
    server's `TZ`).
 
-New transactions wait in **For review** in each book. Approve each with a category (or
-split it), match transfers between your accounts, or exclude it. Rules fill in the
-category for you (open a transaction's details and choose **Create a rule from this** to
-make one from it), and nothing posts until you approve it.
+New transactions wait in **For review** in each book, laid out like a bank feed: a card
+for each bank account (the bank's balance next to the balance in your books), then a
+table with Spent and Received columns and a search box. **Add** each with a category (or
+split it), **Match** transfers between your accounts and entries you already wrote, or
+exclude it. Rules fill in the category for you (open a transaction's details and choose
+**Create a rule from this** to make one from it), and nothing posts until you add it. On
+the Posted tab, **Undo** sends a transaction back to review.
 
 To try it without a bank, press **Use the demo bank** on the Bank connections page; it
 connects SimpleFIN's public demo account.

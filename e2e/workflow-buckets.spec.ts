@@ -71,8 +71,8 @@ test("buckets: turn on, allocate a deposit, move money", async ({ page }) => {
     .locator("option", { hasText: /(^|: )Interest Earned$/ })
     .getAttribute("value");
   await category.selectOption(interest!);
-  await row.getByRole("button", { name: /Approve INTEREST PAYMENT/ }).click();
-  await expect(page.getByText("Approved.")).toBeVisible();
+  await row.getByRole("button", { name: /Add INTEREST PAYMENT/ }).click();
+  await expect(page.getByText("Added.")).toBeVisible();
 
   await nav.getByRole("link", { name: "Buckets" }).click();
   const car = page

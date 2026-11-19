@@ -6,6 +6,23 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-11-19
+
+### Changed
+
+- For review looks and works more like a bank feed. A card for each bank account across
+  the top shows how many wait, the bank's balance from the last sync, and the balance in
+  Bucketbook; pick a card to see only that account (it replaces the Account list).
+- The table has Spent and Received columns, a Category or match column, and an Action
+  column whose button reads Add, or Match for a transfer or an entry already recorded.
+  Selected rows are added with Add N.
+- A search box narrows the list by description, payee or amount.
+- A transaction's details start with Categorize, Find match and Record as transfer
+  choices when a match exists, list every possible match, offer a Split button, and end
+  with Exclude and Add.
+- The Posted tab has Spent and Received columns and an Undo button that sends an added
+  transaction back to review.
+
 ## [1.12.0] - 2026-11-19
 
 ### Changed

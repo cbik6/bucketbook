@@ -9,6 +9,7 @@ import {
   listAttachments,
   saveAttachment,
 } from "@/server/bank/attachments-service";
+import { bankAccountCards } from "@/server/bank/accounts";
 import { importCsv, previewCsv } from "@/server/bank/csv-service";
 import {
   approveItem,
@@ -310,6 +311,31 @@ describe("SimpleFIN connection and sync", () => {
       reviewCents: 0,
       unexplainedCents: 0,
     });
+  });
+
+  it("puts each bank account on a card with the bank's balance and the books' balance", async () => {
+    const ctx = await setupBook();
+    const bridge = fakeBridge({
+      CHK: {
+        balance: "60.00",
+        transactions: [{ id: "d", day: "2026-03-02", amount: "60.00", description: "Deposit" }],
+      },
+    });
+    const conn = await connectAndMap(bridge, ctx, { CHK: "Checking" });
+    await sync(conn.id, bridge);
+    // An imported card charge: a card reads as what is owed, with no bank balance.
+    await csvItems(ctx, "Credit Card", [["2026-03-03", -2500, "Coffee"]]);
+    let cards = await bankAccountCards(getDb(), ctx.bookId);
+    expect(cards.map((c) => c.name)).toEqual(["Checking", "Credit Card"]);
+    expect(cards[0]).toMatchObject({ bankCents: 6000, bookCents: 0, reviewCount: 1 });
+    expect(cards[1]).toMatchObject({ bankCents: null, bookCents: 0, reviewCount: 1 });
+
+    const card = (await items(ctx.bookId)).find((r) => r.description === "Coffee")!;
+    await approveItem(getDb(), ctx.actor, ctx.bookId, card.id, {
+      accountId: ctx.id("Other Income"),
+    });
+    cards = await bankAccountCards(getDb(), ctx.bookId);
+    expect(cards[1]).toMatchObject({ bookCents: 2500, reviewCount: 0 });
   });
 });
 
