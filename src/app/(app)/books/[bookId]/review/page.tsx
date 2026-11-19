@@ -4,8 +4,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { PageFallback, PageHeader } from "@/components/app-shell";
-import { Button, ButtonLink } from "@/components/ui/button";
-import { SelectInput } from "@/components/ui/field";
+import { ButtonLink } from "@/components/ui/button";
 import type { AccountOptionGroup } from "@/lib/account-options";
 import { bankableAccounts } from "@/server/bank/accounts";
 import { listAttachments } from "@/server/bank/attachments-service";
@@ -15,6 +14,7 @@ import { getDb } from "@/server/db/client";
 import { loanHints } from "@/server/loans/service";
 import { loadBookForPage } from "@/server/guards";
 import { entryFormAccounts } from "@/server/ledger/page-data";
+import { AccountFilter } from "./account-filter";
 import { ReviewQueue, type AttachmentInfo } from "./review-queue";
 import { SimpleList } from "./simple-list";
 
@@ -42,7 +42,6 @@ async function ReviewContent({ params, searchParams }: PageProps<"/books/[bookId
   ]);
   const canEdit = book.role !== "viewer";
   const base = `/books/${book.id}/review`;
-  const usedAccounts = bankAccounts.filter((a) => items.some((i) => i.accountId === a.id));
 
   let body: React.ReactNode;
   if (tab === "review") {
@@ -154,46 +153,16 @@ async function ReviewContent({ params, searchParams }: PageProps<"/books/[bookId
             })}
           </nav>
           {bankAccounts.length > 1 ? (
-            <form className="flex items-center gap-2 pb-2 text-sm" action={base}>
-              {tab !== "review" ? <input type="hidden" name="tab" value={tab} /> : null}
-              <AccountFilter
-                accounts={bankAccounts.map((a) => ({ id: a.id, name: a.name }))}
-                value={accountFilter ?? ""}
-                used={usedAccounts.length}
-              />
-            </form>
+            <AccountFilter
+              base={base}
+              tab={tab}
+              accounts={bankAccounts.map((a) => ({ id: a.id, name: a.name }))}
+              value={accountFilter ?? ""}
+            />
           ) : null}
         </div>
         {body}
       </div>
-    </>
-  );
-}
-
-function AccountFilter({
-  accounts,
-  value,
-}: {
-  accounts: { id: string; name: string }[];
-  value: string;
-  used: number;
-}) {
-  return (
-    <>
-      <label htmlFor="review-account-filter" className="text-ink-muted">
-        Account
-      </label>
-      <SelectInput compact id="review-account-filter" name="account" defaultValue={value}>
-        <option value="">All accounts</option>
-        {accounts.map((a) => (
-          <option key={a.id} value={a.id}>
-            {a.name}
-          </option>
-        ))}
-      </SelectInput>
-      <Button type="submit" size="sm">
-        Show
-      </Button>
     </>
   );
 }

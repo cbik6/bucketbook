@@ -6,6 +6,13 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.9.3] - 2026-11-19
+
+### Changed
+
+- In For review, choosing an account in the Account list shows its transactions right
+  away. The Show button is gone.
+
 ## [1.9.2] - 2026-11-19
 
 ### Changed
