@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight, ChevronDown, Copy, Link2, Plus, Wand2, X } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, Copy, Link2, Plus, Undo2, Wand2, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
@@ -144,8 +144,16 @@ export function ReviewQueue({
 
   const ids = useMemo(() => new Set(items.map((i) => i.id)), [items]);
   const draftFor = (item: QueueItem) => drafts[item.id] ?? defaultDraft(item);
-  const setDraft = (item: QueueItem, patch: Partial<Draft>) =>
+  const setDraft = (item: QueueItem, patch: Partial<Draft>) => {
     setDrafts((d) => ({ ...d, [item.id]: { ...(d[item.id] ?? defaultDraft(item)), ...patch } }));
+    // A new category (or leaving a split) makes the last error about this row stale.
+    if (patch.choice !== undefined)
+      setErrors((e) => {
+        if (!(item.id in e)) return e;
+        const { [item.id]: _, ...rest } = e;
+        return rest;
+      });
+  };
 
   // Keep selection and focus pointing at rows that still exist after a refresh.
   useEffect(() => {
@@ -626,49 +634,38 @@ function Row({ refCallback, ...p }: RowProps) {
               ))}
             </SelectInput>
           ) : null}
-          {isSplit ? (
-            <button
-              type="button"
-              onClick={() => (p.expanded ? null : p.onToggleExpand())}
-              className="flex h-10 w-full items-center rounded-lg border border-dashed border-field-border px-3 text-sm text-ink"
-            >
-              Split into {draft.splits.length} lines
-            </button>
-          ) : (
-            <SelectInput
-              id={`${base}-category`}
-              aria-label={`Category for ${title}`}
-              value={draft.choice}
-              onChange={(e) => chooseCategory(e.target.value)}
-              disabled={!p.canEdit}
-              invalid={Boolean(p.error) && !draft.choice}
-            >
-              <option value="">Choose a category</option>
-              {item.linkCandidates.length || transfer ? (
-                <optgroup label="Matches">
-                  {item.linkCandidates.map((c) => (
-                    <option key={c.entryId} value={`link:${c.entryId}`}>
-                      Already recorded: {formatEntryNumber(c.entryNumber)}, {formatDay(c.entryDate)}
-                    </option>
-                  ))}
-                  {transfer ? (
-                    <option value={`transfer:${transfer.id}`}>
-                      Transfer {item.amountCents < 0 ? "to" : "from"} {transfer.accountName}
-                      {crossBook ? ` (${transfer.bookName})` : ""}
-                    </option>
-                  ) : null}
-                </optgroup>
-              ) : null}
-              <AccountSelectOptions
-                groups={p.groups}
-                value={draft.choice}
-                exclude={item.accountId}
-              />
-              <optgroup label="More">
-                <option value="split">Split across accounts</option>
+          {/* Split stays a choice in the same list, so picking a category backs out of it. */}
+          <SelectInput
+            id={`${base}-category`}
+            aria-label={`Category for ${title}`}
+            value={draft.choice}
+            onChange={(e) => chooseCategory(e.target.value)}
+            disabled={!p.canEdit}
+            invalid={Boolean(p.error) && !draft.choice}
+          >
+            <option value="">Choose a category</option>
+            {item.linkCandidates.length || transfer ? (
+              <optgroup label="Matches">
+                {item.linkCandidates.map((c) => (
+                  <option key={c.entryId} value={`link:${c.entryId}`}>
+                    Already recorded: {formatEntryNumber(c.entryNumber)}, {formatDay(c.entryDate)}
+                  </option>
+                ))}
+                {transfer ? (
+                  <option value={`transfer:${transfer.id}`}>
+                    Transfer {item.amountCents < 0 ? "to" : "from"} {transfer.accountName}
+                    {crossBook ? ` (${transfer.bookName})` : ""}
+                  </option>
+                ) : null}
               </optgroup>
-            </SelectInput>
-          )}
+            ) : null}
+            <AccountSelectOptions groups={p.groups} value={draft.choice} exclude={item.accountId} />
+            <optgroup label="More">
+              <option value="split">
+                {isSplit ? `Split into ${draft.splits.length} lines` : "Split across accounts"}
+              </option>
+            </optgroup>
+          </SelectInput>
         </div>
         <div className="col-start-3 row-start-2 flex items-center justify-end gap-1 lg:col-start-auto lg:row-start-auto">
           {p.canEdit ? (
@@ -1042,7 +1039,8 @@ function SplitEditor(p: RowData) {
             variant="ghost"
             onClick={() => p.setDraft({ choice: draft.splits[0]?.accountId ?? "", splits: [] })}
           >
-            Don&apos;t split
+            <Undo2 size={14} aria-hidden />
+            Undo split
           </Button>
         </div>
         <p className="tabular text-sm" aria-live="polite">

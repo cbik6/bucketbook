@@ -197,9 +197,28 @@ function fullDatesIn(text: string): string[] {
 
 function findPeriod(lines: PdfLine[]): { start: string | null; end: string | null } {
   const texts = lines.map(lineText);
+  // "Oct 1 - Oct 31, 2026": the first date borrows the second's year.
+  const DASH = "-\u2013\u2014";
+  const short = new RegExp(
+    `\\b([A-Za-z]{3,9})\\.?\\s+(\\d{1,2})(?:,?\\s+(\\d{4}))?\\s*(?:[${DASH}]|to|through|thru)\\s*([A-Za-z]{3,9})\\.?\\s+(\\d{1,2}),?\\s+(\\d{4})\\b`,
+    "i",
+  );
+  for (const text of texts) {
+    const m = short.exec(text);
+    if (!m) continue;
+    const m1 = monthIndex(m[1]!);
+    const m2 = monthIndex(m[4]!);
+    if (m1 < 0 || m2 < 0) continue;
+    const endYear = +m[6]!;
+    const startYear = m[3] ? +m[3] : m1 > m2 ? endYear - 1 : endYear;
+    const start = isoOf(startYear, m1 + 1, +m[2]!);
+    const end = isoOf(endYear, m2 + 1, +m[5]!);
+    if (start && end && dayNum(end) > dayNum(start) && dayNum(end) - dayNum(start) <= 95)
+      return { start, end };
+  }
   // "01/01/2026 - 01/31/2026", "January 1, 2026 through January 31, 2026".
   for (const text of texts) {
-    if (!/\b(to|through|thru)\b|\s[-]\s|\d\s?-\s?[A-Za-z\d]/i.test(text)) continue;
+    if (!/\b(to|through|thru)\b|\s[-\u2013\u2014]\s|\d\s?-\s?[A-Za-z\d]/i.test(text)) continue;
     const dates = fullDatesIn(text);
     for (let i = 0; i + 1 < dates.length; i++) {
       const gap = dayNum(dates[i + 1]!) - dayNum(dates[i]!);
@@ -234,9 +253,11 @@ function readHeader(line: PdfLine): { kind: Column; right: number }[] | null {
 }
 
 /** A heading such as "Deposits and additions" that says which way the rows below move. */
-function sectionSign(text: string, kind: AccountKind): 1 | -1 | null {
+function sectionSign(text: string, kind: AccountKind): 1 | -1 | 0 | null {
   const t = text.toLowerCase();
   if (t.split(/\s+/).length > 7) return null;
+  // "Transactions", "Transactions by ...": a mixed list, so an earlier "Payments" no longer applies.
+  if (/^(transactions|account activity|activity|transaction (details|history))\b/.test(t)) return 0;
   if (
     /payments?,? (and|&) (other )?credits|credits?\b|deposits?|additions|interest (paid|earned)|refunds?/.test(
       t,
@@ -254,8 +275,9 @@ function sectionSign(text: string, kind: AccountKind): 1 | -1 | null {
 }
 
 const OPENING =
-  /\b(beginning|opening|starting|previous|prior) balance\b|balance (forward|brought forward)/i;
-const CLOSING = /\b(ending|closing|new) balance\b/i;
+  /\b(beginning|opening|starting|previous|prior)( total| monthly| statement)? balance\b|balance (forward|brought forward)/i;
+const CLOSING =
+  /\b(ending|closing|new)( total| statement)? balance\b|^(total|statement) balance\b/i;
 const NOT_A_TRANSACTION =
   /^(total|subtotal)\b|\b(beginning|ending|opening|closing|starting|previous|prior|new|daily( ending)?|available|statement) balance\b|balance (forward|brought forward)|minimum payment|payment due|credit limit|available credit/i;
 
@@ -308,6 +330,8 @@ export function readStatement(lines: PdfLine[], kind: AccountKind, today: string
       dates.push(d.parts);
       at += d.used;
     }
+    // A rate printed beside the amounts ("2%" cash back) isn't part of the description.
+    while (rest.length > at && /^\d+(\.\d+)?%$/.test(rest[rest.length - 1]!.text)) rest.pop();
     const description = rest
       .slice(at)
       .map((t) => t.text)
@@ -338,7 +362,7 @@ export function readStatement(lines: PdfLine[], kind: AccountKind, today: string
       }
       if (amounts.length === 0) {
         const s = sectionSign(text, kind);
-        if (s !== null) section = s;
+        if (s !== null) section = s === 0 ? null : s;
       }
       continue;
     }

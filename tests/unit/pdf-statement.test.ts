@@ -203,6 +203,89 @@ describe("reading statement PDFs", () => {
     expect(checkBalances("900", "433", result.rows, true).state).toBe("match");
   });
 
+  it("card with a Payments section, then Transactions by each cardholder with a cash back column", async () => {
+    const header = (y: number) =>
+      row(y, [
+        [37, "Date"],
+        [106, "Description"],
+        [416, "Daily Cash"],
+        [576, "Amount", "right"],
+      ]);
+    const result = await read(
+      [
+        [
+          ...row(740, [[505, "Oct 1 \u2014 Oct 31, 2026"]]),
+          ...row(700, [
+            [402, "Previous Monthly Balance"],
+            [574, "$50.00", "right"],
+          ]),
+          ...row(680, [
+            [402, "Total Balance"],
+            [574, "$66.10", "right"],
+          ]),
+          ...row(620, [[36, "Payments"]]),
+          ...row(600, [[36, "Payments made by Pat Example"]]),
+          ...row(585, [
+            [37, "Date"],
+            [106, "Description"],
+            [576, "Amount", "right"],
+          ]),
+          ...row(570, [
+            [36, "10/05/2026"],
+            [105, "ACH Deposit Internet transfer"],
+            [575, "-$50.00", "right"],
+          ]),
+          ...row(550, [
+            [36, "Total payments for this period"],
+            [575, "-$50.00", "right"],
+          ]),
+          ...row(500, [[36, "Transactions"]]),
+          ...row(480, [[36, "Transactions by Pat Example"]]),
+          ...header(465),
+          ...row(450, [
+            [36, "10/02/2026"],
+            [105, "CORNER GROCERY 12 MAIN ST"],
+            [415, "2%"],
+            [465, "$0.80", "right"],
+            [575, "$40.00", "right"],
+          ]),
+          ...row(435, [
+            [36, "10/14/2026"],
+            [105, "Daily Cash Adjustment"],
+            [575, "$0.10", "right"],
+          ]),
+          ...row(415, [
+            [36, "Total charges, credits and returns"],
+            [575, "$40.10", "right"],
+          ]),
+          ...row(380, [[36, "Transactions by Sam Example"]]),
+          ...header(365),
+          ...row(350, [
+            [36, "10/20/2026"],
+            [105, "BOOKSHOP 4 ELM RD"],
+            [415, "1%"],
+            [465, "$0.26", "right"],
+            [575, "$26.00", "right"],
+          ]),
+        ],
+      ],
+      "liability",
+    );
+    expect(result).toMatchObject({
+      periodStart: "2026-10-01",
+      periodEnd: "2026-10-31",
+      openingCents: 5000,
+      closingCents: 6610,
+    });
+    expect(result.rows.map(simple)).toEqual([
+      ["2026-10-05", 5000, "ACH Deposit Internet transfer"],
+      ["2026-10-02", -4000, "CORNER GROCERY 12 MAIN ST"],
+      ["2026-10-14", -10, "Daily Cash Adjustment"],
+      ["2026-10-20", -2600, "BOOKSHOP 4 ELM RD"],
+    ]);
+    expect(checkBalances("50.00", "66.10", result.rows, true).state).toBe("match");
+  });
+
   it("day-first dates, and a note when nothing says which way money moved", async () => {
     const result = await read([
       [

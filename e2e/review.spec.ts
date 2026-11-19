@@ -72,7 +72,11 @@ test("review: CSV import, transfer match, approve, save a rule, rule suggests", 
   const groceries = await category
     .locator("option", { hasText: /(^|: )Groceries$/ })
     .getAttribute("value");
+  // Splitting can be backed out of from the same list.
+  await category.selectOption("split");
+  await expect(category.locator("option:checked")).toHaveText("Split into 2 lines");
   await category.selectOption(groceries!);
+  await expect(category).toHaveValue(groceries!);
   await grocery.getByRole("button", { name: "LOCAL GROCER #12", exact: true }).click();
   await grocery.getByLabel(/Always use this category/).check();
   await grocery.getByRole("button", { name: /Approve LOCAL GROCER/ }).click();

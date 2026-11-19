@@ -5,7 +5,10 @@
  */
 export type PdfText = { x: number; y: number; text: string; size?: number };
 
-const escape = (s: string) => s.replace(/[\\()]/g, (c) => `\\${c}`);
+// WinAnsi bytes for the dashes statements print between dates; other text is plain ASCII.
+const WIN_ANSI: Record<string, string> = { "\u2013": "\x96", "\u2014": "\x97" };
+const escape = (s: string) =>
+  s.replace(/[\\()]/g, (c) => `\\${c}`).replace(/[\u2013\u2014]/g, (c) => WIN_ANSI[c]!);
 
 export function makePdf(pages: PdfText[][]): Buffer {
   const objects: string[] = [];
@@ -15,13 +18,17 @@ export function makePdf(pages: PdfText[][]): Buffer {
   };
   const catalog = add("");
   const pagesId = add("");
-  const font = add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+  const font = add(
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+  );
   const kids: number[] = [];
   for (const items of pages) {
     const stream = items
       .map((t) => `BT /F1 ${t.size ?? 9} Tf ${t.x} ${t.y} Td (${escape(t.text)}) Tj ET`)
       .join("\n");
-    const content = add(`<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`);
+    const content = add(
+      `<< /Length ${Buffer.byteLength(stream, "latin1")} >>\nstream\n${stream}\nendstream`,
+    );
     kids.push(
       add(
         `<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 612 792] ` +
@@ -36,10 +43,10 @@ export function makePdf(pages: PdfText[][]): Buffer {
   let out = "%PDF-1.4\n";
   const offsets: number[] = [];
   objects.forEach((body, i) => {
-    offsets.push(Buffer.byteLength(out));
+    offsets.push(Buffer.byteLength(out, "latin1"));
     out += `${i + 1} 0 obj\n${body}\nendobj\n`;
   });
-  const xref = Buffer.byteLength(out);
+  const xref = Buffer.byteLength(out, "latin1");
   out += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
   for (const o of offsets) out += `${String(o).padStart(10, "0")} 00000 n \n`;
   out += `trailer\n<< /Size ${objects.length + 1} /Root ${catalog} 0 R >>\nstartxref\n${xref}\n%%EOF\n`;

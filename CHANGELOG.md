@@ -6,6 +6,19 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.11.2] - 2026-11-19
+
+### Fixed
+
+- PDF import read every Apple Card purchase as money coming in: a "Payments" heading
+  carried over into the transactions below it. A "Transactions" heading now resets it.
+- PDF import reads balances printed as "Previous Total Balance" and "Total Balance", and
+  a statement period like "Oct 1 to Oct 31, 2026" with one year, and leaves a cash back
+  rate such as "2%" out of the description.
+- In For review, a split transaction keeps the category list: choose any category to
+  back out of the split (choosing split again brings your lines back). "Don't split" is
+  now "Undo split", and a stale error clears when you change the category.
+
 ## [1.11.1] - 2026-11-19
 
 ### Changed
