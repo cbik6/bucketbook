@@ -115,7 +115,7 @@ async function ReviewContent({ params, searchParams }: PageProps<"/books/[bookId
             {canEdit ? (
               <ButtonLink href={`/books/${book.id}/import`} variant="secondary">
                 <FileUp size={15} aria-hidden />
-                Import CSV
+                Import
               </ButtonLink>
             ) : null}
           </>

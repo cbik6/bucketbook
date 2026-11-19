@@ -1046,6 +1046,25 @@ describe("CSV import", () => {
     expect(queue.find((q) => q.source === "csv")!.duplicateOf?.description).toBe("Lunch");
   });
 
+  it("imports rows read from a PDF statement without touching the CSV preset", async () => {
+    const ctx = await setupBook("household", "2026-02-01");
+    const rows = [row(1, "2026-02-03", -4510, "Card Purchase Corner Grocery")];
+    const pdf = { accountId: ctx.id("Checking"), kind: "pdf", rows };
+    expect(await importCsv(getDb(), ctx.actor, ctx.bookId, pdf)).toMatchObject({ count: 1 });
+    // The same PDF again is already imported; a CSV of the same month comes flagged.
+    expect((await previewCsv(getDb(), ctx.bookId, pdf))[0]!.status).toBe("imported");
+    const csv = { accountId: ctx.id("Checking"), mapping, rows };
+    expect((await previewCsv(getDb(), ctx.bookId, csv))[0]!.status).toBe("possible_duplicate");
+    const { getCsvPreset } = await import("@/server/bank/csv-service");
+    expect(await getCsvPreset(getDb(), ctx.id("Checking"))).toBeNull();
+    const queue = await listQueue(getDb(), ctx.user.id, ctx.bookId, "review");
+    expect(queue.map((q) => q.source)).toEqual(["pdf"]);
+    // A CSV still needs its columns.
+    await expect(
+      importCsv(getDb(), ctx.actor, ctx.bookId, { accountId: ctx.id("Checking"), rows }),
+    ).rejects.toThrow(/Pick the columns first/);
+  });
+
   it("refuses accounts that can't hold bank data", async () => {
     const ctx = await setupBook();
     await expect(

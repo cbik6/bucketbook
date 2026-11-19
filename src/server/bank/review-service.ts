@@ -830,7 +830,8 @@ export async function listQueue(
       id: item.id,
       accountId: item.accountId,
       accountName,
-      source: item.source,
+      // PDF statement rows are stored as file imports with a pdf: fingerprint.
+      source: item.source === "csv" && item.externalId?.startsWith("pdf:") ? "pdf" : item.source,
       postedDate: item.postedDate,
       amountCents: item.amountCents,
       description: item.description,

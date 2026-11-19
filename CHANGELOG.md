@@ -6,6 +6,20 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-11-19
+
+### Added
+
+- Import transactions from a PDF bank or credit card statement. Choose **Import** on the
+  For review page, then **PDF statement**. The PDF is read on your own server and never
+  stored or sent anywhere. The preview shows every transaction found, marks any whose
+  direction it couldn't tell, and lets you leave rows out or flip money in and out.
+
+### Changed
+
+- **Import CSV** is now **Import**, with CSV file and PDF statement side by side.
+- A CSV and a PDF covering the same days flag each other's rows as possible duplicates.
+
 ## [1.9.3] - 2026-11-19
 
 ### Changed

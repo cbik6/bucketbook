@@ -540,3 +540,28 @@ since that is ordinary bookkeeping; viewers don't see the page. The upgrade move
 connection into the book most of its accounts fed (or the oldest book), and copies the
 connection for any other book its accounts fed, so no mapping is lost. Deleting a book
 deletes its connections.
+
+### D62. PDF statements are read on the server, without AI
+
+Some banks offer only PDF statements. Bucketbook reads them with Mozilla's pdf.js
+(`pdfjs-dist`) on its own server, in memory: the file is never stored and never leaves the
+machine. Sending statements to an AI service would read more layouts, scans included, but
+it would send every statement off the server, which goes against running Bucketbook
+yourself.
+
+Statements have no standard layout, so `src/lib/pdf-statement.ts` looks for what most share:
+a line that starts with a date, has a description, and ends with an amount. Which way the
+money moved comes from, in order: a CR or DR mark, the column the amount sits under
+(Withdrawals or Deposits), the running balance, a minus sign or parentheses, and the
+section heading above (Deposits, Purchases). A card's statement is read the other way
+round from a bank's: an unsigned charge is money out and a minus is a payment. When
+nothing says, the row is marked for the person to check. Rows without a year take the
+statement's closing year, a month later than the closing date meaning the year before.
+
+Every row goes through the same preview as CSV import, where the person can leave rows out
+or flip all the signs, then the same duplicate check and For review queue. PDF rows are
+stored as file imports (`source = 'csv'`) with a `pdf:` fingerprint instead of `csv:`, so
+no migration was needed. A CSV and a PDF of the same month never count as the same
+import, but the duplicate check (same amount, a few days apart) compares each file
+against SimpleFIN rows and against rows from the other kind of file, so the overlap
+arrives flagged.

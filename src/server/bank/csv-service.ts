@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, notLike, or } from "drizzle-orm";
 import { z } from "zod";
 import { type CsvMapping, MAX_CSV_ROWS, csvFingerprints, csvMappingSchema } from "@/lib/csv-import";
 import { isIsoDate } from "@/lib/dates";
@@ -26,11 +26,18 @@ const rowSchema = z.object({
   memo: z.string().trim().max(500).nullable(),
 });
 
-const importSchema = z.object({
-  accountId: z.uuid("Pick the account this file is for."),
-  mapping: csvMappingSchema,
-  rows: z.array(rowSchema).max(MAX_CSV_ROWS, `Import at most ${MAX_CSV_ROWS} rows at a time.`),
-});
+const importSchema = z
+  .object({
+    accountId: z.uuid("Pick the account this file is for."),
+    /** A CSV file, or rows read from a PDF statement (which has no column mapping). */
+    kind: z.enum(["csv", "pdf"]).default("csv"),
+    mapping: csvMappingSchema.optional(),
+    rows: z.array(rowSchema).max(MAX_CSV_ROWS, `Import at most ${MAX_CSV_ROWS} rows at a time.`),
+  })
+  .refine((v) => v.kind === "pdf" || v.mapping, {
+    message: "Pick the columns first.",
+    path: ["mapping"],
+  });
 
 export type CsvRowStatus = "new" | "imported" | "possible_duplicate" | "before_start";
 
@@ -54,8 +61,9 @@ async function classify(
   accountId: string,
   startDate: string,
   rows: z.infer<typeof rowSchema>[],
+  kind: "csv" | "pdf",
 ) {
-  const prints = csvFingerprints(rows);
+  const prints = csvFingerprints(rows, kind);
   const existingPrints = new Set(
     (
       await db
@@ -84,7 +92,14 @@ async function classify(
         eq(bankTransactions.bookId, bookId),
         eq(bankTransactions.accountId, accountId),
         inArray(bankTransactions.status, ["review", "posted", "pending"]),
-        eq(bankTransactions.source, "simplefin"),
+        // SimpleFIN rows, and rows from the other kind of file (a CSV against a PDF).
+        or(
+          eq(bankTransactions.source, "simplefin"),
+          and(
+            eq(bankTransactions.source, "csv"),
+            notLike(bankTransactions.externalId, `${kind}:%`),
+          ),
+        ),
       ),
     );
   const claimed = new Set<string>();
@@ -130,7 +145,14 @@ export async function previewCsv(db: DbOrTx, bookId: string, raw: unknown) {
     .from(books)
     .where(eq(books.id, bookId));
   if (!book) throw new UserFacingError("That book was not found.");
-  const classified = await classify(db, bookId, input.accountId, book.startDate, input.rows);
+  const classified = await classify(
+    db,
+    bookId,
+    input.accountId,
+    book.startDate,
+    input.rows,
+    input.kind,
+  );
   return classified.map((c): CsvPreviewRow => ({
     line: c.row.line,
     status: c.status,
@@ -148,8 +170,15 @@ export async function importCsv(db: Database, actor: Actor, bookId: string, raw:
   return db.transaction(async (tx) => {
     const book = await loadBookForPosting(tx, bookId);
     await requireBankableAccount(tx, bookId, input.accountId);
-    await saveCsvPreset(tx, bookId, input.accountId, input.mapping);
-    const classified = await classify(tx, bookId, input.accountId, book.startDate, input.rows);
+    if (input.mapping) await saveCsvPreset(tx, bookId, input.accountId, input.mapping);
+    const classified = await classify(
+      tx,
+      bookId,
+      input.accountId,
+      book.startDate,
+      input.rows,
+      input.kind,
+    );
     const batchId = randomUUID();
     const fresh = classified.filter((c) => c.status === "new" || c.status === "possible_duplicate");
     const inserted = fresh.length
@@ -191,7 +220,7 @@ export async function importCsv(db: Database, actor: Actor, bookId: string, raw:
       entityType: "bank_transaction",
       entityId: batchId,
       action: "import",
-      after: { accountId: input.accountId, ...counts },
+      after: { accountId: input.accountId, kind: input.kind, ...counts },
     });
     return counts;
   });

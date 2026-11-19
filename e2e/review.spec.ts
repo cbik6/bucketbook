@@ -19,8 +19,8 @@ async function signIn(page: Page) {
 const today = new Date().toISOString().slice(0, 10);
 
 async function importCsv(page: Page, account: string, csv: string, expectCount: number) {
-  await page.getByRole("link", { name: "Import CSV" }).filter({ visible: true }).click();
-  await expect(page.getByRole("heading", { name: "Import CSV" })).toBeVisible();
+  await page.getByRole("link", { name: "Import", exact: true }).filter({ visible: true }).click();
+  await expect(page.getByRole("heading", { name: "Import transactions" })).toBeVisible();
   await page
     .getByLabel("Account", { exact: true })
     .filter({ visible: true })

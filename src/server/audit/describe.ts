@@ -172,7 +172,7 @@ export function describeAudit(
         return { summary: `Returned to review: ${what}`, details: [] };
       case "import":
         return {
-          summary: `Imported ${str(after.count)} transactions from a CSV file`,
+          summary: `Imported ${str(after.count)} transactions from a ${after.kind === "pdf" ? "PDF statement" : "CSV file"}`,
           details: after.skipped ? [`${str(after.skipped)} already imported, skipped`] : [],
           link: { kind: "review", id: row.entityId },
         };

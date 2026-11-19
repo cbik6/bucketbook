@@ -352,7 +352,7 @@ export function ReviewQueue({
             href={`/books/${bookId}/import`}
             className="text-signal-ink underline underline-offset-2"
           >
-            import a CSV file
+            import a CSV or PDF statement
           </Link>
           .
         </p>
@@ -752,8 +752,10 @@ function Badges({ item }: { item: QueueItem }) {
           Already recorded?
         </span>
       ) : null}
-      {item.source === "csv" ? (
-        <span className="rounded bg-sunken px-1.5 py-px text-xs text-ink-muted">CSV</span>
+      {item.source === "csv" || item.source === "pdf" ? (
+        <span className="rounded bg-sunken px-1.5 py-px text-xs text-ink-muted">
+          {item.source.toUpperCase()}
+        </span>
       ) : null}
     </>
   );

@@ -198,15 +198,17 @@ export function applyMapping(
  * what is already there. Identical rows on the same day (two $5 coffees) are
  * told apart by their position among identical rows.
  */
+/** "csv:" or "pdf:" fingerprints, so a CSV and a PDF of the same month never collide. */
 export function csvFingerprints(
   rows: Pick<CsvRow, "postedDate" | "amountCents" | "description">[],
+  kind: "csv" | "pdf" = "csv",
 ) {
   const seen = new Map<string, number>();
   return rows.map((r) => {
     const base = `${r.postedDate}|${r.amountCents}|${r.description.toLowerCase().replace(/\s+/g, " ").trim()}`;
     const n = (seen.get(base) ?? 0) + 1;
     seen.set(base, n);
-    return `csv:${base}|${n}`;
+    return `${kind}:${base}|${n}`;
   });
 }
 

@@ -17,7 +17,8 @@ your real bank accounts, running on your own server.
   refuses one that doesn't), posted entries are never edited in place, and every change
   is in an audit log.
 - **Bank data you approve.** Transactions arrive through
-  [SimpleFIN](https://www.simplefin.org/) or CSV files and wait in **For review**. Rules
+  [SimpleFIN](https://www.simplefin.org/), CSV files or PDF statements and wait in
+  **For review**. Rules
   suggest categories, transfers between your accounts (and between books) are matched,
   splits and receipts are a click away, and nothing reaches the books until you approve
   it.
@@ -188,8 +189,14 @@ loan accounts can be reconciled against statements from **Reconcile**.
 - **Budget:** a monthly amount per income and expense account, with Copy last month.
   Compare in Reports.
 
-For banks SimpleFIN can't reach, export a CSV from the bank and use **Import CSV** on the
-For review page. The column mapping is remembered per account.
+For banks SimpleFIN can't reach, use **Import** on the For review page:
+
+- **CSV file:** export one from the bank and match its columns once; the mapping is
+  remembered per account.
+- **PDF statement:** choose the account, then the statement. Bucketbook reads it on your
+  server (it is never stored or sent anywhere), shows every transaction it found, and
+  lets you leave rows out or flip money in and out before they go to For review. It needs
+  a statement downloaded from the bank's website; a scan or photo has no text to read.
 
 ## People
 
