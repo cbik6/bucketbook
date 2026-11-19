@@ -1,4 +1,5 @@
 import { type Page, expect, test } from "@playwright/test";
+import { clickSetupLink } from "./helpers";
 
 /**
  * Phase 3 flow on the install that first-run.spec.ts set up: import bank CSV
@@ -123,9 +124,9 @@ test("review: CSV import, transfer match, approve, save a rule, rule suggests", 
   await expect(page.getByRole("cell", { name: "PAYMENT TO CARD" })).toBeVisible();
 
   // Rules page lists the saved rule; the book's bank connections offer SimpleFIN.
-  await nav.getByRole("link", { name: "Rules" }).click();
+  await clickSetupLink(page, "Rules");
   await expect(page.getByText("LOCAL GROCER #12").first()).toBeVisible();
-  await nav.getByRole("link", { name: "Bank connections" }).click();
+  await clickSetupLink(page, "Bank connections");
   await expect(page.getByRole("heading", { name: "Connect SimpleFIN" })).toBeVisible();
   // The old address still leads there.
   await page.goto("/connections");

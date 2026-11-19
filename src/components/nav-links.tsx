@@ -3,6 +3,7 @@
 import {
   BarChart3,
   BookOpenText,
+  ChevronRight,
   Gauge,
   CheckCheck,
   HandCoins,
@@ -19,6 +20,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useId, useState } from "react";
+
+const SETUP_KEY = "bb-nav-setup";
 
 export function NavLinks({
   bookId,
@@ -38,39 +42,28 @@ export function NavLinks({
   const pathname = usePathname();
   type NavLink = { href: string; label: string; Icon: typeof Inbox; count?: number };
   const b = `/books/${bookId}`;
-  // Grouped by how often you reach for them.
-  const groups: Array<{ label: string; links: NavLink[] }> = [
-    {
-      label: "Every week",
-      links: [
-        { href: `${b}/review`, label: "For review", Icon: Inbox, count: reviewCount },
-        { href: `${b}/buckets`, label: "Buckets", Icon: PiggyBank },
-        { href: `${b}/budget`, label: "Budget", Icon: Gauge },
-        { href: `${b}/reports`, label: "Reports", Icon: BarChart3 },
-      ],
-    },
-    {
-      label: "Books",
-      links: [
-        { href: `${b}/journal`, label: "Journal entries", Icon: NotebookPen },
-        { href: `${b}/ledger`, label: "General ledger", Icon: BookOpenText },
-        { href: `${b}/accounts`, label: "Chart of accounts", Icon: ListTree },
-        { href: `${b}/reconcile`, label: "Reconcile", Icon: CheckCheck },
-      ],
-    },
-    {
-      label: "Setup",
-      links: [
-        ...(canEdit ? [{ href: `${b}/connections`, label: "Bank connections", Icon: Link2 }] : []),
-        { href: `${b}/loans`, label: "Loans", Icon: HandCoins },
-        { href: `${b}/rules`, label: "Rules", Icon: Wand2 },
-        { href: `${b}/opening-balances`, label: "Opening balances", Icon: Landmark },
-        { href: `${b}/activity`, label: "Activity", Icon: History },
-        { href: `${b}/settings`, label: "Book settings", Icon: Settings2 },
-      ],
-    },
+  // Everyday pages first, bookkeeping next, and setup folded away until needed.
+  const everyday: NavLink[] = [
+    { href: `${b}/review`, label: "For review", Icon: Inbox, count: reviewCount },
+    { href: `${b}/accounts`, label: "Chart of accounts", Icon: ListTree },
+    { href: `${b}/buckets`, label: "Buckets", Icon: PiggyBank },
+    { href: `${b}/budget`, label: "Budget", Icon: Gauge },
+    { href: `${b}/reports`, label: "Reports", Icon: BarChart3 },
   ];
-  const links = groups.flatMap((g) => g.links);
+  const bookkeeping: NavLink[] = [
+    { href: `${b}/journal`, label: "Journal entries", Icon: NotebookPen },
+    { href: `${b}/ledger`, label: "General ledger", Icon: BookOpenText },
+    { href: `${b}/reconcile`, label: "Reconcile", Icon: CheckCheck },
+    { href: `${b}/activity`, label: "Activity", Icon: History },
+  ];
+  const setup: NavLink[] = [
+    ...(canEdit ? [{ href: `${b}/connections`, label: "Bank connections", Icon: Link2 }] : []),
+    { href: `${b}/rules`, label: "Rules", Icon: Wand2 },
+    { href: `${b}/loans`, label: "Loans", Icon: HandCoins },
+    { href: `${b}/opening-balances`, label: "Opening balances", Icon: Landmark },
+    { href: `${b}/settings`, label: "Book settings", Icon: Settings2 },
+  ];
+  const links = [...everyday, ...bookkeeping, ...setup];
   // The rail has its own admin link at the bottom; the phone bar needs it here.
   const barLinks = admin ? [...links, { href: "/people", label: "People", Icon: Users }] : links;
 
@@ -126,14 +119,73 @@ export function NavLinks({
   };
 
   return (
-    <nav aria-label="Book" className="flex flex-col gap-4">
-      {groups.map((g) => (
-        <div key={g.label} className="flex flex-col gap-0.5">
-          <h2 className="px-3 pb-1 text-xs font-medium text-rail-muted">{g.label}</h2>
-          {g.links.map(railLink)}
-        </div>
-      ))}
+    <nav aria-label="Book" className="flex flex-col gap-5">
+      <div className="flex flex-col gap-0.5">{everyday.map(railLink)}</div>
+      <div className="flex flex-col gap-0.5">
+        <h2 className="px-3 pb-1 text-xs font-medium text-rail-muted">Bookkeeping</h2>
+        {bookkeeping.map(railLink)}
+      </div>
+      <SetupGroup
+        active={setup.some((l) => pathname.startsWith(l.href))}
+        links={setup.map(railLink)}
+      />
     </nav>
+  );
+}
+
+/**
+ * Setup pages fold away: you visit them rarely. The group opens by itself on
+ * one of its pages, and otherwise remembers whether you left it open.
+ */
+function SetupGroup({ active, links }: { active: boolean; links: React.ReactNode[] }) {
+  const id = useId();
+  const [stored, setStored] = useState(false);
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reading a per-browser preference after hydration
+      setStored(localStorage.getItem(SETUP_KEY) === "open");
+    } catch {
+      // Storage blocked: start folded.
+    }
+  }, []);
+  const open = active || stored;
+  const toggle = () => {
+    const next = !open;
+    setStored(next);
+    try {
+      if (next) localStorage.setItem(SETUP_KEY, "open");
+      else localStorage.removeItem(SETUP_KEY);
+    } catch {
+      // Storage blocked: the choice lasts for this page.
+    }
+  };
+  return (
+    <div className="flex flex-col">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={id}
+        disabled={active}
+        onClick={toggle}
+        className="flex h-7 items-center gap-1 rounded-md px-3 text-left text-xs font-medium text-rail-muted transition-colors duration-150 hover:text-rail-ink disabled:hover:text-rail-muted"
+      >
+        Setup
+        <ChevronRight
+          size={13}
+          aria-hidden
+          className={`transition-[rotate] duration-200 ease-out ${open ? "rotate-90" : ""}`}
+        />
+      </button>
+      <div
+        id={id}
+        inert={!open}
+        className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+          open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        }`}
+      >
+        <div className="flex min-h-0 flex-col gap-0.5 overflow-hidden pt-0.5">{links}</div>
+      </div>
+    </div>
   );
 }
 

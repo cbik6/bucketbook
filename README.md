@@ -204,8 +204,8 @@ row is likely wrong when they don't.
 
 ## People
 
-The person who sets up Bucketbook is its admin. Admins manage people from **People** at
-the bottom of the menu.
+The person who sets up Bucketbook is its admin. Admins manage people from **People** in
+the menu under their name at the bottom of the sidebar.
 
 To add someone, open **People**, enter their name and email, pick a role for each book,
 and select **Make invite link**. Send them the link: it works once and expires in 7 days.

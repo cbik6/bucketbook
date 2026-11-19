@@ -1,4 +1,5 @@
 import { type Page, expect, test } from "@playwright/test";
+import { accountMenu } from "./helpers";
 
 /**
  * People: the admin invites a viewer, who joins through the link, sees the
@@ -15,7 +16,7 @@ async function signIn(page: Page) {
 
 test("people: invite a viewer who joins with the link", async ({ page, browser }) => {
   await signIn(page);
-  await page.getByRole("link", { name: "People" }).filter({ visible: true }).first().click();
+  await accountMenu(page, "People");
   await expect(page.getByRole("heading", { name: "People", exact: true })).toBeVisible();
 
   await page.getByLabel("Name", { exact: true }).filter({ visible: true }).fill("Jo Viewer");

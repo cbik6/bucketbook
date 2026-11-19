@@ -6,6 +6,18 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-11-19
+
+### Changed
+
+- A cleaner sidebar. The everyday pages sit at the top without a heading (For review,
+  Chart of accounts, Buckets, Budget, Reports), then Bookkeeping (Journal entries,
+  General ledger, Reconcile, Activity). Setup (Bank connections, Rules, Loans, Opening
+  balances, Book settings) folds away: it opens by itself on one of its pages and
+  remembers whether you left it open.
+- Your name at the foot of the sidebar is now one button. Its menu holds the theme,
+  People (for admins) and Sign out.
+
 ## [1.11.2] - 2026-11-19
 
 ### Fixed

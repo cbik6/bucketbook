@@ -1,4 +1,5 @@
 import { type Page, expect, test } from "@playwright/test";
+import { clickSetupLink } from "./helpers";
 
 /**
  * Phase 2 flow on the install that first-run.spec.ts set up: opening balances,
@@ -35,7 +36,7 @@ test("ledger: opening balances, post, edit, reverse, register", async ({ page })
   const nav = page.getByRole("navigation", { name: "Book" }).first();
 
   // Opening balances: the difference goes to Opening Balance Equity.
-  await nav.getByRole("link", { name: "Opening balances" }).click();
+  await clickSetupLink(page, "Opening balances");
   await expect(page.getByRole("heading", { name: "Opening balances" })).toBeVisible();
   await field(page, "Checking", true).fill("2,500");
   await field(page, "Credit Card", true).fill("400");

@@ -5,6 +5,7 @@ import { signOutAction } from "@/app/(auth)/login/actions";
 import { CHART_TEMPLATES } from "@/server/accounts/templates";
 import type { CurrentUser } from "@/server/auth/session";
 import type { BookWithRole } from "@/server/books/service";
+import { AccountMenu } from "./account-menu";
 import { BookSwitcher, type SwitcherBook } from "./book-switcher";
 import { NavLinks } from "./nav-links";
 import { ThemeToggle } from "./theme-toggle";
@@ -78,26 +79,8 @@ export function AppShell({
             canEdit={canEdit}
           />
         ) : null}
-        <div className="mt-auto flex flex-col gap-3 border-t border-rail-rule px-1 pt-4">
-          {user.isAdmin ? (
-            <div className="flex flex-col">
-              <Link
-                href="/people"
-                className="flex h-9 items-center gap-2.5 rounded-lg px-2 text-sm text-rail-muted transition-colors duration-150 hover:bg-rail-raised hover:text-rail-ink"
-              >
-                <Users size={16} strokeWidth={1.75} aria-hidden />
-                People
-              </Link>
-            </div>
-          ) : null}
-          <div className="min-w-0 px-1">
-            <div className="truncate text-sm font-medium">{user.name}</div>
-            <div className="truncate text-xs text-rail-muted">{user.email}</div>
-          </div>
-          <div className="flex items-center justify-between">
-            <ThemeToggle />
-            <SignOutButton />
-          </div>
+        <div className="mt-auto border-t border-rail-rule pt-3">
+          <AccountMenu name={user.name} email={user.email} admin={user.isAdmin} />
         </div>
       </aside>
 

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { accountMenu } from "./helpers";
 
 /**
  * The Phase 1 happy path on a brand-new install: setup wizard, first book from
@@ -85,7 +86,7 @@ test("first run: create the owner and a book, then manage the chart of accounts"
   await expect(expenses.getByText("Archived", { exact: true })).toBeVisible();
 
   // Sign out, then sign back in.
-  await page.getByRole("button", { name: "Sign out" }).first().click();
+  await accountMenu(page, "Sign out");
   await expect(page).toHaveURL(/\/login/);
   await page.getByLabel("Email").fill("pat@example.test");
   await page.getByLabel("Password").fill("a long test password");
