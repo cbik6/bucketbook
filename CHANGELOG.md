@@ -6,6 +6,14 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.13.1] - 2026-11-19
+
+### Added
+
+- In For review, a transaction's details close with an X at the top right, a Close button
+  next to Add, or the Escape key. Whatever you filled in stays for when you open it again.
+  Exclude now has its own icon so it isn't mistaken for closing.
+
 ## [1.13.0] - 2026-11-19
 
 ### Changed

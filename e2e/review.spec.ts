@@ -125,6 +125,9 @@ test("review: CSV import, transfer match, approve, save a rule, rule suggests", 
   await next.getByLabel("Name", { exact: true }).fill("Local Grocer, any store");
   await next.getByRole("button", { name: "Create rule" }).click();
   await expect(page.getByText(/Rule created/)).toBeVisible();
+  // The details close from their X button.
+  await next.getByRole("button", { name: /^Close details/ }).click();
+  await expect(next.getByRole("button", { name: "Create a rule from this" })).toHaveCount(0);
 
   // Select all and approve together.
   await page.getByLabel("Select all").check();

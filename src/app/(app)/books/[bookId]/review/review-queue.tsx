@@ -2,6 +2,7 @@
 
 import {
   ArrowLeftRight,
+  Ban,
   ChevronDown,
   Copy,
   Link2,
@@ -18,7 +19,7 @@ import { useEffect, useId, useMemo, useRef, useState, useTransition } from "reac
 import { toast } from "sonner";
 import { AccountSelectOptions } from "@/components/account-select-options";
 import { Money } from "@/components/money";
-import { Button } from "@/components/ui/button";
+import { Button, IconButton } from "@/components/ui/button";
 import { SelectInput, TextInput } from "@/components/ui/field";
 import type { AccountOptionGroup } from "@/lib/account-options";
 import { formatDay } from "@/lib/dates";
@@ -124,7 +125,8 @@ function matchesSearch(item: QueueItem, query: string) {
  * The review queue, laid out like a bank feed: one row per bank transaction
  * with Spent and Received columns, prefilled from rules, transfer matches and
  * existing entries. Add one at a time or select several. Keyboard: J and K
- * (or arrows) move, Enter opens details, A adds, X selects, E excludes.
+ * (or arrows) move, Enter opens details, Escape closes them, A adds, X
+ * selects, E excludes.
  */
 export function ReviewQueue({
   bookId,
@@ -342,6 +344,12 @@ export function ReviewQueue({
         e.preventDefault();
         focusRow(shown[Math.max(index - 1, 0)]?.id);
         break;
+      case "Escape":
+        if (item && expanded === item.id) {
+          e.preventDefault();
+          setExpanded(null);
+        }
+        break;
       case "Enter":
         if (item && e.target === rowRefs.current.get(item.id)) {
           e.preventDefault();
@@ -513,6 +521,10 @@ export function ReviewQueue({
               })
             }
             onToggleExpand={() => setExpanded((x) => (x === item.id ? null : item.id))}
+            onClose={() => {
+              setExpanded(null);
+              focusRow(item.id);
+            }}
             onApprove={() => approve(item)}
             onExclude={() => exclude(item)}
             onKeepBoth={() => {
@@ -533,8 +545,8 @@ export function ReviewQueue({
         ))}
       </ol>
       <p className="mt-3 hidden text-xs text-ink-muted lg:block">
-        <Kbd>J</Kbd> <Kbd>K</Kbd> move, <Kbd>Enter</Kbd> details, <Kbd>A</Kbd> add, <Kbd>X</Kbd>{" "}
-        select, <Kbd>E</Kbd> exclude
+        <Kbd>J</Kbd> <Kbd>K</Kbd> move, <Kbd>Enter</Kbd> details, <Kbd>Esc</Kbd> close, <Kbd>A</Kbd>{" "}
+        add, <Kbd>X</Kbd> select, <Kbd>E</Kbd> exclude
       </p>
     </div>
   );
@@ -570,6 +582,7 @@ type RowProps = {
   onFocus: () => void;
   onToggleSelect: () => void;
   onToggleExpand: () => void;
+  onClose: () => void;
   onApprove: () => void;
   onExclude: () => void;
   onKeepBoth: () => void;
@@ -799,6 +812,7 @@ function Row({ refCallback, ...p }: RowProps) {
           isSplit={isSplit}
           title={title}
           onSplit={() => chooseCategory("split")}
+          onClose={p.onClose}
         />
       ) : (
         <div id={`${base}-details`} hidden />
@@ -843,6 +857,8 @@ function Details(
     isSplit: boolean;
     title: string;
     onSplit: () => void;
+    /** Folds the details away and puts focus back on the row. */
+    onClose: () => void;
   },
 ) {
   const { item, draft } = p;
@@ -870,8 +886,17 @@ function Details(
   return (
     <div
       id={`${p.base}-details`}
-      className="mx-2 mb-4 flex flex-col gap-4 rounded-xl border border-rule bg-surface p-4 lg:ml-12"
+      className="relative mx-2 mb-4 flex flex-col gap-4 rounded-xl border border-rule bg-surface p-4 pr-14 lg:ml-12"
     >
+      <IconButton
+        size="sm"
+        aria-label={`Close details for ${p.title}`}
+        title="Close (Esc)"
+        onClick={p.onClose}
+        className="absolute right-2 top-2"
+      >
+        <X size={16} aria-hidden />
+      </IconButton>
       {modes.length > 1 && p.canEdit ? (
         <div
           role="radiogroup"
@@ -1091,6 +1116,9 @@ function Details(
             </Button>
           )}
           <div className="ml-auto flex gap-2">
+            <Button size="sm" variant="ghost" onClick={p.onClose}>
+              Close
+            </Button>
             <Button
               size="sm"
               variant="ghost"
@@ -1098,7 +1126,7 @@ function Details(
               disabled={p.busy}
               title="Excluded transactions never reach the books. You can restore them from the Excluded tab."
             >
-              <X size={14} aria-hidden />
+              <Ban size={14} aria-hidden />
               Exclude
             </Button>
             <Button
