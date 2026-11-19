@@ -30,6 +30,12 @@ export type StatementResult = {
   rows: StatementRow[];
   periodStart: string | null;
   periodEnd: string | null;
+  /**
+   * Beginning and ending balances printed on the statement, as printed: what
+   * is in a bank account, or what is owed on a card. Null when not found.
+   */
+  openingCents: number | null;
+  closingCents: number | null;
   notes: string[];
 };
 
@@ -249,6 +255,7 @@ function sectionSign(text: string, kind: AccountKind): 1 | -1 | null {
 
 const OPENING =
   /\b(beginning|opening|starting|previous|prior) balance\b|balance (forward|brought forward)/i;
+const CLOSING = /\b(ending|closing|new) balance\b/i;
 const NOT_A_TRANSACTION =
   /^(total|subtotal)\b|\b(beginning|ending|opening|closing|starting|previous|prior|new|daily( ending)?|available|statement) balance\b|balance (forward|brought forward)|minimum payment|payment due|credit limit|available credit/i;
 
@@ -441,7 +448,38 @@ export function readStatement(lines: PdfLine[], kind: AccountKind, today: string
     notes.push(`No statement dates were found, so the rows are dated in ${end.slice(0, 4)}.`);
   if (rows.some((r) => r.signGuessed))
     notes.push("The statement doesn't say which rows are money in, so check the marked rows.");
-  return { rows, periodStart: period.start, periodEnd: period.end, notes };
+  return {
+    rows,
+    periodStart: period.start,
+    periodEnd: period.end,
+    ...printedBalances(lines, kind),
+    notes,
+  };
+}
+
+/**
+ * The first beginning and ending balances printed anywhere (the summary box
+ * usually comes first). A minus, or DR on a bank or CR on a card, means the
+ * balance is on the unusual side: overdrawn, or a card in credit.
+ */
+function printedBalances(lines: PdfLine[], kind: AccountKind) {
+  let openingCents: number | null = null;
+  let closingCents: number | null = null;
+  for (const line of lines) {
+    const text = lineText(line);
+    if (/daily/i.test(text)) continue;
+    const isOpening = OPENING.test(text);
+    const isClosing = !isOpening && CLOSING.test(text);
+    if (!isOpening && !isClosing) continue;
+    const { amounts } = peelAmounts(tokenize(line));
+    const a = amounts[amounts.length - 1];
+    if (!a) continue;
+    const unusual = a.minus || a.marker === (kind === "asset" ? "DR" : "CR");
+    const cents = unusual ? -a.cents : a.cents;
+    if (isOpening) openingCents ??= cents;
+    else closingCents ??= cents;
+  }
+  return { openingCents, closingCents };
 }
 
 function signedBalance(a: Amount): number {

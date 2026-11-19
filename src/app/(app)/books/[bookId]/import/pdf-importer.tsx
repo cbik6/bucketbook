@@ -1,16 +1,19 @@
 "use client";
 
-import { FileText } from "lucide-react";
+import { ArrowUpDown, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Money } from "@/components/money";
-import { Button, PendingLabel, buttonClass } from "@/components/ui/button";
+import { Button, IconButton, PendingLabel, buttonClass } from "@/components/ui/button";
 import { Field, FormError, SelectInput } from "@/components/ui/field";
 import { formatDay } from "@/lib/dates";
+import { formatCents } from "@/lib/money";
 import { MAX_PDF_BYTES, type StatementResult } from "@/lib/pdf-statement";
+import { checkBalances } from "@/lib/statement-check";
 import type { CsvPreviewRow } from "@/server/bank/csv-service";
 import { importCsvAction, previewCsvAction, readPdfAction } from "./actions";
+import { BalanceCheckPanel } from "./balance-check";
 
 type Account = { id: string; name: string; type: string };
 
@@ -44,6 +47,12 @@ export function PdfImporter({
   const [result, setResult] = useState<StatementResult | null>(null);
   const [left, setLeft] = useState<Set<number>>(new Set());
   const [flip, setFlip] = useState(false);
+  // Rows whose sign was flipped one at a time.
+  const [flipped, setFlipped] = useState<Set<number>>(new Set());
+  const [begin, setBegin] = useState("");
+  const [end, setEnd] = useState("");
+  const [fromStatement, setFromStatement] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   const [checked, setChecked] = useState<CsvPreviewRow[] | null>(null);
   const [error, setError] = useState<string>();
   const [reading, startRead] = useTransition();
@@ -71,12 +80,18 @@ export function PdfImporter({
       setResult(r.result);
       setLeft(new Set());
       setFlip(false);
+      setFlipped(new Set());
+      setConfirmed(false);
+      const money = (c: number | null) => (c == null ? "" : formatCents(c, { showSymbol: false }));
+      setBegin(money(r.result.openingCents));
+      setEnd(money(r.result.closingCents));
+      setFromStatement(r.result.openingCents != null && r.result.closingCents != null);
     });
   };
 
   const rows = (result?.rows ?? []).map((r) => ({
     ...r,
-    amountCents: flip ? -r.amountCents : r.amountCents,
+    amountCents: r.amountCents * (flip ? -1 : 1) * (flipped.has(r.line) ? -1 : 1),
   }));
   const chosen = rows.filter((r) => !left.has(r.line));
   const payload = () => ({
@@ -132,6 +147,18 @@ export function PdfImporter({
           .length,
       }
     : null;
+  const owed = accounts.find((a) => a.id === accountId)?.type === "liability";
+  const balance = checkBalances(begin, end, chosen, owed);
+  const balanceBlocks = balance.state === "invalid" || (balance.state === "off" && !confirmed);
+  const flipRow = (line: number) => {
+    setFlipped((s) => {
+      const n = new Set(s);
+      if (n.has(line)) n.delete(line);
+      else n.add(line);
+      return n;
+    });
+    setChecked(null);
+  };
   const totalIn = chosen.filter((r) => r.amountCents > 0).reduce((s, r) => s + r.amountCents, 0);
   const totalOut = chosen.filter((r) => r.amountCents < 0).reduce((s, r) => s + r.amountCents, 0);
 
@@ -238,6 +265,30 @@ export function PdfImporter({
             </span>
           </label>
 
+          <BalanceCheckPanel
+            begin={begin}
+            end={end}
+            onBegin={(v) => {
+              setBegin(v);
+              setFromStatement(false);
+            }}
+            onEnd={(v) => {
+              setEnd(v);
+              setFromStatement(false);
+            }}
+            check={balance}
+            owed={owed}
+            fromStatement={fromStatement}
+            describe={(line) => rows.find((r) => r.line === line)?.description ?? ""}
+            onFlipRow={flipRow}
+            onFlipAll={() => {
+              setFlip((f) => !f);
+              setChecked(null);
+            }}
+            confirmed={confirmed}
+            onConfirm={setConfirmed}
+          />
+
           <div className="overflow-x-auto">
             <table className="w-full min-w-[34rem] text-sm">
               <thead>
@@ -275,14 +326,26 @@ export function PdfImporter({
                       </td>
                       <td className={`py-2 pr-3 align-top ${out ? "line-through" : ""}`}>
                         {r.description}
-                        {r.signGuessed && !out ? (
+                        {r.signGuessed && !out && !flipped.has(r.line) ? (
                           <span className="ml-2 rounded bg-sunken px-1.5 py-px text-xs text-ink-muted">
                             Check sign
                           </span>
                         ) : null}
                       </td>
                       <td className="py-2 pr-3 text-right align-top">
-                        <Money cents={r.amountCents} />
+                        <div className="flex items-center justify-end gap-1">
+                          <Money cents={r.amountCents} />
+                          <IconButton
+                            size="sm"
+                            className="-my-1.5"
+                            title="Flip the sign"
+                            aria-label={`Flip the sign of ${r.description}`}
+                            aria-pressed={flipped.has(r.line)}
+                            onClick={() => flipRow(r.line)}
+                          >
+                            <ArrowUpDown size={14} aria-hidden />
+                          </IconButton>
+                        </div>
                       </td>
                       {checked ? (
                         <td className="py-2 align-top text-[0.8125rem]">
@@ -321,7 +384,7 @@ export function PdfImporter({
                 <Button
                   variant="primary"
                   onClick={doImport}
-                  disabled={counts!.fresh + counts!.dup === 0}
+                  disabled={counts!.fresh + counts!.dup === 0 || balanceBlocks}
                   pending={pending}
                   pendingLabel="Importing"
                 >

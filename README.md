@@ -198,6 +198,10 @@ For banks SimpleFIN can't reach, use **Import** on the For review page:
   lets you leave rows out or flip money in and out before they go to For review. It needs
   a statement downloaded from the bank's website; a scan or photo has no text to read.
 
+Both check the rows against the statement: enter its beginning and ending balances (a PDF
+fills them in when it prints them) and Import shows whether the rows add up, and which
+row is likely wrong when they don't.
+
 ## People
 
 The person who sets up Bucketbook is its admin. Admins manage people from **People** at

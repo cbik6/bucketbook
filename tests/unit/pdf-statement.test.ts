@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { checkBalances } from "@/lib/statement-check";
 import { readPdfStatement, toLines } from "@/server/bank/pdf-service";
 import { type PdfText, makePdf } from "../make-pdf";
 
@@ -114,6 +115,7 @@ describe("reading statement PDFs", () => {
       ["2026-03-03", -450, "Coffee Shop"],
       ["2026-03-04", 2000, "Refund From Store"],
     ]);
+    expect(result).toMatchObject({ openingCents: 100000, closingCents: 101550 });
   });
 
   it("separate withdrawal and deposit columns", async () => {
@@ -152,6 +154,14 @@ describe("reading statement PDFs", () => {
       [
         [
           ...row(740, [[50, "Opening/Closing Date 12/05/25 - 01/04/26"]]),
+          ...row(725, [
+            [50, "Previous Balance"],
+            [300, "$900.00", "right"],
+          ]),
+          ...row(712, [
+            [50, "New Balance"],
+            [300, "$433.00", "right"],
+          ]),
           ...row(700, [
             [50, "Trans Date"],
             [100, "Post Date"],
@@ -188,6 +198,9 @@ describe("reading statement PDFs", () => {
       ["2026-01-03", 1200, "RETURNED ITEM"],
     ]);
     expect(result.rows[2]!.page).toBe(2);
+    // What is owed: 900.00 + 45.00 charged - 500.00 paid - 12.00 returned.
+    expect(result).toMatchObject({ openingCents: 90000, closingCents: 43300 });
+    expect(checkBalances("900", "433", result.rows, true).state).toBe("match");
   });
 
   it("day-first dates, and a note when nothing says which way money moved", async () => {

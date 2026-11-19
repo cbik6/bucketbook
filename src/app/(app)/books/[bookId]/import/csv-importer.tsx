@@ -18,8 +18,10 @@ import {
   parseCsv,
 } from "@/lib/csv-import";
 import { formatDay } from "@/lib/dates";
+import { checkBalances } from "@/lib/statement-check";
 import type { CsvPreviewRow } from "@/server/bank/csv-service";
 import { importCsvAction, previewCsvAction } from "./actions";
+import { BalanceCheckPanel } from "./balance-check";
 
 type Account = { id: string; name: string; type: string };
 type Draft = Partial<CsvMapping>;
@@ -52,6 +54,9 @@ export function CsvImporter({
   const [draft, setDraft] = useState<Draft>({});
   const [error, setError] = useState<string>();
   const [checked, setChecked] = useState<CsvPreviewRow[] | null>(null);
+  const [begin, setBegin] = useState("");
+  const [end, setEnd] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
   const [pending, start] = useTransition();
 
   const header = rows[0] ?? [];
@@ -131,6 +136,9 @@ export function CsvImporter({
       }
     : null;
   const statusByLine = new Map(checked?.map((c) => [c.line, c]) ?? []);
+  const owed = accounts.find((a) => a.id === accountId)?.type === "liability";
+  const balance = checkBalances(begin, end, mapped?.rows ?? [], owed);
+  const balanceBlocks = balance.state === "invalid" || (balance.state === "off" && !confirmed);
 
   return (
     <div className="flex flex-col gap-8">
@@ -366,6 +374,23 @@ export function CsvImporter({
             <p className="text-[0.8125rem] text-ink-muted">Showing the first 8 rows.</p>
           ) : null}
 
+          <BalanceCheckPanel
+            begin={begin}
+            end={end}
+            onBegin={setBegin}
+            onEnd={setEnd}
+            check={balance}
+            owed={owed}
+            fromStatement={false}
+            describe={(line) => {
+              const r = mapped.rows.find((x) => x.line === line);
+              return r ? (r.payee ?? r.description) : "";
+            }}
+            onFlipAll={() => set({ flipSign: !(draft.flipSign ?? false) })}
+            confirmed={confirmed}
+            onConfirm={setConfirmed}
+          />
+
           <div className="flex flex-wrap items-center gap-3 border-t border-rule pt-4">
             {!checked ? (
               <Button
@@ -382,7 +407,7 @@ export function CsvImporter({
                 <Button
                   variant="primary"
                   onClick={doImport}
-                  disabled={pending || counts!.fresh + counts!.dup === 0}
+                  disabled={pending || counts!.fresh + counts!.dup === 0 || balanceBlocks}
                 >
                   <PendingLabel pending={pending} label="Importing">
                     Send {counts!.fresh + counts!.dup} to review

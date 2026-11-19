@@ -6,6 +6,18 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-11-19
+
+### Added
+
+- Import checks the rows against the statement. Enter the beginning and ending balances
+  (a PDF statement fills them in when it prints them) and Import shows whether the ticked
+  rows add up from one to the other. For a card or loan the balances are what is owed.
+  When they don't match it says by how much, points out a row that would match if it went
+  the other way (or all of them), and fixes it in one click. Sending rows that don't add
+  up needs a tick to confirm.
+- Each row in a PDF preview has its own button to flip its sign.
+
 ## [1.10.0] - 2026-11-19
 
 ### Added

@@ -30,6 +30,10 @@ function statement() {
   return makePdf([
     [
       { x: 50, y: 740, text: `Statement period ${daysAgo(20)} - ${daysAgo(0)}` },
+      { x: 50, y: 726, text: "Previous Balance" },
+      { x: 250, y: 726, text: "$400.00" },
+      { x: 50, y: 714, text: "New Balance" },
+      { x: 250, y: 714, text: "$145.00" },
       { x: 50, y: 700, text: "Date" },
       { x: 130, y: 700, text: "Description" },
       { x: 510, y: 700, text: "Amount" },
@@ -66,6 +70,23 @@ test("PDF statement: read, preview, send to review", async ({ page }) => {
   const payment = main.getByRole("row").filter({ hasText: "PDF TEST PAYMENT" });
   await expect(payment).toContainText("$300.00");
   await expect(payment).not.toContainText("-$300.00");
+  // The statement's balances were read, and the rows add up: 400 + 45 - 300 = 145.
+  await expect(label("Owed at the start")).toHaveValue("400.00");
+  await expect(label("Owed at the end")).toHaveValue("145.00");
+  await expect(
+    main.getByText("Adds up to what the statement says is owed at the end."),
+  ).toBeVisible();
+  // A row going the wrong way is caught, and one click puts it back.
+  await main.getByRole("button", { name: "Flip the sign of PDF TEST HARDWARE" }).click();
+  await expect(main.getByText(/Off by/)).toBeVisible();
+  await expect(
+    main.getByText(/It would match if .PDF TEST HARDWARE. went the other way/),
+  ).toBeVisible();
+  await page.screenshot({ path: "test-results/pdf-import-off.png", fullPage: true });
+  await main.getByRole("button", { name: "Flip that row" }).click();
+  await expect(
+    main.getByText("Adds up to what the statement says is owed at the end."),
+  ).toBeVisible();
   await page.screenshot({ path: "test-results/pdf-import.png", fullPage: true });
 
   await main.getByRole("button", { name: "Check for duplicates" }).click();
