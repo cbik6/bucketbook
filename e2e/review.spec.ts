@@ -77,7 +77,7 @@ test("review: CSV import, transfer match, approve, save a rule, rule suggests", 
   await expect(category.locator("option:checked")).toHaveText("Split into 2 lines");
   await category.selectOption(groceries!);
   await expect(category).toHaveValue(groceries!);
-  await grocery.getByRole("button", { name: "LOCAL GROCER #12", exact: true }).click();
+  // Splitting opened the details, so the rule checkbox is already showing.
   await grocery.getByLabel(/Always use this category/).check();
   await grocery.getByRole("button", { name: /Approve LOCAL GROCER/ }).click();
   await expect(page.getByText("Approved and saved as a rule.")).toBeVisible();
