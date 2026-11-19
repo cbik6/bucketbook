@@ -6,6 +6,13 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.9.2] - 2026-11-19
+
+### Changed
+
+- In For review, every Approve button looks the same. The first row's is no longer filled
+  in green.
+
 ## [1.9.1] - 2026-11-19
 
 ### Fixed

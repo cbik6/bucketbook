@@ -673,8 +673,8 @@ function Row({ refCallback, ...p }: RowProps) {
         <div className="col-start-3 row-start-2 flex items-center justify-end gap-1 lg:col-start-auto lg:row-start-auto">
           {p.canEdit ? (
             <Button
-              // One filled button at a time: the row you're on.
-              variant={p.active ? "primary" : "secondary"}
+              // Every row's button looks the same; the row itself shows keyboard focus.
+              variant="secondary"
               className="lg:h-8 lg:px-3 lg:text-[0.8125rem]"
               onClick={p.onApprove}
               pending={p.busy}
