@@ -8,7 +8,7 @@ import { RangePicker } from "@/components/range-picker";
 import { buildAccountTree, flattenTree } from "@/lib/account-tree";
 import { ACCOUNT_TYPES, type AccountType, NORMAL_BALANCE } from "@/lib/account-types";
 import { formatDay, resolveRange } from "@/lib/dates";
-import { formatEntryNumber } from "@/lib/ledger-math";
+import { entryLabel } from "@/lib/ledger-math";
 import { listAccounts } from "@/server/accounts/service";
 import { getDb } from "@/server/db/client";
 import { loadBookForPage } from "@/server/guards";
@@ -93,7 +93,7 @@ async function LedgerContent({ params, searchParams }: PageProps<"/books/[bookId
                   <thead className="sr-only">
                     <tr>
                       <th scope="col">Date</th>
-                      <th scope="col">No.</th>
+                      <th scope="col">Entry</th>
                       <th scope="col">Description</th>
                       <th scope="col">Debit</th>
                       <th scope="col">Credit</th>
@@ -125,7 +125,7 @@ async function LedgerContent({ params, searchParams }: PageProps<"/books/[bookId
                               href={`${base}/journal/${l.entryId}`}
                               className="text-signal-ink hover:underline"
                             >
-                              {formatEntryNumber(l.entryNumber)}
+                              {entryLabel(l.entryKind, l.entryNumber)}
                             </Link>
                           </td>
                           <td className="py-2 pr-3">

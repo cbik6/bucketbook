@@ -721,6 +721,7 @@ export type QueueItem = {
   status: BankTxStatus;
   entryId: string | null;
   entryNumber: number | null;
+  entryKind: string | null;
   postMethod: string | null;
   suggestedAccountId: string | null;
   suggestedBucketId: string | null;
@@ -773,6 +774,7 @@ export async function listQueue(
       item: bankTransactions,
       accountName: accounts.name,
       entryNumber: journalEntries.entryNumber,
+      entryKind: journalEntries.kind,
       ruleName: bankRules.name,
       attachmentCount: sql<number>`(select count(*)::int from attachments t where t.bank_transaction_id = ${bankTransactions.id})`,
     })
@@ -823,7 +825,7 @@ export async function listQueue(
     );
   }
 
-  return rows.map(({ item, accountName, entryNumber, ruleName, attachmentCount }) => {
+  return rows.map(({ item, accountName, entryNumber, entryKind, ruleName, attachmentCount }) => {
     const partner = transfers.get(item.id);
     const dup = item.duplicateOfId ? dupById.get(item.duplicateOfId) : undefined;
     return {
@@ -840,6 +842,7 @@ export async function listQueue(
       status: item.status as BankTxStatus,
       entryId: item.entryId,
       entryNumber: entryNumber ?? null,
+      entryKind: entryKind ?? null,
       postMethod: item.postMethod,
       suggestedAccountId: item.suggestedAccountId,
       suggestedBucketId: item.suggestedBucketId,

@@ -11,7 +11,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { accountPath, descendantIds } from "@/lib/account-tree";
 import { type AccountType, NORMAL_BALANCE, subtypeLabel } from "@/lib/account-types";
 import { formatDay, resolveRange } from "@/lib/dates";
-import { formatEntryNumber } from "@/lib/ledger-math";
+import { entryLabel } from "@/lib/ledger-math";
 import { listAccounts } from "@/server/accounts/service";
 import { getDb } from "@/server/db/client";
 import { loadBookForPage } from "@/server/guards";
@@ -191,7 +191,7 @@ async function RegisterContent({
                         href={`${base}/journal/${r.entryId}`}
                         className="text-signal-ink hover:underline"
                       >
-                        {formatEntryNumber(r.entryNumber)}
+                        {entryLabel(r.entryKind, r.entryNumber)}
                       </Link>
                     </td>
                     <td className="py-2.5 pr-3">

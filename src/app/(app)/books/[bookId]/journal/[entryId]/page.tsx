@@ -8,7 +8,7 @@ import { PageFallback, PageHeader } from "@/components/app-shell";
 import { Money } from "@/components/money";
 import { ButtonLink } from "@/components/ui/button";
 import { formatDay } from "@/lib/dates";
-import { formatEntryNumber } from "@/lib/ledger-math";
+import { entryLabel, formatEntryNumber, isWrittenEntry } from "@/lib/ledger-math";
 import { listAttachments } from "@/server/bank/attachments-service";
 import { entryBankContext } from "@/server/bank/review-service";
 import { reconciledStatements } from "@/server/reconcile/service";
@@ -48,7 +48,10 @@ async function EntryContent({
     ? `Reconciled on the ${statements[0].accountName} statement ending ${formatDay(statements[0].statementDate)}.`
     : undefined;
   const base = `/books/${book.id}`;
-  const label = formatEntryNumber(entry.entryNumber);
+  // Entries made from bank data are titled by who it was with, not a JE number.
+  const label = isWrittenEntry(entry.kind)
+    ? formatEntryNumber(entry.entryNumber)
+    : versionHeader.payee || versionHeader.memo || entryLabel(entry.kind, entry.entryNumber);
   const isOld = shownVersion !== entry.currentVersion;
   const canEdit = book.role !== "viewer";
   const editable =
@@ -61,9 +64,7 @@ async function EntryContent({
     );
   }
   for (const p of bank.partners) {
-    reverseNotes.push(
-      `The other side, ${formatEntryNumber(p.entryNumber)} in ${p.bookName}, is not reversed. Reverse it there too.`,
-    );
+    reverseNotes.push(`The other side, in ${p.bookName}, is not reversed. Reverse it there too.`);
   }
   const reversible = canEdit && entry.kind !== "reversal" && !reversedBy && !isOld;
   const debits = lines.reduce((n, l) => n + l.debitCents, 0);

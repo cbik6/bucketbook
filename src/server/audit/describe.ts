@@ -87,6 +87,20 @@ export function describeAudit(
     switch (row.action) {
       case "create": {
         const kind = after.kind;
+        // Entries made from bank data and app actions aren't journal entries you wrote: no JE number.
+        const made: Record<string, string> = {
+          bank: "a bank transaction",
+          transfer: "a transfer",
+          bucket: "a bucket move",
+          valuation: "a value update",
+        };
+        if (typeof kind === "string" && made[kind]) {
+          return {
+            summary: `Posted ${made[kind]}`,
+            details: [after.payee, after.memo].filter(Boolean).map(String),
+            link,
+          };
+        }
         const what =
           kind === "opening_balance"
             ? "opening balances"

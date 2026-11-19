@@ -115,3 +115,27 @@ export function naturalToSides(
 export function formatEntryNumber(n: number): string {
   return `JE ${n}`;
 }
+
+/** Entries you write (opening balances and reversals included) are numbered journal entries. */
+export function isWrittenEntry(kind: string): boolean {
+  return kind === "manual" || kind === "opening_balance" || kind === "reversal";
+}
+
+/**
+ * How an entry is named in registers and lists: a JE number for entries you
+ * write, and what it is for the ones made from bank data and app actions.
+ */
+export function entryLabel(kind: string, entryNumber: number): string {
+  switch (kind) {
+    case "bank":
+      return "Transaction";
+    case "transfer":
+      return "Transfer";
+    case "bucket":
+      return "Bucket move";
+    case "valuation":
+      return "Value update";
+    default:
+      return formatEntryNumber(entryNumber);
+  }
+}

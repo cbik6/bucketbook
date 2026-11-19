@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Money } from "@/components/money";
 import { Button } from "@/components/ui/button";
 import { formatDay } from "@/lib/dates";
-import { formatEntryNumber } from "@/lib/ledger-math";
+import { formatEntryNumber, isWrittenEntry } from "@/lib/ledger-math";
 import type { QueueItem, QueueTab } from "@/server/bank/review-service";
 import { restoreAction } from "./actions";
 
@@ -78,7 +78,10 @@ export function SimpleList({
                     href={`/books/${bookId}/journal/${i.entryId}`}
                     className="tabular font-medium text-signal-ink hover:underline"
                   >
-                    {i.entryNumber ? formatEntryNumber(i.entryNumber) : "Entry"}
+                    {/* A transaction matched to an entry you wrote links to its JE number. */}
+                    {i.entryNumber && i.entryKind && isWrittenEntry(i.entryKind)
+                      ? formatEntryNumber(i.entryNumber)
+                      : "View"}
                   </Link>
                 </span>
               ) : tab === "excluded" && canEdit ? (

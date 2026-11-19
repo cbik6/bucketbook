@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { PageFallback, PageHeader } from "@/components/app-shell";
-import { formatEntryNumber } from "@/lib/ledger-math";
+import { entryLabel, formatEntryNumber, isWrittenEntry } from "@/lib/ledger-math";
 import { formatCents } from "@/lib/money";
 import { getDb } from "@/server/db/client";
 import { NotFoundError } from "@/server/errors";
@@ -42,7 +42,11 @@ async function EditContent({ params }: PageProps<"/books/[bookId]/journal/[entry
   return (
     <>
       <PageHeader
-        title={`Edit ${formatEntryNumber(detail.entry.entryNumber)}`}
+        title={
+          isWrittenEntry(detail.entry.kind)
+            ? `Edit ${formatEntryNumber(detail.entry.entryNumber)}`
+            : `Edit ${entryLabel(detail.entry.kind, detail.entry.entryNumber).toLowerCase()}`
+        }
         maxWidthClass="max-w-[60rem]"
         description={
           detail.entry.kind === "bank"

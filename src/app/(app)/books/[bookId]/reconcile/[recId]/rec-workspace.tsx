@@ -8,7 +8,7 @@ import { Money } from "@/components/money";
 import { Button } from "@/components/ui/button";
 import { HoldButton } from "@/components/ui/hold-button";
 import { formatDay } from "@/lib/dates";
-import { formatEntryNumber } from "@/lib/ledger-math";
+import { entryLabel } from "@/lib/ledger-math";
 import { formatCents } from "@/lib/money";
 import type { RecItem } from "@/server/reconcile/service";
 import { discardAction, finishAction, setClearedAction, undoAction } from "../actions";
@@ -165,7 +165,7 @@ export function RecWorkspace({
                 )}
               </th>
               <th className="py-2 pr-3 font-medium">Date</th>
-              <th className="hidden py-2 pr-3 font-medium sm:table-cell">No.</th>
+              <th className="hidden py-2 pr-3 font-medium sm:table-cell">Entry</th>
               <th className="py-2 pr-3 font-medium">Description</th>
               <th className="py-2 text-right font-medium">Amount</th>
             </tr>
@@ -200,7 +200,7 @@ export function RecWorkspace({
                       href={`/books/${bookId}/journal/${i.entryId}`}
                       className="tabular text-signal-ink hover:underline"
                     >
-                      {formatEntryNumber(i.entryNumber)}
+                      {entryLabel(i.entryKind, i.entryNumber)}
                     </Link>
                   </td>
                   <td className="py-2.5 pr-3">{i.description}</td>

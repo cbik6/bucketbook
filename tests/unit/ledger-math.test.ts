@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { resolveRange, todayIso } from "@/lib/dates";
-import { naturalBalance, naturalToSides, parseDraftLines } from "@/lib/ledger-math";
+import {
+  entryLabel,
+  isWrittenEntry,
+  naturalBalance,
+  naturalToSides,
+  parseDraftLines,
+} from "@/lib/ledger-math";
 import { describeAudit } from "@/server/audit/describe";
 
 const l = (accountId: string, debit = "", credit = "", memo = "") => ({
@@ -131,5 +137,28 @@ describe("describeAudit", () => {
     expect(d.summary).toBe("Edited JE 4, now version 2");
     expect(d.details).toEqual(["Date: 2026-02-01 to 2026-02-03", "Lines: 2 to 3"]);
     expect(d.link).toEqual({ kind: "entry", id: "e" });
+  });
+});
+
+describe("naming entries", () => {
+  it("numbers the entries you write and names the ones made from bank data", () => {
+    expect(entryLabel("manual", 7)).toBe("JE 7");
+    expect(entryLabel("opening_balance", 1)).toBe("JE 1");
+    expect(entryLabel("bank", 2)).toBe("Transaction");
+    expect(entryLabel("transfer", 3)).toBe("Transfer");
+    expect(isWrittenEntry("reversal")).toBe(true);
+    expect(isWrittenEntry("bank")).toBe(false);
+    const d = describeAudit(
+      {
+        entityType: "journal_entry",
+        entityId: "e",
+        action: "create",
+        beforeData: null,
+        afterData: { entryNumber: 2, kind: "bank", payee: "Corner Grocery" },
+      },
+      new Map(),
+    );
+    expect(d.summary).toBe("Posted a bank transaction");
+    expect(d.details).toEqual(["Corner Grocery"]);
   });
 });

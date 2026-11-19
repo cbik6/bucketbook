@@ -6,6 +6,16 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.11.1] - 2026-11-19
+
+### Changed
+
+- Transactions from the bank no longer show journal entry numbers. The Posted tab links
+  to them with **View**; registers, the general ledger and reconcile call them
+  Transaction, Transfer, Bucket move or Value update; opening one shows who it was with as
+  its title; and Activity says "Posted a bank transaction". Entries you write yourself
+  keep their JE numbers.
+
 ## [1.11.0] - 2026-11-19
 
 ### Added

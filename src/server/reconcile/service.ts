@@ -106,6 +106,7 @@ async function loadRec(db: DbOrTx, bookId: string, recId: string) {
 export type RecItem = {
   entryId: string;
   entryNumber: number;
+  entryKind: string;
   entryDate: string;
   description: string;
   /** Debits minus credits on the account (and its buckets) in this entry. */
@@ -121,13 +122,14 @@ async function candidates(db: DbOrTx, rec: ReconciliationRow): Promise<RecItem[]
   const result = await db.execute<{
     entry_id: string;
     entry_number: number;
+    entry_kind: string;
     entry_date: string;
     entry_payee: string | null;
     entry_memo: string | null;
     net: string;
     cleared_here: boolean;
   }>(sql`
-    select l.entry_id, l.entry_number, l.entry_date::text as entry_date, l.entry_payee, l.entry_memo,
+    select l.entry_id, l.entry_number, l.entry_kind, l.entry_date::text as entry_date, l.entry_payee, l.entry_memo,
            sum(l.net_cents)::text as net,
            exists (select 1 from reconciliation_items i
                    where i.reconciliation_id = ${rec.id} and i.entry_id = l.entry_id) as cleared_here
@@ -140,7 +142,7 @@ async function candidates(db: DbOrTx, rec: ReconciliationRow): Promise<RecItem[]
         where i.entry_id = l.entry_id and i.account_id = ${rec.accountId}
           and i.reconciliation_id <> ${rec.id}
       )
-    group by l.entry_id, l.entry_number, l.entry_date, l.entry_payee, l.entry_memo
+    group by l.entry_id, l.entry_number, l.entry_kind, l.entry_date, l.entry_payee, l.entry_memo
     having sum(l.net_cents) <> 0
        and (min(l.entry_date) <= ${rec.statementDate}
             or exists (select 1 from reconciliation_items i
@@ -150,6 +152,7 @@ async function candidates(db: DbOrTx, rec: ReconciliationRow): Promise<RecItem[]
   return result.rows.map((r) => ({
     entryId: r.entry_id,
     entryNumber: Number(r.entry_number),
+    entryKind: r.entry_kind,
     entryDate: r.entry_date,
     description: r.entry_payee || r.entry_memo || "Journal entry",
     amountCents: Number(r.net),
@@ -165,12 +168,13 @@ export async function reconciliationState(db: DbOrTx, bookId: string, recId: str
     const rows = await db.execute<{
       entry_id: string;
       entry_number: number;
+      kind: string;
       entry_date: string;
       payee: string | null;
       memo: string | null;
       amount_cents: string;
     }>(sql`
-      select i.entry_id, e.entry_number, e.entry_date::text as entry_date, e.payee, e.memo,
+      select i.entry_id, e.entry_number, e.kind, e.entry_date::text as entry_date, e.payee, e.memo,
              i.amount_cents::text as amount_cents
       from reconciliation_items i join journal_entries e on e.id = i.entry_id
       where i.reconciliation_id = ${rec.id}
@@ -179,6 +183,7 @@ export async function reconciliationState(db: DbOrTx, bookId: string, recId: str
     items = rows.rows.map((r) => ({
       entryId: r.entry_id,
       entryNumber: Number(r.entry_number),
+      entryKind: r.kind,
       entryDate: r.entry_date,
       description: r.payee || r.memo || "Journal entry",
       amountCents: Number(r.amount_cents),
