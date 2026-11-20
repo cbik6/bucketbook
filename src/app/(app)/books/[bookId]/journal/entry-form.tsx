@@ -3,9 +3,10 @@
 import { Check, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
-import { Field, FormError, SelectInput, TextInput, inputClass } from "@/components/ui/field";
+import { Field, FormError, TextInput, inputClass } from "@/components/ui/field";
 import { buttonClass, IconButton, PendingLabel } from "@/components/ui/button";
 import { FillLine } from "@/components/ui/fill-line";
+import { AccountPicker } from "@/components/account-picker";
 import type { AccountOptionGroup } from "@/lib/account-options";
 import { todayIso } from "@/lib/dates";
 import { type DraftLine, isBlankLine, parseDraftLines } from "@/lib/ledger-math";
@@ -246,29 +247,13 @@ export function EntryForm({
                   <span className="tabular w-5 shrink-0 text-xs text-ink-faint sm:hidden">
                     {i + 1}
                   </span>
-                  <SelectInput
+                  <AccountPicker
                     id={`${uid}-line-${l.key}-account`}
-                    aria-label={`Line ${i + 1} account`}
+                    label={`Line ${i + 1} account`}
                     value={l.accountId}
-                    onChange={(e) => chooseAccount(l.key, e.target.value)}
-                    className="min-w-0"
-                  >
-                    <option value="">Choose an account</option>
-                    {groups.map((g) => (
-                      <optgroup key={g.type} label={g.label}>
-                        {g.options.map((o) => (
-                          <option
-                            key={o.id}
-                            value={o.id}
-                            disabled={o.disabled && o.id !== l.accountId}
-                          >
-                            {o.code ? `${o.code} ` : ""}
-                            {o.label}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </SelectInput>
+                    onChange={(v) => chooseAccount(l.key, v)}
+                    groups={groups}
+                  />
                   <IconButton
                     onClick={() => removeLine(l.key)}
                     aria-label={`Remove line ${i + 1}`}

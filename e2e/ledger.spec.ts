@@ -1,5 +1,5 @@
 import { type Page, expect, test } from "@playwright/test";
-import { clickSetupLink } from "./helpers";
+import { clickSetupLink, pickFrom } from "./helpers";
 
 /**
  * Phase 2 flow on the install that first-run.spec.ts set up: opening balances,
@@ -22,13 +22,9 @@ async function signIn(page: Page) {
 const field = (page: Page, label: string | RegExp, exact = false) =>
   page.getByLabel(label, { exact }).filter({ visible: true });
 
-/** Picks an account in a select whose option text is the (possibly indented) name. */
+/** Picks an account in a searchable list by its own name. */
 async function pickAccount(page: Page, label: string, name: string) {
-  const select = field(page, label);
-  const value = await select
-    .locator("option", { hasText: new RegExp(`(^|: )${name}$`) })
-    .getAttribute("value");
-  await select.selectOption(value!);
+  await pickFrom(page, field(page, label), name.toLowerCase(), new RegExp(`(^|: )${name}$`));
 }
 
 test("ledger: opening balances, post, edit, reverse, register", async ({ page }) => {

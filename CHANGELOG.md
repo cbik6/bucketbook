@@ -6,6 +6,15 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-11-20
+
+### Changed
+
+- Every place you choose an account now uses the same searchable list as For review:
+  split lines, the cross-book transfer accounts, rules, journal entry lines and the
+  "Difference goes to" account when recording a balance. Sub-accounts are indented under
+  their parents, and parents kept as headings are shown greyed out.
+
 ## [1.14.0] - 2026-11-19
 
 ### Added

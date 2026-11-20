@@ -18,7 +18,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { AccountSelectOptions } from "@/components/account-select-options";
+import { AccountPicker } from "@/components/account-picker";
 import { Money } from "@/components/money";
 import { Button, IconButton } from "@/components/ui/button";
 import { SelectInput, TextInput } from "@/components/ui/field";
@@ -31,7 +31,6 @@ import { suggestRuleText } from "@/lib/rules";
 import type { Decision, QueueItem } from "@/server/bank/review-service";
 import { type AttachmentInfo, Attachments } from "../attachments";
 import { RuleEditor } from "../rules/rules-manager";
-import { CategoryPicker } from "./category-picker";
 import {
   type ReviewResult,
   approveAction,
@@ -739,7 +738,9 @@ function Row({ refCallback, ...p }: RowProps) {
             </SelectInput>
           ) : null}
           {/* Split stays a choice in the same list, so picking a category backs out of it. */}
-          <CategoryPicker
+          <AccountPicker
+            size="row"
+            placeholder="Choose a category"
             id={`${base}-category`}
             label={`Category for ${title}`}
             value={draft.choice}
@@ -748,7 +749,7 @@ function Row({ refCallback, ...p }: RowProps) {
             invalid={Boolean(p.error) && !draft.choice}
             groups={p.groups}
             exclude={item.accountId}
-            moneyOut={spent}
+            order={spent ? "out" : "in"}
             matches={[
               ...item.linkCandidates.map((c) => ({
                 value: `link:${c.entryId}`,
@@ -992,35 +993,25 @@ function Details(
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="flex flex-col gap-1.5 text-[0.8125rem] font-medium text-ink">
                 In this book, the account for {item.transfer.bookName}
-                <SelectInput
+                <AccountPicker
+                  label={`In this book, the account for ${item.transfer.bookName}`}
                   value={draft.counterpart}
-                  onChange={(e) => p.setDraft({ counterpart: e.target.value })}
-                >
-                  <option value="">Choose an account</option>
-                  <AccountSelectOptions
-                    groups={p.groups}
-                    value={draft.counterpart}
-                    exclude={item.accountId}
-                  />
-                </SelectInput>
+                  onChange={(v) => p.setDraft({ counterpart: v })}
+                  groups={p.groups}
+                  exclude={item.accountId}
+                />
                 <span className="font-normal text-ink-muted">
                   For example Investment in {item.transfer.bookName}, or Owner Draws.
                 </span>
               </label>
               <label className="flex flex-col gap-1.5 text-[0.8125rem] font-medium text-ink">
                 In {item.transfer.bookName}, the account for this book
-                <SelectInput
+                <AccountPicker
+                  label={`In ${item.transfer.bookName}, the account for this book`}
                   value={draft.partnerCounterpart}
-                  onChange={(e) => p.setDraft({ partnerCounterpart: e.target.value })}
-                >
-                  <option value="">Choose an account</option>
-                  {p.partnerGroups ? (
-                    <AccountSelectOptions
-                      groups={p.partnerGroups}
-                      value={draft.partnerCounterpart}
-                    />
-                  ) : null}
-                </SelectInput>
+                  onChange={(v) => p.setDraft({ partnerCounterpart: v })}
+                  groups={p.partnerGroups ?? []}
+                />
                 <span className="font-normal text-ink-muted">
                   For example Owner Contributions. Both are remembered for next time.
                 </span>
@@ -1219,18 +1210,15 @@ function SplitEditor(p: RowData) {
             key={s.key}
             className="grid grid-cols-[minmax(0,1fr)_7.5rem_2rem] gap-2 sm:grid-cols-[minmax(0,1.4fr)_7.5rem_minmax(0,1fr)_2rem]"
           >
-            <SelectInput
-              aria-label={`Split line ${i + 1} account`}
+            <AccountPicker
+              label={`Split line ${i + 1} account`}
+              placeholder="Choose a category"
               value={s.accountId}
-              onChange={(e) => update(s.key, { accountId: e.target.value })}
-            >
-              <option value="">Choose an account</option>
-              <AccountSelectOptions
-                groups={p.groups}
-                value={s.accountId}
-                exclude={item.accountId}
-              />
-            </SelectInput>
+              onChange={(v) => update(s.key, { accountId: v })}
+              groups={p.groups}
+              exclude={item.accountId}
+              order={item.amountCents < 0 ? "out" : "in"}
+            />
             <TextInput
               aria-label={`Split line ${i + 1} amount`}
               inputMode="decimal"

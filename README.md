@@ -160,7 +160,8 @@ going to the same place, or similar words in the description. A guess is marked 
 your history**, and its details say what it was based on. The learning is plain counting
 on your own server; no transaction leaves it. The category list is searchable: type part
 of a name, and suggestions, matches and the groups that fit (spending first for money
-out, income first for money in) come first.
+out, income first for money in) come first. The same list is used everywhere you choose
+an account.
 
 To try it without a bank, press **Use the demo bank** on the Bank connections page; it
 connects SimpleFIN's public demo account.

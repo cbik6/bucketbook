@@ -3,9 +3,9 @@
 import { Scale } from "lucide-react";
 import { useId, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { AccountSelectOptions } from "@/components/account-select-options";
+import { AccountPicker } from "@/components/account-picker";
 import { Button } from "@/components/ui/button";
-import { Field, FormError, SelectInput, TextInput } from "@/components/ui/field";
+import { Field, FormError, TextInput } from "@/components/ui/field";
 import type { AccountOptionGroup } from "@/lib/account-options";
 import { recordBalanceAction } from "../actions";
 
@@ -93,10 +93,13 @@ export function BalanceForm({
           htmlFor={`${uid}-off`}
           hint="For example a gain or loss account, or Opening Balance Equity."
         >
-          <SelectInput id={`${uid}-off`} value={offset} onChange={(e) => setOffset(e.target.value)}>
-            <option value="">Choose an account</option>
-            <AccountSelectOptions groups={groups} value={offset} exclude={accountId} />
-          </SelectInput>
+          <AccountPicker
+            id={`${uid}-off`}
+            value={offset}
+            onChange={setOffset}
+            groups={groups}
+            exclude={accountId}
+          />
         </Field>
       </div>
       <div className="flex gap-2">

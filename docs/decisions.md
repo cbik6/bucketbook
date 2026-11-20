@@ -144,8 +144,10 @@ and dark follow the system with a manual toggle.
 
 ### D22. Native form controls for selects
 
-Account pickers use the browser's own `<select>`, which is fully keyboard accessible and
-behaves well on phones. A searchable picker can come later if lists get long.
+Account pickers first used the browser's own `<select>`, which is fully keyboard
+accessible and behaves well on phones. Since 1.15.0 they all use one searchable list
+(Base UI Combobox, see D65), because a long chart of accounts was hard to scan in a
+plain dropdown. Other short lists (buckets, account types, roles) stay native selects.
 
 ### D23. Agent skills are restored, not committed
 
@@ -593,3 +595,12 @@ and pickers grey it out as a heading. Opening balances and lines an edited entry
 had are allowed, so older entries keep working. Buckets don't make their parent a parent
 here; bucket parents already refuse postings. The setting is a selector on the chart of
 accounts, open to editors.
+
+### D65. One searchable account list everywhere
+
+Every account choice uses the same component, `AccountPicker`: a button that opens a
+search box over the accounts, grouped and indented as in the chart of accounts. In For
+review, split lines and rules, the groups are named in plain words and ordered by the
+money's direction (Expenses first for money out, Income first for money in); elsewhere
+they keep the chart's own types and order. One list means one thing to learn, and the
+Headings only setting looks the same wherever it applies.

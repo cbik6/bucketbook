@@ -26,8 +26,12 @@ export async function accountMenu(page: Page, item: string) {
 
 /** Picks a category for a review row from its searchable list. */
 export async function pickCategory(page: Page, row: Locator, search: string, option: RegExp) {
-  const trigger = row.getByLabel(/Category for/);
-  const box = page.getByPlaceholder("Search categories");
+  await pickFrom(page, row.getByLabel(/Category for/), search, option);
+}
+
+/** Opens a searchable account list, searches it and picks the matching option. */
+export async function pickFrom(page: Page, trigger: Locator, search: string, option: RegExp) {
+  const box = page.getByPlaceholder(/^Search (categories|accounts)$/).filter({ visible: true });
   // Clicks before the page is interactive are lost, so retry until the list opens.
   await expect(async () => {
     if (!(await box.isVisible())) await trigger.click();

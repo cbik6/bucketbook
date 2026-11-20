@@ -1,4 +1,5 @@
 import { type Page, expect, test } from "@playwright/test";
+import { pickFrom } from "./helpers";
 
 /**
  * Phase 5 flow: record a balance on a manual account (cash), then reconcile
@@ -25,11 +26,7 @@ test("reconcile: record a cash balance, then reconcile it", async ({ page }) => 
   await expect(page.getByRole("heading", { name: "Cash on Hand" })).toBeVisible();
   await page.getByRole("button", { name: "Record a new balance" }).click();
   await label(page, "New balance").fill("80");
-  const offset = label(page, "Difference goes to");
-  const obe = await offset
-    .locator("option", { hasText: /Opening Balance Equity$/ })
-    .getAttribute("value");
-  await offset.selectOption(obe!);
+  await pickFrom(page, label(page, "Difference goes to"), "opening", /Opening Balance Equity$/);
   await page.getByRole("button", { name: "Record balance" }).click();
   await expect(page.getByText("Balance recorded.")).toBeVisible();
 

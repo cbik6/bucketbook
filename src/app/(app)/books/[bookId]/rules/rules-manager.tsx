@@ -3,7 +3,7 @@
 import { ArrowDown, ArrowUp, Pencil, Plus } from "lucide-react";
 import { useId, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { AccountSelectOptions } from "@/components/account-select-options";
+import { AccountPicker } from "@/components/account-picker";
 import { Button } from "@/components/ui/button";
 import { Field, FormError, SelectInput, TextInput } from "@/components/ui/field";
 import { HoldButton } from "@/components/ui/hold-button";
@@ -394,14 +394,15 @@ export function RuleEditor({
         <legend className="mb-2 text-[0.8125rem] font-semibold text-ink">Then suggest</legend>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Category" htmlFor={`${uid}-offset`} optional>
-            <SelectInput
+            <AccountPicker
               id={`${uid}-offset`}
               value={offset}
-              onChange={(e) => setOffset(e.target.value)}
-            >
-              <option value="">No category</option>
-              <AccountSelectOptions groups={groups} value={offset} />
-            </SelectInput>
+              onChange={setOffset}
+              groups={groups}
+              order={direction === "inflow" ? "in" : "out"}
+              placeholder="No category"
+              noneLabel="No category"
+            />
           </Field>
           {buckets.length ? (
             <Field label="Bucket" htmlFor={`${uid}-bucket`} optional>
