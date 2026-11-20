@@ -1,0 +1,12 @@
+# Builds the app from this source folder instead of pulling the published image.
+# Use it together with docker-compose.yml:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+#
+# or put this line in .env so plain `docker compose` commands include it:
+#
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.build.yml
+services:
+  app:
+    build: .
+    image: bucketbook:local

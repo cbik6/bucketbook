@@ -12,6 +12,8 @@
 # Set E2E_SKIP_BUILD=1 to reuse an already built bucketbook:local image.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# Test the image built from this folder, not the published one.
+export COMPOSE_FILE=docker-compose.yml:docker-compose.build.yml
 
 PLAYWRIGHT_VERSION=$(node -p "require('@playwright/test/package.json').version")
 PORT=${E2E_PORT:-3100}

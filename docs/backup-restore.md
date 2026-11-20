@@ -93,8 +93,8 @@ there is anything in it you might want.
 
 ## Moving to a new server
 
-Back up on the old server, copy the `backups` folder and `.env` to the new one, clone the
-repository there, then follow the restore steps (start with `docker compose up -d
+Back up on the old server, then copy the whole `bucketbook` folder (with its `.env` and
+`backups`) to the new one, then follow the restore steps (start with `docker compose up -d
 postgres` so the database exists before step 2).
 
 ## Starting over

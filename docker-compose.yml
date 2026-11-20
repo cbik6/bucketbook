@@ -1,7 +1,10 @@
-# Bucketbook: the app plus its Postgres database.
+# Bucketbook: the app plus its Postgres database, grouped as "bucketbook" in Docker.
 #
 #   cp .env.example .env     # then fill in the required values
 #   docker compose up -d
+#
+# (install.sh does both for you.) It runs the published image; to build from
+# this source folder instead, see docker-compose.build.yml.
 #
 # Data lives in two named volumes: `pgdata` (the database) and `receipts`
 # (uploaded files). See docs/backup-restore.md before upgrading.
@@ -31,10 +34,8 @@ services:
       retries: 20
 
   app:
-    build: .
-    # Set BUCKETBOOK_IMAGE=ghcr.io/OWNER/bucketbook:latest (the repository owner) in .env to use the
-    # published image instead of building from source.
-    image: ${BUCKETBOOK_IMAGE:-bucketbook:local}
+    # The published image; "1" follows every 1.x release.
+    image: ${BUCKETBOOK_IMAGE:-ghcr.io/cbik6/bucketbook:1}
     restart: unless-stopped
     depends_on:
       postgres:

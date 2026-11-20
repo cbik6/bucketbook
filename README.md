@@ -45,16 +45,51 @@ The screenshots show the built-in demo book; all names in it are made up.
 Want to look around first? After setup, press **Try a demo book** on the Books page for
 a household with three months of activity, buckets, a car loan and a budget.
 
-## Install with Docker Compose
+## Install with Docker
 
-You need a machine with Docker and Docker Compose v2 or newer.
+You need a computer that stays on (a home server, a NAS, a mini PC or a cloud server)
+with [Docker](https://docs.docker.com/get-docker/) and Docker Compose v2. Docker Desktop
+on Windows or macOS works too.
 
-1. Get the code and create your settings file:
+### The quick way
+
+Run this in a terminal (on Windows, a WSL terminal):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/cbik6/bucketbook/main/install.sh | sh
+```
+
+It makes a `bucketbook` folder where you run it, puts `docker-compose.yml` and a `.env`
+settings file with fresh secrets in it, and starts the app and its database. In Docker
+(and Docker Desktop) they appear together as one group called **bucketbook**:
+
+```
+bucketbook/
+  docker-compose.yml
+  .env              your settings and secrets: keep a copy somewhere safe
+  .env.example      every setting explained
+```
+
+When it finishes it prints the address to open, for example `http://192.168.1.20:3000`.
+The setup wizard there creates your login and your first book. The bank connection step
+can be skipped for now.
+
+To pick the folder, port or address, set them in front of `sh`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/cbik6/bucketbook/main/install.sh | BUCKETBOOK_PORT=8080 BUCKETBOOK_URL=https://books.example.com sh
+```
+
+You can read [the installer](install.sh) before running it; it's short.
+
+### By hand
+
+1. Make a folder called `bucketbook` and download the two files into it:
 
    ```bash
-   git clone <this repository> bucketbook
-   cd bucketbook
-   cp .env.example .env
+   mkdir bucketbook && cd bucketbook
+   curl -fsSLO https://raw.githubusercontent.com/cbik6/bucketbook/main/docker-compose.yml
+   curl -fsSL https://raw.githubusercontent.com/cbik6/bucketbook/main/.env.example -o .env
    ```
 
 2. Fill in the required values in `.env`:
@@ -66,26 +101,46 @@ You need a machine with Docker and Docker Compose v2 or newer.
    | `APP_ENCRYPTION_KEY` | Output of `openssl rand -base64 32` (a different value)                                                       |
    | `POSTGRES_PASSWORD`  | Output of `openssl rand -hex 24`                                                                              |
 
-   Keep `.env` private and back it up. Every setting is explained in
-   [`.env.example`](.env.example).
-
 3. Start it:
 
    ```bash
    docker compose up -d
    ```
 
-   The first start builds the image, which takes a few minutes. Database migrations run
-   automatically every time the app starts.
+   Database migrations run automatically every time the app starts.
 
-4. Open `APP_URL` in your browser. The setup wizard creates your login and your first
-   book. The bank connection step can be skipped for now.
+4. Open `APP_URL` in your browser.
 
 Check that it's healthy:
 
 ```bash
 curl http://localhost:3000/api/health
 ```
+
+### Updating
+
+From the `bucketbook` folder:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Back up first (see [docs/backup-restore.md](docs/backup-restore.md)). The image
+`ghcr.io/cbik6/bucketbook:1` follows every 1.x release; to stay on one release, set
+`BUCKETBOOK_IMAGE=ghcr.io/cbik6/bucketbook:1.0.0` in `.env`.
+
+### Building from source
+
+To run your own changes, clone the repository, create `.env` as above, and add this line
+to it:
+
+```
+COMPOSE_FILE=docker-compose.yml:docker-compose.build.yml
+```
+
+Then `docker compose up -d --build` builds the image from the source folder (it takes a
+few minutes). Update with `git pull` and the same command.
 
 ### Behind a reverse proxy (Caddy)
 
@@ -114,21 +169,6 @@ proxy with a certificate the phone trusts:
   Settings, General, About, Certificate Trust Settings).
 
 Over plain HTTP everything works in the browser; only the home screen install is off.
-
-### Using the published image
-
-Instead of building from source, set `BUCKETBOOK_IMAGE=ghcr.io/OWNER/bucketbook:latest`
-in `.env` (OWNER is the GitHub account that hosts the repository) and run
-`docker compose pull && docker compose up -d`.
-
-### Updating
-
-```bash
-git pull
-docker compose up -d --build
-```
-
-Back up first (see [docs/backup-restore.md](docs/backup-restore.md)).
 
 ## Connecting your banks
 
@@ -302,6 +342,7 @@ src/app/                pages and API routes (Next.js App Router)
 src/components/         shared UI
 src/lib/                code shared by browser and server (money, account types)
 src/server/             server-only code: db schema, auth, services, jobs
+install.sh              the one-line installer
 tests/unit, tests/integration, e2e/
 docs/                   decisions log, backup and restore
 ```
@@ -338,4 +379,6 @@ connect.
 
 ## License
 
-Not chosen yet.
+Bucketbook is free software under the [GNU Affero General Public License v3.0 or later](LICENSE).
+You may use, change and share it. If you run a changed version for other people over a
+network, you must offer them its source code.

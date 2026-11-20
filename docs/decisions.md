@@ -145,7 +145,7 @@ and dark follow the system with a manual toggle.
 ### D22. Native form controls for selects
 
 Account pickers first used the browser's own `<select>`, which is fully keyboard
-accessible and behaves well on phones. Since 1.15.0 they all use one searchable list
+accessible and behaves well on phones. Since 1.0 they all use one searchable list
 (Base UI Combobox, see D65), because a long chart of accounts was hard to scan in a
 plain dropdown. Other short lists (buckets, account types, roles) stay native selects.
 
@@ -159,7 +159,7 @@ their files.
 
 ### D24. Visual direction changed to "Balanced"
 
-After seeing the first build, Clark compared three rounds of directions and chose
+After seeing the first build, the owner compared three rounds of directions and chose
 "Balanced", picked mainly because it feels clean. It replaces the spruce and marigold
 look from D21; the interaction details from D21 stay (press feedback, menus that grow
 from their trigger, press-and-hold to archive, undo toasts, no animation on keyboard
@@ -179,7 +179,7 @@ actions, the clip-path fill line).
 
 ### D25. Corrections: edit as a new version, or reverse
 
-Clark chose to support both. Editing a posted entry saves a new version: the old lines
+The owner chose to support both. Editing a posted entry saves a new version: the old lines
 stay in `journal_lines` with `is_current = false`, each version's date and memo are kept
 in `journal_entry_versions`, and the audit log stores before and after. Reversing posts
 a mirror-image entry (kind `reversal`) on a date you choose, linked to the original. A
@@ -244,7 +244,7 @@ review, which is the "undo" for an approval.
 Two transactions on different accounts with equal and opposite amounts no more than four
 days apart are suggested as a transfer. Closest dates pair first; on a tie a partner in
 the same book wins. Within one book a match posts a single `transfer` entry between the
-two accounts, dated on the day the money left. Across books (Clark's choice: "matched
+two accounts, dated on the day the money left. Across books (the owner's choice: "matched
 pair"), each book posts its own side against an account that stands for the other book
 (for example Investment in the LLC at home, Owner Contributions in the LLC). Both entries
 share a `transfer_group_id`, each entry page links to the other, and reversing one says
@@ -585,7 +585,7 @@ other side of its entry as the entry reads now, so fixing an entry teaches the f
 entries, transfers and matches are left out. A guess fills in the category the same way a
 rule does and is marked "From your history" with the reason. An outside AI service could
 name stores never seen before, but it would send transaction text off the server, so
-Clark chose to keep learning local (as with PDF statements, D62).
+The owner chose to keep learning local (as with PDF statements, D62).
 
 ### D64. Parent accounts can be headings only
 
@@ -604,3 +604,17 @@ review, split lines and rules, the groups are named in plain words and ordered b
 money's direction (Expenses first for money out, Income first for money in); elsewhere
 they keep the chart's own types and order. One list means one thing to learn, and the
 Headings only setting looks the same wherever it applies.
+
+### D66. Installs pull the published image
+
+`docker-compose.yml` runs `ghcr.io/cbik6/bucketbook:1`, so installing needs only that file
+and a `.env`, not the source code. `install.sh` makes a `bucketbook` folder with both
+(fresh secrets included) and starts the stack, which Docker groups as `bucketbook` (the
+compose project name). Building from source is an opt-in override,
+`docker-compose.build.yml`, which the e2e tests and development installs use. The `:1`
+tag follows every 1.x release; a release tag such as `:1.0.0` pins one.
+
+### D67. License: AGPL-3.0-or-later
+
+Anyone may use, change and share Bucketbook. Someone who runs a changed version as a
+service for others must offer them the source, so it can't become a closed hosted product.
