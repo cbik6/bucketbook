@@ -15,6 +15,9 @@ All notable changes to this project are listed here. The format follows
   newest 14. Set `BACKUP_TIME` and `BACKUP_KEEP_DAYS` in `.env`. Each file is written
   under a temporary name, checked, and only then renamed, so a backup tool never copies
   half a file. A run missed while the machine was off happens when it comes back.
+- **Backup status in the app.** Admins see the last backup and the schedule in Book
+  settings, and a warning across the top of every book page if a backup failed or none
+  ran for two days, with the commands to check and fix it.
 - `/api/health` shows the last backup's status (`ok`, `failed`, `stale` or `none`),
   time and file. Back up any time with `docker compose exec backup bucketbook-backup now`.
 - **Restore with one command:**
@@ -41,6 +44,8 @@ All notable changes to this project are listed here. The format follows
   can read them without `sudo`.
 - The app image includes the Postgres 18 client tools, and the container starts as root
   only to set up the receipts folder before running the app as its own user.
+- GitHub Actions workflows use the current versions of every action (Node.js 24), ahead
+  of GitHub retiring Node.js 20.
 
 ### Fixed
 
@@ -49,8 +54,10 @@ All notable changes to this project are listed here. The format follows
 
 ### Upgrading from 1.0.1 or earlier
 
-The new `docker-compose.yml` needs the data moved first, and stops with a message
-until it is. In your `bucketbook` folder, run once:
+Your data is kept: don't delete the `bucketbook` folder or its `.env`, and don't add
+`-v` to `docker compose down`. The new `docker-compose.yml` needs the data moved first,
+and stops with a message (nothing lost) until it is. In your `bucketbook` folder, run
+once:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/cbik6/bucketbook/main/scripts/move-data.sh | sh

@@ -17,6 +17,9 @@ export type BackupHealth = {
   lastAttempt: string | null;
   file: string | null;
   error: string | null;
+  /** The schedule the backup service last ran with: "02:00" and how many it keeps. */
+  time: string | null;
+  keep: number | null;
 };
 
 const STALE_MS = 2 * 24 * 60 * 60 * 1000;
@@ -26,7 +29,15 @@ export function summarizeBackupStatus(raw: unknown, now: Date): BackupHealth {
   const text = (v: unknown) => (typeof v === "string" && v ? v : null);
   const lastSuccess = text(r.lastSuccess);
   const lastAttempt = text(r.lastAttempt);
-  const base = { lastSuccess, lastAttempt, file: text(r.file), error: null };
+  const keep = typeof r.keep === "number" ? r.keep : null;
+  const base = {
+    lastSuccess,
+    lastAttempt,
+    file: text(r.file),
+    error: null,
+    time: text(r.time),
+    keep,
+  };
   if (r.status === "failed") return { ...base, status: "failed", error: text(r.error) };
   if (!lastSuccess) return { ...base, status: "none" };
   const age = now.getTime() - new Date(lastSuccess).getTime();
@@ -41,7 +52,15 @@ export async function backupHealth(now = new Date()): Promise<BackupHealth> {
     // A configuration problem is reported by startup; health still answers.
   }
   if (!file) {
-    return { status: "off", lastSuccess: null, lastAttempt: null, file: null, error: null };
+    return {
+      status: "off",
+      lastSuccess: null,
+      lastAttempt: null,
+      file: null,
+      error: null,
+      time: null,
+      keep: null,
+    };
   }
   let raw: unknown = {};
   try {

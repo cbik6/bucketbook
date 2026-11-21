@@ -2,6 +2,8 @@ import { connection } from "next/server";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PageFallback, PageHeader } from "@/components/app-shell";
+import { BackupStatusPanel } from "@/components/backup-status";
+import { backupHealth } from "@/server/backup-status";
 import { CHART_TEMPLATES } from "@/server/accounts/templates";
 import { loadBookForPage } from "@/server/guards";
 import { getDb } from "@/server/db/client";
@@ -21,10 +23,11 @@ async function SettingsContent({ params }: PageProps<"/books/[bookId]/settings">
   // Per-user page: always render at request time, never at build time.
   await connection();
   const { bookId } = await params;
-  const { book } = await loadBookForPage(bookId);
+  const { user, book } = await loadBookForPage(bookId);
   const isOwner = book.role === "owner";
   const timeZone = process.env.TZ || "UTC";
   const connections = await bookHasConnection(getDb(), book.id);
+  const backups = user.isAdmin ? await backupHealth() : null;
 
   return (
     <>
@@ -79,6 +82,19 @@ async function SettingsContent({ params }: PageProps<"/books/[bookId]/settings">
             canEdit={isOwner}
           />
         </section>
+
+        {backups ? (
+          <section className="py-8" aria-labelledby="backups-heading">
+            <h2 id="backups-heading" className="mb-1 scroll-mt-20 text-base font-semibold">
+              Backups
+            </h2>
+            <p className="mb-4 max-w-prose text-sm text-ink-muted">
+              A copy of the whole install&apos;s database (every book), made on the server. Only
+              admins see this.
+            </p>
+            <BackupStatusPanel health={backups} timeZone={timeZone} />
+          </section>
+        ) : null}
 
         <section className="py-8" aria-labelledby="archive-heading">
           <h2 id="archive-heading" className="mb-1 text-base font-semibold">

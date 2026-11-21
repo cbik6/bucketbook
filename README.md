@@ -131,15 +131,24 @@ curl http://localhost:9951/api/health
 Change `APP_PORT` in `.env`, and the port in `APP_URL` to match, then run
 `docker compose up -d` in the `bucketbook` folder.
 
-### Updating
+### Updating without losing data
 
-**From 1.0.1 or earlier:** those versions kept your data in Docker volumes, outside the folder. Move it into the
-folder once with the command in
-[Upgrading from 1.0.1 or earlier](docs/backup-restore.md#upgrading-from-101-or-earlier); it updates Bucketbook
-too.
+Updating never touches your books. The new version starts on the same database and
+makes any changes it needs to it by itself. To keep it that way:
 
-From the `bucketbook` folder, back up now, get the latest `docker-compose.yml`, then the
-new image:
+- **Run every command in your Bucketbook folder**, the one with `docker-compose.yml` and
+  `.env`. Not sure where it is? `docker compose ls` lists it under CONFIG FILES.
+- **Keep that folder and its `.env`.** Don't delete it, or install again somewhere else,
+  to get the new version: a new install starts empty. (Running the installer again in
+  the same place is safe; it just prints the update commands.)
+- **Don't add `-v` to `docker compose down`**, and don't run `docker volume prune` or
+  `docker system prune --volumes`. On 1.0.1 or earlier those delete your data.
+
+**Which version do you have?** Look for a `DATA_DIR=` line in `.env`. If it's there,
+you're on 1.0.2 or later. If not, you're on 1.0.1 or earlier. (Or run
+`curl http://localhost:9951/api/health` and look at `version`.)
+
+**From 1.0.2 or later**, back up, then get the new `docker-compose.yml` and image:
 
 ```bash
 docker compose exec backup bucketbook-backup now
@@ -148,9 +157,27 @@ docker compose pull
 docker compose up -d
 ```
 
-The image
-`ghcr.io/cbik6/bucketbook:1` follows every 1.x release; to stay on one release, set
-`BUCKETBOOK_IMAGE=ghcr.io/cbik6/bucketbook:1.0.0` in `.env`.
+**From 1.0.1 or earlier**, run this once instead. Those versions kept your data in
+Docker volumes outside the folder; this moves it into the folder and updates
+Bucketbook in the same step:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/cbik6/bucketbook/main/scripts/move-data.sh | sh
+```
+
+It saves a backup first, copies and checks your data, and only then starts the new
+version. Your old volumes stay until you choose to remove them. Details are in
+[Upgrading from 1.0.1 or earlier](docs/backup-restore.md#upgrading-from-101-or-earlier).
+
+If you already downloaded the new `docker-compose.yml` and Docker said **"DATA_DIR is
+missing from .env"**, nothing was lost: it refuses to start rather than start empty.
+Run the command above.
+
+**Afterwards**, open Bucketbook and check your books look right. If anything is wrong,
+the copies in `backups/` can be restored (see [Backups](#backups)).
+
+The image `ghcr.io/cbik6/bucketbook:1` follows every 1.x release. To stay on one
+release, set `BUCKETBOOK_IMAGE=ghcr.io/cbik6/bucketbook:1.0.2` in `.env`.
 
 ### Building from source
 

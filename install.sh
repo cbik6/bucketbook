@@ -40,6 +40,7 @@ if [ -f "$DIR/.env" ]; then
     say "It keeps its data in Docker volumes (version 1.0.1 or earlier). To update it and move the"
     say "data into the folder, where folder backups pick it up, run this in $DIR:"
     say "  curl -fsSL $SOURCE/scripts/move-data.sh | sh"
+    say "It backs up first and keeps your data; don't delete $DIR or its Docker volumes."
   fi
   exit 0
 fi

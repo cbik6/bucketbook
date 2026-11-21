@@ -86,6 +86,8 @@ describe("backup status in the health check", () => {
           lastSuccess: "2026-11-21T08:00:03Z",
           lastAttempt: "2026-11-21T08:00:03Z",
           file: "bucketbook-2026-11-21.sql.gz",
+          time: "02:00",
+          keep: 14,
         },
         now,
       ),
@@ -95,6 +97,8 @@ describe("backup status in the health check", () => {
       lastAttempt: "2026-11-21T08:00:03Z",
       file: "bucketbook-2026-11-21.sql.gz",
       error: null,
+      time: "02:00",
+      keep: 14,
     });
   });
 
