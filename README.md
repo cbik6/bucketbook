@@ -453,10 +453,10 @@ Version 1 is complete:
 Ideas for later (the schema leaves room): invoices and bills, multiple currencies,
 importers from other apps.
 
-Fix Journal Entries for backdating
-Fix backdating when uploading csv or pdf bank statements
+To fix:
 
-
+- Fix Journal Entries for backdating
+- Fix backdating when uploading csv or pdf bank statements
 
 ## No warranty
 
