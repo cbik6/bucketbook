@@ -10,3 +10,7 @@ services:
   app:
     build: .
     image: bucketbook:local
+  backup:
+    # Built by the app service above; never pulled.
+    image: bucketbook:local
+    pull_policy: never

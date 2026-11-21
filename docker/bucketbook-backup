@@ -1,0 +1,3 @@
+#!/bin/sh
+# See /opt/bucketbook/backup.mjs for the commands.
+exec node /opt/bucketbook/backup.mjs "$@"

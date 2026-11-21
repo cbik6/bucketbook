@@ -40,6 +40,8 @@ const envSchema = z.object({
         .filter(Boolean),
     ),
   RECEIPTS_DIR: z.string().default("./data/receipts"),
+  /** Written by the backup service (docker/backup.mjs); unset outside docker compose. */
+  BACKUP_STATUS_FILE: z.string().optional(),
   DB_POOL_MAX: z.coerce.number().int().min(1).max(50).default(5),
   JOBS_ENABLED: booleanFlag,
 });

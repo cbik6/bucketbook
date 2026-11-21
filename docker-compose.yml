@@ -6,8 +6,14 @@
 # (install.sh does both for you.) It runs the published image; to build from
 # this source folder instead, see docker-compose.build.yml.
 #
-# Data lives in two named volumes: `pgdata` (the database) and `receipts`
-# (uploaded files). See docs/backup-restore.md before upgrading.
+# Everything Bucketbook keeps is in this folder, so backing up the folder backs up
+# Bucketbook:
+#
+#   data/postgres   the database's files (DATA_DIR in .env)
+#   data/receipts   uploaded receipts
+#   backups/        a nightly copy of the database (BACKUP_DIR, BACKUP_TIME, BACKUP_KEEP_DAYS)
+#
+# See docs/backup-restore.md.
 name: bucketbook
 
 services:
@@ -26,7 +32,8 @@ services:
       - -c
       - max_connections=${POSTGRES_MAX_CONNECTIONS:-30}
     volumes:
-      - pgdata:/var/lib/postgresql
+      # Postgres makes the files inside belong to its own user (uid 70) on first start.
+      - ${DATA_DIR:?DATA_DIR is missing from .env. Upgrading from 1.0.1 or earlier? Move your data first, see https://github.com/cbik6/bucketbook/blob/main/docs/backup-restore.md#upgrading-from-101-or-earlier}/postgres:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -49,11 +56,34 @@ services:
       DB_POOL_MAX: ${DB_POOL_MAX:-5}
       JOBS_ENABLED: ${JOBS_ENABLED:-true}
       TZ: ${TZ:-UTC}
+      BACKUP_STATUS_FILE: /backups/.last-backup.json
     ports:
       - "${APP_PORT:-9951}:9951"
     volumes:
-      - receipts:/data/receipts
+      # The app makes this folder belong to its own user (uid 1001) when it starts.
+      - ${DATA_DIR:?DATA_DIR is missing from .env. Upgrading from 1.0.1 or earlier? Move your data first, see https://github.com/cbik6/bucketbook/blob/main/docs/backup-restore.md#upgrading-from-101-or-earlier}/receipts:/data/receipts
+      # Read-only, for the last backup's status in /api/health.
+      - ${BACKUP_DIR:-./backups}:/backups:ro
 
-volumes:
-  pgdata:
-  receipts:
+  # Nightly pg_dump into ./backups. Same image as the app, so its pg_dump matches
+  # Postgres. Back up now:  docker compose exec backup bucketbook-backup now
+  backup:
+    image: ${BUCKETBOOK_IMAGE:-ghcr.io/cbik6/bucketbook:1}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: ["bucketbook-backup"]
+    command: ["schedule"]
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-bucketbook}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-bucketbook}
+      BACKUP_TIME: ${BACKUP_TIME:-02:00}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      TZ: ${TZ:-UTC}
+    volumes:
+      - ${BACKUP_DIR:-./backups}:/backups
+    healthcheck:
+      disable: true

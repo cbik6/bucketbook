@@ -13,3 +13,5 @@ coverage
 docs
 e2e
 tests
+data
+backups

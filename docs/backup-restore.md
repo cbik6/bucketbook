@@ -1,88 +1,122 @@
 # Backup and restore
 
-Everything Bucketbook knows lives in three places:
+Everything Bucketbook keeps is in its folder (the `bucketbook` folder the installer
+made, with `docker-compose.yml` in it):
 
-| What                                                 | Where                                        | How to back it up      |
-| ---------------------------------------------------- | -------------------------------------------- | ---------------------- |
-| The database (books, accounts, transactions, logins) | Docker volume `bucketbook_pgdata`            | `pg_dump` (below)      |
-| Uploaded receipts                                    | Docker volume `bucketbook_receipts`          | Copy the files (below) |
-| Your settings and secrets                            | The `.env` file next to `docker-compose.yml` | Copy it somewhere safe |
+```
+bucketbook/
+  .env              settings and secrets
+  docker-compose.yml
+  data/
+    postgres/       the database's own files
+    receipts/       uploaded receipts
+  backups/
+    bucketbook-2026-11-20.sql.gz   a copy of the database, made every night
+    .last-backup.json              how the last nightly backup went
+```
+
+So **back up the whole folder** with whatever you already use (Backrest, restic, Borg,
+Duplicati, a NAS snapshot, rsync to another disk). That covers the database, the
+receipts and the settings together.
 
 Keep `.env` with your backups. `APP_ENCRYPTION_KEY` protects your stored bank
 connection; if it is lost, the data is still fine but you will need to reconnect
 SimpleFIN. If `BETTER_AUTH_SECRET` changes, everyone is simply signed out.
 
-The commands below assume you are in the folder with `docker-compose.yml` and that you
-kept the default database user and name (`bucketbook`). Volume names start with the
-compose project name, which is `bucketbook` unless you changed it.
+The commands below run in the `bucketbook` folder.
 
-## Back up
+## The nightly backup
 
-### Database
+The `backup` service makes a database copy every night, so your backup tool always has a
+complete, consistent one to pick up:
 
-A `pg_dump` is a consistent snapshot even while the app is running.
+- It runs `pg_dump` at `BACKUP_TIME` (default `02:00`, in the `TZ` from `.env`) and
+  writes `backups/bucketbook-YYYY-MM-DD.sql.gz`, a gzipped plain SQL file.
+- It keeps the newest `BACKUP_KEEP_DAYS` daily files (default 14) and deletes older
+  ones. It never touches other files in `backups/`, so copies you make yourself stay.
+- It writes to a hidden `.partial` file, checks that the dump is complete, and only
+  then renames it, so a backup tool never picks up a half-written file. You can tell
+  your backup tool to skip `*.partial`.
+- If the machine was off at `BACKUP_TIME`, it catches up when it next starts that day.
+
+To change the time or how many to keep, edit `.env` and run `docker compose up -d`:
+
+```
+BACKUP_TIME=03:30
+BACKUP_KEEP_DAYS=30
+```
+
+Schedule your folder backup for after `BACKUP_TIME` (a few minutes is plenty for a
+household database), so it picks up the same night's copy.
+
+### Checking it
 
 ```bash
-mkdir -p backups
-docker compose exec -T postgres pg_dump -U bucketbook -d bucketbook --format=custom \
-  > "backups/bucketbook-$(date +%Y-%m-%d).dump"
+curl -s http://localhost:9951/api/health
 ```
 
-The custom format is compressed and lets you restore single tables if you ever need to.
-For a plain SQL file you can read, use `--format=plain` and name it `.sql` instead.
-
-### Receipts
+The `backup` part shows `status` (`ok`, `failed`, `stale` when the last success is
+more than two days old, or `none` before the first run), `lastSuccess`, `file` and,
+after a failure, `error`. Each run is also logged:
 
 ```bash
-docker run --rm -v bucketbook_receipts:/data:ro -v "$PWD/backups:/backup" alpine \
-  tar czf "/backup/receipts-$(date +%Y-%m-%d).tar.gz" -C /data .
+docker compose logs backup
 ```
 
-### Automating it
+### Backing up now
 
-A nightly cron entry on the Docker host, for example:
+Before an update, or whenever you like:
 
+```bash
+docker compose exec backup bucketbook-backup now
 ```
-15 2 * * * cd /path/to/bucketbook && docker compose exec -T postgres pg_dump -U bucketbook -d bucketbook --format=custom > backups/bucketbook-$(date +\%Y-\%m-\%d).dump
+
+It replaces today's file if there already is one. To see what's there:
+
+```bash
+docker compose exec backup bucketbook-backup list
 ```
 
-Copy the `backups` folder off the machine (another disk, a NAS, or cloud storage) and
-delete old files now and then. Test a restore once in a while; an untested backup is a
-hope, not a backup.
+### Why not just copy data/postgres?
+
+`data/postgres` holds the database's working files. Copying them while the database runs
+can catch them halfway through a write, and that copy may not start. The nightly
+`.sql.gz` file is always a complete, consistent snapshot, so restore from that. Backing
+up `data/postgres` as well does no harm, but you can exclude it to save space.
+
+The files in `data/postgres` belong to the database's user inside the container
+(uid 70), and only that user can read them. If your backup tool runs as your own user
+rather than root, it will report those files as unreadable; exclude `data/postgres` and
+rely on `backups/`. Everything in `backups/` belongs to the owner of the `backups`
+folder (you, if the installer made it) and only they can read it, since each file holds
+your whole set of books. Receipts belong to the app's user (uid 1001) and keep the
+`data/receipts` folder's group (yours, if the installer made it), which can read them.
 
 ## Restore
 
-Restoring replaces what is in the database now. Back up the current state first if
-there is anything in it you might want.
+Restoring replaces the whole database with the one in the backup file you choose.
 
-1. Stop the app so nothing writes during the restore (Postgres keeps running):
+1. Stop the app so nothing writes during the restore:
 
    ```bash
    docker compose stop app
    ```
 
-2. Restore the database. `--clean --if-exists` drops existing tables before recreating
-   them:
+2. Restore, naming a file from `backups/`:
 
    ```bash
-   docker compose exec -T postgres pg_restore -U bucketbook -d bucketbook \
-     --clean --if-exists --no-owner < backups/bucketbook-2026-11-17.dump
+   docker compose run --rm backup restore backups/bucketbook-2026-11-20.sql.gz
    ```
 
-   For a plain `.sql` backup instead:
+   It loads the file into a new, empty database first, and only swaps it in once the
+   whole file has loaded, so a damaged backup leaves your current data alone. The
+   database it replaces is saved first as `backups/before-restore-<date and time>.sql.gz`,
+   in case you picked the wrong file.
 
-   ```bash
-   docker compose exec -T postgres psql -U bucketbook -d bucketbook < backups/bucketbook-2026-11-17.sql
-   ```
+   It also restores `.dump` files (the `pg_dump --format=custom` copies that the 1.0.0 and 1.0.1
+   instructions made) and plain `.sql` files.
 
-3. Restore receipts:
-
-   ```bash
-   docker run --rm -v bucketbook_receipts:/data -v "$PWD/backups:/backup" alpine \
-     sh -c "rm -rf /data/* && tar xzf /backup/receipts-2026-11-17.tar.gz -C /data"
-   ```
-
-4. Put back the `.env` from the same backup if this is a new machine, then start the app:
+3. Start the app again:
 
    ```bash
    docker compose up -d
@@ -91,16 +125,61 @@ there is anything in it you might want.
    On start the app applies any migrations the backup is missing, so restoring an older
    backup into a newer version of the app works.
 
+Receipts aren't in the database. To get them back, restore `data/receipts` from your
+folder backup.
+
 ## Moving to a new server
 
-Back up on the old server, then copy the whole `bucketbook` folder (with its `.env` and
-`backups`) to the new one, then follow the restore steps (start with `docker compose up -d
-postgres` so the database exists before step 2).
+Copy the whole `bucketbook` folder to the new server, with Bucketbook stopped on the old
+one (`docker compose down`), then run `docker compose up -d` there. Copy it as root (or
+with `sudo`) so the database files keep their owners, for example:
+
+```bash
+sudo rsync -a old-server:/path/to/bucketbook/ /path/to/bucketbook/
+```
+
+Or copy only `.env`, `docker-compose.yml` and `backups/` (and `data/receipts`), start
+it with `docker compose up -d`, then follow the restore steps above.
+
+## Upgrading from 1.0.1 or earlier
+
+Bucketbook 1.0.0 and 1.0.1 kept the database and receipts in Docker volumes (`bucketbook_pgdata`
+and `bucketbook_receipts`), outside the folder, so folder backups missed them. The new
+`docker-compose.yml` won't start until the data is moved; it stops with a message
+pointing here.
+
+Run this once in your `bucketbook` folder:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/cbik6/bucketbook/main/scripts/move-data.sh | sh
+```
+
+[The script](../scripts/move-data.sh):
+
+1. Saves a backup of the database as `backups/before-move-<date>.sql.gz` and counts the
+   rows in every table.
+2. Downloads the new `docker-compose.yml` (keeping yours as `docker-compose.yml.old`)
+   and the new images.
+3. Stops Bucketbook and copies both volumes into `data/postgres` and `data/receipts`.
+4. Checks the copy file by file: same contents, owners and permissions.
+5. Adds `DATA_DIR=./data` to `.env`, starts the database on the new folder and checks
+   that every table has the same number of rows as before.
+6. Starts Bucketbook.
+7. Asks whether to remove the old volumes. They are only removed if you type `yes`;
+   otherwise it prints the command to remove them later.
+
+The old volumes are never changed. If a step fails, the script stops and prints the
+commands that put everything back as it was.
+
+If you changed the compose project name, put `COMPOSE_PROJECT_NAME=<name>` in front of
+`sh`.
 
 ## Starting over
 
-This deletes all data permanently:
+This deletes all data permanently. Stop Bucketbook, then remove the data folder (its
+files belong to the containers' users, hence `sudo`):
 
 ```bash
-docker compose down -v
+docker compose down
+sudo rm -rf data
 ```

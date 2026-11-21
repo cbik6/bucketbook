@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import { APP_NAME, APP_VERSION } from "@/lib/app-config";
+import { backupHealth } from "@/server/backup-status";
 import { getPool } from "@/server/db/client";
 import { appliedMigrationCount } from "@/server/db/migrate";
 import { jobsStarted } from "@/server/jobs/boss";
@@ -8,6 +9,7 @@ import { startupState } from "@/server/startup";
 /**
  * Health check for Docker and reverse proxies. 200 when the database answers
  * and startup (migrations) finished; 503 otherwise. Reveals no secrets.
+ * `backup` reports the nightly database backup but never makes the app unhealthy.
  */
 export async function GET() {
   await connection();
@@ -32,6 +34,7 @@ export async function GET() {
       database,
       migrations,
       jobs: jobsStarted() ? "running" : "stopped",
+      backup: await backupHealth(),
     },
     { status: healthy ? 200 : 503, headers: { "Cache-Control": "no-store" } },
   );

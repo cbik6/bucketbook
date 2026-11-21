@@ -60,14 +60,17 @@ curl -fsSL https://raw.githubusercontent.com/cbik6/bucketbook/main/install.sh | 
 ```
 
 It makes a `bucketbook` folder where you run it, puts `docker-compose.yml` and a `.env`
-settings file with fresh secrets in it, and starts the app and its database. In Docker
-(and Docker Desktop) they appear together as one group called **bucketbook**:
+settings file with fresh secrets in it, and starts the app, its database and a nightly
+backup. In Docker (and Docker Desktop) they appear together as one group called
+**bucketbook**. Everything Bucketbook keeps stays in that folder:
 
 ```
 bucketbook/
   docker-compose.yml
   .env              your settings and secrets: keep a copy somewhere safe
   .env.example      every setting explained
+  data/             the database and uploaded receipts
+  backups/          a copy of the database, made every night
 ```
 
 When it finishes it prints the address to open, for example `http://192.168.1.20:9951`.
@@ -85,12 +88,14 @@ You can read [the installer](install.sh) before running it; it's short.
 
 ### By hand
 
-1. Make a folder called `bucketbook` and download the two files into it:
+1. Make a folder called `bucketbook`, download the two files into it, and make the
+   folders for the data and backups:
 
    ```bash
    mkdir bucketbook && cd bucketbook
    curl -fsSLO https://raw.githubusercontent.com/cbik6/bucketbook/main/docker-compose.yml
    curl -fsSL https://raw.githubusercontent.com/cbik6/bucketbook/main/.env.example -o .env
+   mkdir -p data/postgres data/receipts backups
    ```
 
 2. Fill in the required values in `.env`:
@@ -128,15 +133,22 @@ Change `APP_PORT` in `.env`, and the port in `APP_URL` to match, then run
 
 ### Updating
 
-From the `bucketbook` folder, get the latest `docker-compose.yml`, then the new image:
+**From 1.0.1 or earlier:** those versions kept your data in Docker volumes, outside the folder. Move it into the
+folder once with the command in
+[Upgrading from 1.0.1 or earlier](docs/backup-restore.md#upgrading-from-101-or-earlier); it updates Bucketbook
+too.
+
+From the `bucketbook` folder, back up now, get the latest `docker-compose.yml`, then the
+new image:
 
 ```bash
+docker compose exec backup bucketbook-backup now
 curl -fsSLO https://raw.githubusercontent.com/cbik6/bucketbook/main/docker-compose.yml
 docker compose pull
 docker compose up -d
 ```
 
-Back up first (see [docs/backup-restore.md](docs/backup-restore.md)). The image
+The image
 `ghcr.io/cbik6/bucketbook:1` follows every 1.x release; to stay on one release, set
 `BUCKETBOOK_IMAGE=ghcr.io/cbik6/bucketbook:1.0.0` in `.env`.
 
@@ -301,10 +313,42 @@ Open a SQL prompt with `docker compose exec postgres psql -U bucketbook`.
 
 ## Backups
 
-Your data is in two Docker volumes: the database (`pgdata`) and uploaded receipts
-(`receipts`). [docs/backup-restore.md](docs/backup-restore.md) has copy-and-paste
-commands for both, plus how to restore. Also keep a copy of your `.env`: without
-`APP_ENCRYPTION_KEY` you would need to reconnect your bank feeds after a restore.
+**What to back up:** the whole `bucketbook` folder. Everything Bucketbook keeps is in
+it, so pointing Backrest, restic, Borg or any folder backup at it covers everything:
+
+| In the folder   | What it is                                                                                            |
+| --------------- | ----------------------------------------------------------------------------------------------------- |
+| `.env`          | Settings and secrets. Without `APP_ENCRYPTION_KEY` you'd have to reconnect your banks after a restore |
+| `backups/`      | A complete copy of the database from each of the last 14 nights                                       |
+| `data/receipts` | Uploaded receipts                                                                                     |
+| `data/postgres` | The database's working files (see below)                                                              |
+
+**Nightly copies:** the `backup` service saves the database at 02:00 every night as
+`backups/bucketbook-YYYY-MM-DD.sql.gz` and keeps the newest 14. Change that with
+`BACKUP_TIME` and `BACKUP_KEEP_DAYS` in `.env` (the time is in your `TZ`). Each file is
+written under a temporary name and only renamed once it's complete, so a backup tool
+never copies half a file. Schedule your folder backup for after 02:00 to pick up the
+same night's copy.
+
+**Restore from `backups/`, not `data/postgres`.** Copying the database's working files
+while it runs can catch them mid-write. The nightly file is always consistent. If your
+backup tool doesn't run as root it can't read `data/postgres` anyway (it belongs to the
+database's user), so exclude that folder.
+
+**Is it working?** `curl http://localhost:9951/api/health` shows the last backup's
+status and time, and `docker compose logs backup` shows each run. Back up right now
+with `docker compose exec backup bucketbook-backup now`.
+
+**Restore** a nightly file into a fresh database (your current one is saved first):
+
+```bash
+docker compose stop app
+docker compose run --rm backup restore backups/bucketbook-2026-11-20.sql.gz
+docker compose up -d
+```
+
+[docs/backup-restore.md](docs/backup-restore.md) has the details, moving to a new server,
+and moving an older install's data out of Docker volumes.
 
 ## Development
 
@@ -346,8 +390,9 @@ To open the dev server from another computer on your network, set `APP_URL` to
 ### Project layout
 
 ```
+docker/                 the image's entrypoint and the nightly backup (backup.mjs)
 drizzle/                SQL migrations (generated, committed, readable)
-scripts/                migrate, e2e runner, demo seed
+scripts/                migrate, e2e and backup tests, demo seed, data move for old installs
 src/app/                pages and API routes (Next.js App Router)
 src/components/         shared UI
 src/lib/                code shared by browser and server (money, account types)

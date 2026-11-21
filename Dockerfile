@@ -24,7 +24,10 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     RECEIPTS_DIR=/data/receipts
 
-RUN addgroup -S -g 1001 app \
+# su-exec drops from root to "app" at start (see docker/entrypoint.sh);
+# postgresql18-client gives the backup service a pg_dump that matches Postgres 18.
+RUN apk add --no-cache su-exec postgresql18-client \
+ && addgroup -S -g 1001 app \
  && adduser -S -u 1001 -G app app \
  && mkdir -p /data/receipts \
  && chown -R app:app /data
@@ -33,8 +36,12 @@ COPY --from=build --chown=app:app /app/.next/standalone ./
 COPY --from=build --chown=app:app /app/.next/static ./.next/static
 COPY --from=build --chown=app:app /app/public ./public
 COPY --from=build --chown=app:app /app/drizzle ./drizzle
+COPY docker/entrypoint.sh /usr/local/bin/bucketbook-entrypoint
+COPY docker/bucketbook-backup /usr/local/bin/bucketbook-backup
+COPY docker/backup.mjs /opt/bucketbook/backup.mjs
 
-USER app
+# The container starts as root so the entrypoint can fix the receipts folder's
+# owner; the app itself runs as "app" (uid 1001).
 EXPOSE 9951
 
 # Healthy once migrations ran and the database answers.
@@ -42,4 +49,5 @@ HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
   CMD wget -qO- "http://127.0.0.1:${PORT}/api/health" > /dev/null || exit 1
 
 # Startup (in instrumentation.ts) validates config and runs migrations first.
+ENTRYPOINT ["bucketbook-entrypoint"]
 CMD ["node", "server.js"]

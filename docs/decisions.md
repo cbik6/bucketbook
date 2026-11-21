@@ -626,3 +626,25 @@ dev server uses it too, so there is one port to know. 3000 clashed with too many
 self-hosted apps. The installer moves to the next free port when 9951 is taken; only
 `APP_PORT` (the port on the host) is meant to change. The container port is set in the
 image (`PORT`), and `docker-compose.yml` maps to it, so the two must change together.
+
+### D69. Data in the app folder, and nightly dumps inside the stack
+
+Home servers back up folders, so everything Bucketbook keeps lives in its folder:
+`data/postgres`, `data/receipts` and `backups/`, as bind mounts instead of named
+volumes. The paths come from `DATA_DIR` (required, so an older `.env` stops compose with a
+pointer to `scripts/move-data.sh` instead of starting on an empty database) and
+`BACKUP_DIR`.
+
+A database's working files copied while it runs aren't a dependable backup, so a
+`backup` service makes a nightly gzipped plain-SQL `pg_dump`. It uses the app's own
+image (which now carries `postgresql18-client`), so `pg_dump` always matches the bundled
+Postgres and there is nothing more to download or keep in step. It writes a `.partial`
+file, checks for pg_dump's closing line, renames, and keeps the newest
+`BACKUP_KEEP_DAYS` daily files. Its last outcome goes to `backups/.last-backup.json`,
+which the app reads (read-only mount) for `/api/health`; a failed backup never makes the
+app unhealthy. Restore loads into a new database and renames it into place, so a bad
+file never costs the current data.
+
+Ownership needs no manual step: Postgres's entrypoint makes its files belong to uid 70,
+and the app image starts as root, gives `data/receipts` to uid 1001 with the folder's
+existing group, then drops to that user with `su-exec`.

@@ -4,8 +4,10 @@
 #   curl -fsSL https://raw.githubusercontent.com/cbik6/bucketbook/main/install.sh | sh
 #
 # Makes a "bucketbook" folder where you run it, downloads docker-compose.yml and
-# .env.example into it, writes a .env with fresh secrets, and starts the app and
-# its database. In Docker they show up together as "bucketbook".
+# .env.example into it, writes a .env with fresh secrets, and starts the app, its
+# database and the nightly backup. In Docker they show up together as "bucketbook".
+# Everything they keep stays in that folder (data/ and backups/), so backing up the
+# folder backs up Bucketbook.
 #
 # Optional settings, for example `curl ... | BUCKETBOOK_PORT=8080 sh`:
 #   BUCKETBOOK_DIR   folder to install into (default: bucketbook)
@@ -29,10 +31,16 @@ docker info >/dev/null 2>&1 || fail "Docker isn't running, or this user can't us
 
 if [ -f "$DIR/.env" ]; then
   say "Bucketbook is already installed in $DIR."
-  say "To update it, run these in $DIR:"
-  say "  curl -fsSLO $SOURCE/docker-compose.yml"
-  say "  docker compose pull"
-  say "  docker compose up -d"
+  if grep -q '^DATA_DIR=' "$DIR/.env"; then
+    say "To update it, run these in $DIR:"
+    say "  curl -fsSLO $SOURCE/docker-compose.yml"
+    say "  docker compose pull"
+    say "  docker compose up -d"
+  else
+    say "It keeps its data in Docker volumes (version 1.0.1 or earlier). To update it and move the"
+    say "data into the folder, where folder backups pick it up, run this in $DIR:"
+    say "  curl -fsSL $SOURCE/scripts/move-data.sh | sh"
+  fi
   exit 0
 fi
 
@@ -112,6 +120,10 @@ cd "$DIR"
 fetch "$SOURCE/docker-compose.yml" docker-compose.yml
 fetch "$SOURCE/.env.example" .env.example
 
+# The database, receipts and nightly backups live here. The containers make the
+# files inside belong to their own users on first start.
+mkdir -p data/postgres data/receipts backups
+
 umask 077
 sed \
   -e "s|^APP_URL=.*|APP_URL=$URL|" \
@@ -120,6 +132,7 @@ sed \
   -e "s|^APP_ENCRYPTION_KEY=.*|APP_ENCRYPTION_KEY=$(secret_base64)|" \
   -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(secret_hex)|" \
   -e "s|^TZ=.*|TZ=$(this_timezone)|" \
+  -e "s|^DATA_DIR=.*|DATA_DIR=./data|" \
   .env.example >.env
 
 say "Starting Bucketbook (the first start downloads the images)..."
@@ -129,5 +142,7 @@ say ""
 say "Bucketbook is running. Open $URL to create your login and first book."
 say ""
 say "Your settings and secrets are in $(pwd)/.env. Keep a copy somewhere safe."
+say "The database is copied every night at 02:00 into $(pwd)/backups."
+say "Back up the whole $(pwd) folder to keep everything."
 say "If you'll open it by another address (a domain name, say), change APP_URL"
 say "in .env, then run:  cd $(pwd) && docker compose up -d"

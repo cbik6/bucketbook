@@ -6,6 +6,48 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-11-21
+
+### Added
+
+- **Nightly database backups.** A new `backup` service in `docker-compose.yml` saves the
+  database every night at 02:00 as `backups/bucketbook-YYYY-MM-DD.sql.gz` and keeps the
+  newest 14. Set `BACKUP_TIME` and `BACKUP_KEEP_DAYS` in `.env`. Each file is written
+  under a temporary name, checked, and only then renamed, so a backup tool never copies
+  half a file. A run missed while the machine was off happens when it comes back.
+- `/api/health` shows the last backup's status (`ok`, `failed`, `stale` or `none`),
+  time and file. Back up any time with `docker compose exec backup bucketbook-backup now`.
+- **Restore with one command:** `docker compose run --rm backup restore
+backups/<file>`. It loads the backup into a new database and swaps it in only once
+  it loaded completely, after saving the database it replaces.
+- `scripts/move-data.sh` moves the data of an install from 1.0.1 or earlier out of Docker volumes into the
+  folder, checking the copy, and never removes the old volumes unless you say so.
+
+### Changed
+
+- **Everything Bucketbook keeps is now in its folder:** the database in
+  `data/postgres`, receipts in `data/receipts`, and the nightly copies in `backups/`.
+  Backing up the `bucketbook` folder (with Backrest, restic, Borg or anything else) now
+  backs up Bucketbook. Before, the data was in Docker volumes that folder backups miss.
+- The installer makes those folders. The containers set the owners they need on first
+  start, so no `chmod` or `chown` is needed. Receipts keep the folder's group, so you
+  can read them without `sudo`.
+- The app image includes the Postgres 18 client tools, and the container starts as root
+  only to set up the receipts folder before running the app as its own user.
+
+### Upgrading from 1.0.1 or earlier
+
+The new `docker-compose.yml` needs the data moved first, and stops with a message
+until it is. In your `bucketbook` folder, run once:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/cbik6/bucketbook/main/scripts/move-data.sh | sh
+```
+
+It backs up, updates `docker-compose.yml` and the images, copies and checks the data,
+and starts Bucketbook on the new folders. See
+[Upgrading from 1.0.1 or earlier](docs/backup-restore.md#upgrading-from-101-or-earlier).
+
 ## [1.0.1] - 2026-11-21
 
 ### Changed

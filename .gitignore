@@ -55,3 +55,8 @@ next-env.d.ts
 
 # Design review screenshots (local only)
 /.impeccable/review/
+
+# A Docker install run from this folder keeps its data and backups here
+/data/
+/backups/
+/.dev-data/
