@@ -26,3 +26,17 @@ test("menus: the book switcher closes after choosing", async ({ page }) => {
   await expect(page.getByRole("menu")).toBeHidden();
   await expect(page.getByRole("heading", { name: "Chart of accounts" })).toBeVisible();
 });
+
+test("menus: the account menu and Book settings show the version", async ({ page }) => {
+  await signIn(page);
+  const version = page.getByRole("menuitem", { name: /^Bucketbook version \d+\.\d+\.\d+/ });
+  await page.getByRole("button", { name: /^Account:/ }).click();
+  await expect(version).toBeVisible();
+  await expect(version).toHaveAttribute("href", /CHANGELOG\.md$/);
+  await page.keyboard.press("Escape");
+
+  await expect(page.getByRole("menu")).toBeHidden();
+  const bookUrl = new URL(page.url()).pathname.split("/").slice(0, 3).join("/");
+  await page.goto(`${bookUrl}/settings`);
+  await expect(page.getByText(/^Bucketbook version$/)).toBeVisible();
+});

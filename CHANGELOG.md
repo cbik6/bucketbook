@@ -6,6 +6,11 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The version you're running is shown at the bottom of the account menu and in Book
+  settings, with a link to what's new.
+
 ### Fixed
 
 - The book switcher and the account menu close after you choose a book or People.

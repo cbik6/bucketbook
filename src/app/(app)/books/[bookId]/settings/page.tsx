@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { PageFallback, PageHeader } from "@/components/app-shell";
 import { BackupStatusPanel } from "@/components/backup-status";
 import { backupHealth } from "@/server/backup-status";
+import { APP_NAME, APP_VERSION, CHANGELOG_URL } from "@/lib/app-config";
 import { CHART_TEMPLATES } from "@/server/accounts/templates";
 import { loadBookForPage } from "@/server/guards";
 import { getDb } from "@/server/db/client";
@@ -57,6 +58,18 @@ async function SettingsContent({ params }: PageProps<"/books/[bookId]/settings">
             <dd>{book.currencyCode}</dd>
             <dt className="text-ink-muted">Started from</dt>
             <dd>{CHART_TEMPLATES[book.template as keyof typeof CHART_TEMPLATES]?.label}</dd>
+            <dt className="text-ink-muted">{APP_NAME} version</dt>
+            <dd>
+              <span className="tabular">{APP_VERSION}</span>{" "}
+              <a
+                href={CHANGELOG_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="text-signal-ink underline underline-offset-2"
+              >
+                What&apos;s new
+              </a>
+            </dd>
           </dl>
           <p className="mt-4 text-[0.8125rem] text-ink-muted">
             The start date is fixed once the book is created: opening balances are as of that day.

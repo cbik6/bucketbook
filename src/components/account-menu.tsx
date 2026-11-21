@@ -1,10 +1,11 @@
 "use client";
 
 import { Menu } from "@base-ui/react/menu";
-import { Check, ChevronsUpDown, LogOut, Users } from "lucide-react";
+import { Check, ChevronsUpDown, ExternalLink, LogOut, Users } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { signOutAction } from "@/app/(auth)/login/actions";
+import { APP_NAME, APP_VERSION, CHANGELOG_URL } from "@/lib/app-config";
 import { THEME_OPTIONS, useTheme } from "./theme-toggle";
 
 const itemClass =
@@ -12,7 +13,7 @@ const itemClass =
 
 /**
  * Who is signed in, as one button at the foot of the rail. Its menu holds the
- * rarely used things: theme, People (admins), and signing out.
+ * rarely used things: theme, People (admins), signing out, and the version.
  */
 export function AccountMenu({
   name,
@@ -87,6 +88,19 @@ export function AccountMenu({
               <LogOut size={15} aria-hidden className="text-ink-muted" />
               {signingOut ? "Signing out" : "Sign out"}
             </Menu.Item>
+            <Menu.Separator className="my-1.5 h-px bg-rule" />
+            <Menu.LinkItem
+              closeOnClick
+              render={<a href={CHANGELOG_URL} target="_blank" rel="noreferrer" />}
+              aria-label={`${APP_NAME} version ${APP_VERSION}: what's new (opens in a new tab)`}
+              className={`${itemClass} text-[0.8125rem] text-ink-muted`}
+            >
+              <span className="flex-1 tabular">Version {APP_VERSION}</span>
+              <span className="flex items-center gap-1">
+                What&apos;s new
+                <ExternalLink size={13} aria-hidden />
+              </span>
+            </Menu.LinkItem>
           </Menu.Popup>
         </Menu.Positioner>
       </Menu.Portal>
