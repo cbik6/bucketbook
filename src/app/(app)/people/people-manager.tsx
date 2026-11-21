@@ -117,22 +117,24 @@ function AccessPicker({
     <div className="flex flex-col divide-y divide-rule rounded-lg border border-rule">
       {books.map((b) => (
         <div key={b.id} className="flex items-center justify-between gap-3 px-3 py-2">
-          <label htmlFor={`${idPrefix}-${b.id}`} className="min-w-0 truncate text-sm">
+          <label htmlFor={`${idPrefix}-${b.id}`} className="min-w-0 flex-1 truncate text-sm">
             {b.name}
             {b.archived ? <span className="text-ink-muted"> (archived)</span> : null}
           </label>
-          <SelectInput
-            id={`${idPrefix}-${b.id}`}
-            value={value[b.id] ?? "none"}
-            onChange={(e) => onChange({ ...value, [b.id]: e.target.value as Choice })}
-            className="h-9 w-36 shrink-0"
-          >
-            {ROLE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </SelectInput>
+          {/* The wrapper sets the width: SelectInput is full width by design. */}
+          <div className="w-36 shrink-0">
+            <SelectInput
+              id={`${idPrefix}-${b.id}`}
+              value={value[b.id] ?? "none"}
+              onChange={(e) => onChange({ ...value, [b.id]: e.target.value as Choice })}
+            >
+              {ROLE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </SelectInput>
+          </div>
         </div>
       ))}
     </div>
