@@ -3,6 +3,7 @@ import path from "node:path";
 import { and, asc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { BOOK_TEMPLATES, type BookRole, type BookTemplate } from "@/lib/account-types";
+import { isSyncEveryHours } from "@/lib/bank-sync";
 import { insertTemplateAccounts } from "../accounts/service";
 import { CHART_TEMPLATES } from "../accounts/templates";
 import { recordAudit } from "../audit/record";
@@ -181,6 +182,48 @@ export async function setPostToParents(
         action: "update",
         before: { postToParents: before.postToParents },
         after: { postToParents: allowed },
+      });
+    }
+    return after!;
+  });
+}
+
+/**
+ * How often the book's bank connections sync, and the hour of the day's first
+ * sync. Owners only, like connecting a bank. The caller updates the job schedules.
+ */
+export async function setBankSync(
+  db: Database,
+  actor: { userId: string },
+  bookId: string,
+  input: { everyHours: unknown; hour: unknown },
+): Promise<BookRow> {
+  const everyHours = Number(input.everyHours);
+  const hour = Number(input.hour);
+  if (!isSyncEveryHours(everyHours))
+    throw new UserFacingError("Pick how often to sync.", "everyHours");
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
+    throw new UserFacingError("Pick a time.", "hour");
+  }
+  return db.transaction(async (tx) => {
+    const before = await requireBookAccess(tx, actor.userId, bookId, "owner");
+    const [after] = await tx
+      .update(books)
+      .set({ bankSyncEveryHours: everyHours, bankSyncHour: hour })
+      .where(eq(books.id, bookId))
+      .returning();
+    if (before.bankSyncEveryHours !== everyHours || before.bankSyncHour !== hour) {
+      await recordAudit(tx, {
+        bookId,
+        userId: actor.userId,
+        entityType: "book",
+        entityId: bookId,
+        action: "update",
+        before: {
+          bankSyncEveryHours: before.bankSyncEveryHours,
+          bankSyncHour: before.bankSyncHour,
+        },
+        after: { bankSyncEveryHours: everyHours, bankSyncHour: hour },
       });
     }
     return after!;

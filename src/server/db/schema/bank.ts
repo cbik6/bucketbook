@@ -39,8 +39,10 @@ export const simplefinConnections = pgTable(
     label: text("label").notNull(),
     accessUrlCiphertext: text("access_url_ciphertext").notNull(),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
-    /** Daily sync time, in the server's time zone. The minute is random so installs spread out. */
-    syncHour: integer("sync_hour").notNull().default(6),
+    /**
+     * The minute past the hour it syncs; random so installs spread out. How often
+     * and from what hour are the book's (books.bank_sync_*).
+     */
     syncMinute: integer("sync_minute").notNull().default(17),
     /** Set while a sync runs, so a scheduled and a manual sync never overlap. */
     syncStartedAt: timestamp("sync_started_at", { withTimezone: true }),
@@ -57,7 +59,6 @@ export const simplefinConnections = pgTable(
   (t) => [
     unique("simplefin_connections_book_id_id_key").on(t.bookId, t.id),
     index("simplefin_connections_book_idx").on(t.bookId),
-    check("simplefin_connections_sync_hour", sql`${t.syncHour} between 0 and 23`),
     check("simplefin_connections_sync_minute", sql`${t.syncMinute} between 0 and 59`),
     check(
       "simplefin_connections_status_check",

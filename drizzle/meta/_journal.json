@@ -113,6 +113,13 @@
       "when": 1795128736180,
       "tag": "0015_book_post_to_parents",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1795231128945,
+      "tag": "0016_book_bank_sync",
+      "breakpoints": true
     }
   ]
 }

@@ -4,7 +4,14 @@ import { Suspense } from "react";
 import { PageFallback, PageHeader } from "@/components/app-shell";
 import { CHART_TEMPLATES } from "@/server/accounts/templates";
 import { loadBookForPage } from "@/server/guards";
-import { ArchiveBookControl, DeleteBookControl, RenameBookForm } from "./settings-forms";
+import { getDb } from "@/server/db/client";
+import { bookHasConnection } from "@/server/simplefin/service";
+import {
+  ArchiveBookControl,
+  BankSyncForm,
+  DeleteBookControl,
+  RenameBookForm,
+} from "./settings-forms";
 
 export const metadata: Metadata = { title: "Book settings" };
 
@@ -16,6 +23,8 @@ async function SettingsContent({ params }: PageProps<"/books/[bookId]/settings">
   const { bookId } = await params;
   const { book } = await loadBookForPage(bookId);
   const isOwner = book.role === "owner";
+  const timeZone = process.env.TZ || "UTC";
+  const connections = await bookHasConnection(getDb(), book.id);
 
   return (
     <>
@@ -49,6 +58,26 @@ async function SettingsContent({ params }: PageProps<"/books/[bookId]/settings">
           <p className="mt-4 text-[0.8125rem] text-ink-muted">
             The start date is fixed once the book is created: opening balances are as of that day.
           </p>
+        </section>
+
+        <section className="py-8" aria-labelledby="bank-sync-heading">
+          <h2 id="bank-sync-heading" className="mb-1 scroll-mt-20 text-base font-semibold">
+            Bank sync
+          </h2>
+          <p className="mb-4 max-w-prose text-sm text-ink-muted">
+            {connections
+              ? "How often Bucketbook asks SimpleFIN for new transactions from this book's banks."
+              : "How often Bucketbook will ask SimpleFIN for new transactions once a bank is connected to this book."}{" "}
+            Banks usually send SimpleFIN new transactions about once a day, so syncing more often
+            mostly finds them sooner. SimpleFIN allows about 24 requests a day.
+          </p>
+          <BankSyncForm
+            bookId={book.id}
+            everyHours={book.bankSyncEveryHours}
+            hour={book.bankSyncHour}
+            timeZone={timeZone}
+            canEdit={isOwner}
+          />
         </section>
 
         <section className="py-8" aria-labelledby="archive-heading">

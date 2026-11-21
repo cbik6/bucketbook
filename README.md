@@ -206,8 +206,9 @@ a small paid service that connects to most US banks and credit cards.
    set from the bank's balance that day.
 4. Press **Sync now**. Each account brings in transactions from the day you connected it,
    so enter its balance on that day as its opening balance (the Bank connections page
-   shows the bank's balance). After that it syncs once a day at the hour you pick (in the
-   server's `TZ`).
+   shows the bank's balance). After that it syncs on the schedule in **Book settings**:
+   once a day by default, or up to every 4 hours, starting at the hour you pick (in the
+   server's `TZ`), or only when you press Sync now.
 
 New transactions wait in **For review** in each book, laid out like a bank feed: a card
 for each bank account (the bank's balance next to the balance in your books), then a

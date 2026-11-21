@@ -22,7 +22,7 @@ import {
   restoreItem,
 } from "@/server/bank/review-service";
 import { createRule, listRules } from "@/server/bank/rules-service";
-import { createBook } from "@/server/books/service";
+import { createBook, setBankSync } from "@/server/books/service";
 import { getDb } from "@/server/db/client";
 import { bankFeeds, bankTransactions, bookMembers, simplefinConnections } from "@/server/db/schema";
 import { accountNetCents } from "@/server/ledger/queries";
@@ -33,7 +33,6 @@ import {
   listConnections,
   mapFeed,
   runSync,
-  setSyncTime,
 } from "@/server/simplefin/service";
 import { addMoneyAccounts, makeUser, setupCleanDatabase } from "./helpers";
 
@@ -461,7 +460,9 @@ describe("connections belong to one book", () => {
       now: NOW,
     });
     expect(result.newCount).toBe(1);
-    await expect(setSyncTime(getDb(), { userId: editor.id }, conn.id, 9)).rejects.toThrow();
+    await expect(
+      setBankSync(getDb(), { userId: editor.id }, home.bookId, { everyHours: 6, hour: 9 }),
+    ).rejects.toThrow();
     await expect(disconnectSimplefin(getDb(), { userId: editor.id }, conn.id)).rejects.toThrow();
 
     // Viewer and outsider: nothing.
@@ -473,7 +474,12 @@ describe("connections belong to one book", () => {
       runSync(getDb(), conn.id, { trigger: "manual", userId: stranger.id }),
     ).rejects.toThrow(/not found|connection|book/i);
 
-    await setSyncTime(getDb(), home.actor, conn.id, 9);
+    await setBankSync(getDb(), home.actor, home.bookId, { everyHours: 6, hour: 9 });
+    const [view] = await listConnections(getDb(), home.user.id, home.bookId);
+    expect([view!.syncEveryHours, view!.syncHour]).toEqual([6, 9]);
+    await expect(
+      setBankSync(getDb(), home.actor, home.bookId, { everyHours: 1, hour: 9 }),
+    ).rejects.toThrow(/how often/);
     await disconnectSimplefin(getDb(), home.actor, conn.id);
     expect(await listConnections(getDb(), home.user.id, home.bookId)).toEqual([]);
   });

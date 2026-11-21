@@ -17,11 +17,18 @@ All notable changes to this project are listed here. The format follows
   half a file. A run missed while the machine was off happens when it comes back.
 - `/api/health` shows the last backup's status (`ok`, `failed`, `stale` or `none`),
   time and file. Back up any time with `docker compose exec backup bucketbook-backup now`.
-- **Restore with one command:** `docker compose run --rm backup restore
-backups/<file>`. It loads the backup into a new database and swaps it in only once
-  it loaded completely, after saving the database it replaces.
-- `scripts/move-data.sh` moves the data of an install from 1.0.1 or earlier out of Docker volumes into the
-  folder, checking the copy, and never removes the old volumes unless you say so.
+- **Restore with one command:**
+  `docker compose run --rm backup restore backups/<file>` loads the backup into a new
+  database and swaps it in only once it loaded completely, after saving the database it
+  replaces.
+- `scripts/move-data.sh` moves the data of an install from 1.0.1 or earlier out of
+  Docker volumes into the folder, checking the copy, and never removes the old volumes
+  unless you say so.
+- **How often banks sync, in Book settings.** A new Bank sync section sets how often the
+  book's bank connections sync (once a day, twice a day, every 6 hours, every 4 hours,
+  or manually, only when you press Sync now) and the time of the first sync. It replaces the
+  daily sync time on the Bank connections page, which now says when the next syncs run
+  and links there. Each book keeps the hour its connection used before.
 
 ### Changed
 
@@ -34,6 +41,11 @@ backups/<file>`. It loads the backup into a new database and swaps it in only on
   can read them without `sudo`.
 - The app image includes the Postgres 18 client tools, and the container starts as root
   only to set up the receipts folder before running the app as its own user.
+
+### Fixed
+
+- On People, each book's name shows beside its role menu again when inviting someone or
+  changing their access. The menu had stretched across the row and hidden the name.
 
 ### Upgrading from 1.0.1 or earlier
 

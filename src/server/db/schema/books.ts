@@ -5,6 +5,7 @@ import {
   check,
   date,
   index,
+  integer,
   pgTable,
   primaryKey,
   text,
@@ -31,6 +32,13 @@ export const books = pgTable(
      * rules and review choices must use one of the sub-accounts.
      */
     postToParents: boolean("post_to_parents").notNull().default(true),
+    /**
+     * How often its bank connections sync: every 24, 12, 6 or 4 hours, or 0 for
+     * only when someone presses Sync now (see src/lib/bank-sync.ts).
+     */
+    bankSyncEveryHours: integer("bank_sync_every_hours").notNull().default(24),
+    /** The first sync of the day, in the server's time zone. */
+    bankSyncHour: integer("bank_sync_hour").notNull().default(6),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -42,6 +50,8 @@ export const books = pgTable(
     check("books_template_check", inList(t.template, BOOK_TEMPLATES)),
     check("books_currency_code_check", sql`${t.currencyCode} ~ '^[A-Z]{3}$'`),
     check("books_name_not_blank", sql`length(trim(${t.name})) > 0`),
+    check("books_bank_sync_every_hours_check", sql`${t.bankSyncEveryHours} in (0, 4, 6, 12, 24)`),
+    check("books_bank_sync_hour_check", sql`${t.bankSyncHour} between 0 and 23`),
   ],
 );
 

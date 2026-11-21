@@ -1,13 +1,15 @@
 import type { PgBoss } from "pg-boss";
 import { getDb } from "../db/client";
 import { runMonthlyRules } from "../buckets/service";
+import { syncCron } from "@/lib/bank-sync";
 import { allConnectionSchedules, runSync } from "../simplefin/service";
 import { getBoss } from "./boss";
 
 /**
- * Scheduled jobs: the daily SimpleFIN sync and monthly bucket allocations.
- * Each SimpleFIN connection gets its own schedule (keyed by
- * connection id) at its chosen hour and a random minute, in the server's TZ.
+ * Scheduled jobs: the SimpleFIN sync and monthly bucket allocations. Each
+ * SimpleFIN connection gets its own schedule (keyed by connection id) from its
+ * book's setting (how often, from which hour) at the connection's random
+ * minute, in the server's TZ. A book set to sync only on request has none.
  */
 export const SYNC_QUEUE = "simplefin-sync";
 export const MONTHLY_QUEUE = "bucket-monthly";
@@ -39,17 +41,20 @@ export async function registerSimplefinJobs(boss: PgBoss) {
   await boss.schedule(MONTHLY_QUEUE, "10 1 * * *", null, { tz: process.env.TZ || "UTC" });
 }
 
-/** Makes the schedules match the connections: add, move, or remove. */
+/** Makes the schedules match the connections and their books: add, move, or remove. */
 export async function syncSchedules(boss?: PgBoss | null) {
   const b = boss ?? getBoss();
   if (!b) return;
   const tz = process.env.TZ || "UTC";
   const connections = await allConnectionSchedules(getDb());
-  const wanted = new Set(connections.map((c) => c.id));
+  const wanted = new Set<string>();
   for (const c of connections) {
+    const cron = syncCron(c.everyHours, c.hour, c.minute);
+    if (!cron) continue;
+    wanted.add(c.id);
     await b.schedule(
       SYNC_QUEUE,
-      `${c.syncMinute} ${c.syncHour} * * *`,
+      cron,
       { connectionId: c.id },
       { key: c.id, tz, singletonKey: c.id },
     );

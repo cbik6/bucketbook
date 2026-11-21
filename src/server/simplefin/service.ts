@@ -148,7 +148,6 @@ export async function connectSimplefin(
         label,
         accessUrlCiphertext: encryptSecret(accessUrl, encryptionKey()),
         createdBy: actor.userId,
-        syncHour: 6,
         syncMinute: randomInt(0, 60),
         lastSyncAt: new Date(),
         lastSyncStatus: set.messages.length ? "warning" : "ok",
@@ -224,6 +223,8 @@ export type FeedView = {
 export type ConnectionView = {
   id: string;
   label: string;
+  /** The book's schedule (books.bank_sync_*), shown with each connection. */
+  syncEveryHours: number;
   syncHour: number;
   syncMinute: number;
   lastSyncAt: Date | null;
@@ -304,7 +305,8 @@ export async function listConnections(
   return conns.map((c) => ({
     id: c.id,
     label: c.label,
-    syncHour: c.syncHour,
+    syncEveryHours: book.bankSyncEveryHours,
+    syncHour: book.bankSyncHour,
     syncMinute: c.syncMinute,
     lastSyncAt: c.lastSyncAt,
     lastSyncStatus: c.lastSyncStatus,
@@ -484,19 +486,6 @@ export async function mapFeed(db: Database, actor: Actor, feedId: string, raw: u
     }
     throw err;
   }
-}
-
-export async function setSyncTime(db: Database, actor: Actor, connectionId: string, hour: number) {
-  if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
-    throw new UserFacingError("Pick an hour.", "syncHour");
-  }
-  await loadConnection(db, actor.userId, connectionId, "owner");
-  const [after] = await db
-    .update(simplefinConnections)
-    .set({ syncHour: hour })
-    .where(eq(simplefinConnections.id, connectionId))
-    .returning();
-  return after!;
 }
 
 /** Removes the connection and its stored Access URL. Transactions already imported stay. */
@@ -931,15 +920,27 @@ async function applyWindow(
   });
 }
 
-/** Connections whose daily sync is due, for the job scheduler. */
+/** Whether any bank is connected to the book (for Book settings' wording). */
+export async function bookHasConnection(db: DbOrTx, bookId: string): Promise<boolean> {
+  const rows = await db
+    .select({ id: simplefinConnections.id })
+    .from(simplefinConnections)
+    .where(eq(simplefinConnections.bookId, bookId))
+    .limit(1);
+  return rows.length > 0;
+}
+
+/** Every connection with its book's sync schedule, for the job scheduler. */
 export async function allConnectionSchedules(db: DbOrTx) {
   return db
     .select({
       id: simplefinConnections.id,
-      syncHour: simplefinConnections.syncHour,
-      syncMinute: simplefinConnections.syncMinute,
+      everyHours: books.bankSyncEveryHours,
+      hour: books.bankSyncHour,
+      minute: simplefinConnections.syncMinute,
     })
-    .from(simplefinConnections);
+    .from(simplefinConnections)
+    .innerJoin(books, eq(books.id, simplefinConnections.bookId));
 }
 
 /**

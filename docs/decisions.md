@@ -648,3 +648,14 @@ file never costs the current data.
 Ownership needs no manual step: Postgres's entrypoint makes its files belong to uid 70,
 and the app image starts as root, gives `data/receipts` to uid 1001 with the folder's
 existing group, then drops to that user with `su-exec`.
+
+### D70. Bank sync schedule per book
+
+How often bank connections sync is a book setting (Book settings, Bank sync) rather than
+a per-connection hour: owners think of "how often does this book update", and one place
+avoids two settings that disagree. The choices divide the day evenly from a start hour
+(every 24, 12, 6 or 4 hours) or turn scheduled syncs off. Every 4 hours is the most
+frequent because SimpleFIN asks apps to stay around 24 requests a day and manual syncs
+count too; banks usually update SimpleFIN about daily anyway. Each connection keeps its
+own random minute so installs don't all call the bridge at once. Owners only, like
+connecting a bank.

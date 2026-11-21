@@ -4,7 +4,14 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { type ActionState, actionError, formValues } from "@/server/action-state";
 import { requireUser } from "@/server/auth/session";
-import { createBook, deleteBook, renameBook, setBookArchived } from "@/server/books/service";
+import {
+  createBook,
+  deleteBook,
+  renameBook,
+  setBankSync,
+  setBookArchived,
+} from "@/server/books/service";
+import { describeSync } from "@/lib/bank-sync";
 import { getDb } from "@/server/db/client";
 import { syncSchedules } from "@/server/jobs/simplefin";
 import { serverToday } from "@/server/ledger/page-data";
@@ -44,6 +51,26 @@ export async function renameBookAction(
     return { success: `Renamed to ${book.name}.`, values: { name: book.name } };
   } catch (err) {
     return actionError(err, values);
+  }
+}
+
+export async function setBankSyncAction(
+  bookId: string,
+  everyHours: number,
+  hour: number,
+): Promise<ActionState> {
+  try {
+    const user = await requireUser();
+    const book = await setBankSync(getDb(), { userId: user.id }, bookId, { everyHours, hour });
+    await syncSchedules().catch((err: Error) =>
+      console.error("[jobs] schedule update failed:", err.message),
+    );
+    refresh();
+    return {
+      success: `Bank accounts sync ${describeSync(book.bankSyncEveryHours, book.bankSyncHour)}.`,
+    };
+  } catch (err) {
+    return actionError(err);
   }
 }
 

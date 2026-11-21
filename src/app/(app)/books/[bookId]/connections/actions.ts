@@ -14,7 +14,6 @@ import {
   openingFromBank,
   mapFeed,
   runSync,
-  setSyncTime,
 } from "@/server/simplefin/service";
 
 // Book roles are checked in the service: editors map and sync, owners connect.
@@ -113,18 +112,6 @@ export async function mapFeedAction(
             ? "This account will be ignored."
             : "Mapping removed.",
     };
-  } catch (err) {
-    return actionError(err);
-  }
-}
-
-export async function setSyncTimeAction(connectionId: string, hour: number): Promise<ActionState> {
-  try {
-    const a = await actor();
-    await setSyncTime(getDb(), a, connectionId, hour);
-    await refreshSchedules();
-    revalidate();
-    return { success: "Sync time saved." };
   } catch (err) {
     return actionError(err);
   }

@@ -9,18 +9,13 @@ import { Money } from "@/components/money";
 import { Button } from "@/components/ui/button";
 import { Field, FormError, SelectInput, TextInput, inputClass } from "@/components/ui/field";
 import { HoldButton } from "@/components/ui/hold-button";
+import { describeSync } from "@/lib/bank-sync";
 import { formatDay } from "@/lib/dates";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { ConnectionView, FeedView } from "@/server/simplefin/service";
 import { NEW_KINDS, type NewKind, guessKind, startingName } from "./feed-helpers";
 import { SetupGuide } from "./setup-guide";
-import {
-  connectAction,
-  disconnectAction,
-  mapFeedAction,
-  setSyncTimeAction,
-  syncNowAction,
-} from "./actions";
+import { connectAction, disconnectAction, mapFeedAction, syncNowAction } from "./actions";
 
 export type MappingTarget = {
   id: string;
@@ -30,7 +25,11 @@ export type MappingTarget = {
 
 const DEMO_URL = "https://demo:demo@beta-bridge.simplefin.org/simplefin";
 
-const hourLabel = (h: number) => `${h % 12 === 0 ? 12 : h % 12}:00 ${h < 12 ? "AM" : "PM"}`;
+function syncSummary(c: ConnectionView, timeZone: string) {
+  return c.syncEveryHours
+    ? `Syncs ${describeSync(c.syncEveryHours, c.syncHour)} (${timeZone}).`
+    : "Syncs only when someone presses Sync now.";
+}
 
 function when(date: Date | null, timeZone: string) {
   if (!date) return "never";
@@ -178,7 +177,7 @@ export function ConnectionCard({
   connection: ConnectionView;
   target: MappingTarget;
   timeZone: string;
-  /** Owners choose the sync time and can disconnect. */
+  /** Owners can disconnect (and choose the sync schedule in Book settings). */
   isOwner: boolean;
   /** Open the setup guide straight away (right after connecting). */
   autoSetup?: boolean;
@@ -285,29 +284,15 @@ export function ConnectionCard({
 
       {isOwner ? (
         <div className="flex flex-col gap-3 border-t border-rule pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <label className="flex items-center gap-2 text-sm text-ink">
-            Sync every day at
-            <span className="w-32">
-              <SelectInput
-                defaultValue={connection.syncHour}
-                onChange={(e) => {
-                  const hour = Number(e.target.value);
-                  startOther(async () => {
-                    const r = await setSyncTimeAction(connection.id, hour);
-                    if (r.error) toast.error(r.error);
-                    else toast.success(`Syncing daily at ${hourLabel(hour)} (${timeZone}).`);
-                  });
-                }}
-              >
-                {Array.from({ length: 24 }, (_, h) => (
-                  <option key={h} value={h}>
-                    {hourLabel(h)}
-                  </option>
-                ))}
-              </SelectInput>
-            </span>
-            <span className="text-ink-muted">{timeZone}</span>
-          </label>
+          <p className="text-sm text-ink-muted">
+            {syncSummary(connection, timeZone)}{" "}
+            <Link
+              href={`/books/${target.id}/settings#bank-sync-heading`}
+              className="text-signal-ink underline underline-offset-2"
+            >
+              Change in Book settings
+            </Link>
+          </p>
           <HoldButton
             label="Disconnect"
             onConfirm={() =>
@@ -321,7 +306,7 @@ export function ConnectionCard({
         </div>
       ) : (
         <p className="border-t border-rule pt-4 text-sm text-ink-muted">
-          Syncs every day at {hourLabel(connection.syncHour)} ({timeZone}).
+          {syncSummary(connection, timeZone)}
         </p>
       )}
     </section>
