@@ -13,11 +13,14 @@
 #   BUCKETBOOK_DIR   folder to install into (default: bucketbook)
 #   BUCKETBOOK_PORT  port on this machine (default: 9951, or the next free one)
 #   BUCKETBOOK_URL   address people will type (default: http://<this machine's IP>:<port>)
+#   BUCKETBOOK_NEW   1 to start a new, empty install even though this machine has
+#                    data from an earlier one (that data is left alone)
 set -eu
 
 SOURCE="${BUCKETBOOK_SOURCE:-https://raw.githubusercontent.com/cbik6/bucketbook/main}"
 DIR="${BUCKETBOOK_DIR:-bucketbook}"
 PORT="${BUCKETBOOK_PORT:-}"
+PROJECT="${COMPOSE_PROJECT_NAME:-bucketbook}"
 
 say() { printf '%s\n' "$*"; }
 fail() {
@@ -42,6 +45,28 @@ if [ -f "$DIR/.env" ]; then
     say "  curl -fsSL $SOURCE/scripts/move-data.sh | sh"
     say "It backs up first and keeps your data; don't delete $DIR or its Docker volumes."
   fi
+  exit 0
+fi
+
+# Bucketbook already installed somewhere else on this machine? A second install under
+# the same name would take over its containers, so point to the update steps instead.
+existing=$(docker ps -a --filter "label=com.docker.compose.project=$PROJECT" \
+  --format '{{.Label "com.docker.compose.project.working_dir"}}' 2>/dev/null | head -n 1)
+if [ -n "$existing" ] && [ "${BUCKETBOOK_NEW:-}" != 1 ]; then
+  say "Bucketbook is already installed on this machine, in $existing"
+  say "To update it and keep your books, go to that folder:"
+  say "  cd \"$existing\""
+  say "and follow \"Updating without losing data\" in the README:"
+  say "  https://github.com/cbik6/bucketbook#updating-without-losing-data"
+  exit 0
+fi
+# Data from an earlier install (1.0.1 or earlier kept it in Docker volumes).
+if docker volume inspect "${PROJECT}_pgdata" >/dev/null 2>&1 && [ "${BUCKETBOOK_NEW:-}" != 1 ]; then
+  say "This machine has books from an earlier Bucketbook install (the Docker volume ${PROJECT}_pgdata)."
+  say "To keep them, update that install instead: in its folder (the one with its .env), run"
+  say "  curl -fsSL $SOURCE/scripts/move-data.sh | sh"
+  say "To start a new, empty install anyway (the old data is left alone), run this again"
+  say "with BUCKETBOOK_NEW=1 in front of sh."
   exit 0
 fi
 
@@ -136,7 +161,13 @@ sed \
   -e "s|^DATA_DIR=.*|DATA_DIR=./data|" \
   .env.example >.env
 
-say "Starting Bucketbook (the first start downloads the images)..."
+say "Downloading Bucketbook..."
+# Always get the current images: an older copy may already be on this machine
+# under the same tag, from an earlier install.
+if [ "${BUCKETBOOK_SKIP_PULL:-}" != 1 ]; then
+  docker compose pull --quiet || fail "couldn't download the images. Check the internet connection and run this again."
+fi
+say "Starting Bucketbook..."
 docker compose up -d --wait --wait-timeout 300
 
 say ""

@@ -107,9 +107,11 @@ You can read [the installer](install.sh) before running it; it's short.
    | `APP_ENCRYPTION_KEY` | Output of `openssl rand -base64 32` (a different value)                                                       |
    | `POSTGRES_PASSWORD`  | Output of `openssl rand -hex 24`                                                                              |
 
-3. Start it:
+3. Download the images and start it (pulling first makes sure an older copy already on
+   this machine isn't used):
 
    ```bash
+   docker compose pull
    docker compose up -d
    ```
 

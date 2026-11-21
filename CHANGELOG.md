@@ -6,6 +6,16 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The installer downloads the current images before starting. A machine with an older
+  Bucketbook image from an earlier install started that old version, and the backup
+  service failed with "bucketbook-backup: executable file not found".
+- The installer no longer takes over an install that already exists elsewhere on the
+  machine, or ignores books left in an earlier install's Docker volumes. It says where
+  the existing install is and how to update it; `BUCKETBOOK_NEW=1` starts a new, empty
+  install anyway.
+
 ## [1.0.2] - 2026-11-21
 
 ### Added
