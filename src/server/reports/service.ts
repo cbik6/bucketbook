@@ -347,6 +347,68 @@ export async function spendingByMonth(
   };
 }
 
+export type PayeeSpending = {
+  /** The payee on the Payees list, or null for text that isn't one (or no payee). */
+  payeeId: string | null;
+  name: string;
+  entryCount: number;
+  /** Net of expense lines: spending, less refunds. */
+  spentCents: number;
+  /** Net of income lines. */
+  receivedCents: number;
+};
+
+/**
+ * Spending and income by payee for a range. Entries whose payee isn't on the
+ * Payees list group by their payee text; entries with none group as "No payee".
+ * Reversed entries and their reversals cancel, so both are left out.
+ */
+export async function spendingByPayee(
+  db: DbOrTx,
+  bookId: string,
+  range: { from: string; to: string },
+): Promise<PayeeSpending[]> {
+  const result = await db.execute<{
+    payee_id: string | null;
+    name: string | null;
+    entries: number;
+    spent: string;
+    received: string;
+  }>(sql`
+    select e.payee_id,
+           coalesce(p.name, min(btrim(e.payee))) as name,
+           count(distinct e.id)::int as entries,
+           coalesce(sum(l.net_cents) filter (where a.type = 'expense'), 0)::text as spent,
+           coalesce(-sum(l.net_cents) filter (where a.type = 'income'), 0)::text as received
+    from ledger_lines l
+    join journal_entries e on e.id = l.entry_id
+    join accounts a on a.id = l.account_id
+    left join payees p on p.id = e.payee_id
+    where l.book_id = ${bookId}
+      and l.entry_date between ${range.from}::date and ${range.to}::date
+      and a.type in ('expense', 'income')
+      and e.kind <> 'reversal'
+      and not exists (select 1 from journal_entries r where r.reverses_entry_id = e.id)
+    group by e.payee_id, p.name,
+             case when e.payee_id is null then lower(btrim(coalesce(e.payee, ''))) end
+  `);
+  return result.rows
+    .map((r) => ({
+      payeeId: r.payee_id,
+      name: r.name || "No payee",
+      entryCount: Number(r.entries),
+      spentCents: Number(r.spent),
+      receivedCents: Number(r.received),
+    }))
+    .filter((r) => r.spentCents !== 0 || r.receivedCents !== 0)
+    .sort(
+      (a, b) =>
+        b.spentCents - a.spentCents ||
+        b.receivedCents - a.receivedCents ||
+        a.name.localeCompare(b.name),
+    );
+}
+
 /** Assets minus liabilities at the end of each month. */
 export async function netWorthByMonth(
   db: DbOrTx,

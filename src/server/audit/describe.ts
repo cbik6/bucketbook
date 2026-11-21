@@ -12,7 +12,7 @@ export type AuditRowLike = {
 export type AuditDescription = {
   summary: string;
   details: string[];
-  link?: { kind: "account" | "entry" | "rules" | "review"; id: string };
+  link?: { kind: "account" | "entry" | "rules" | "review" | "payees"; id: string };
 };
 
 type Obj = Record<string, unknown>;
@@ -230,6 +230,38 @@ export function describeAudit(
           details: [],
           link,
         };
+    }
+  }
+
+  if (row.entityType === "payee") {
+    const link = { kind: "payees" as const, id: row.entityId };
+    const was = str(before.name);
+    const now = str(after.name ?? before.name);
+    switch (row.action) {
+      case "create":
+        return { summary: `Added payee ${now}`, details: [], link };
+      default: {
+        if (after.mergedFrom) {
+          return {
+            summary: `Merged payee ${str(after.mergedFrom)} into ${now}`,
+            details: [`${Number(after.entries ?? 0)} entries moved`],
+            link,
+          };
+        }
+        const details: string[] = [];
+        if (before.name !== after.name) details.push(`Name: ${was} to ${now}`);
+        if (before.defaultAccountId !== after.defaultAccountId) {
+          const cat = (id: unknown) =>
+            id ? (accountNames.get(String(id)) ?? "an account") : "none";
+          details.push(
+            `Usual category: ${cat(before.defaultAccountId)} to ${cat(after.defaultAccountId)}`,
+          );
+        }
+        if (before.archived !== after.archived)
+          details.push(after.archived ? "Archived" : "Restored");
+        if ("match" in after) details.push(`Stopped recognizing ${str(before.match)}`);
+        return { summary: `Changed payee ${now}`, details, link };
+      }
     }
   }
 

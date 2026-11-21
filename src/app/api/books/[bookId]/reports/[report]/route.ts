@@ -13,6 +13,7 @@ import {
   netWorthByMonth,
   profitAndLoss,
   spendingByMonth,
+  spendingByPayee,
   toCsv,
 } from "@/server/reports/service";
 
@@ -125,6 +126,19 @@ export async function GET(
       rows = [
         ["Category", ...s.months, "Total"],
         ...s.series.map((x) => [x.name, ...x.values.map(centsCsv), centsCsv(x.totalCents)]),
+      ];
+      break;
+    }
+    case "payees": {
+      const list = await spendingByPayee(db, book.id, { from, to });
+      rows = [
+        ["Payee", "Entries", "Spent", "Received"],
+        ...list.map((p) => [
+          p.name,
+          p.entryCount,
+          centsCsv(p.spentCents),
+          centsCsv(p.receivedCents),
+        ]),
       ];
       break;
     }

@@ -3,6 +3,8 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { PageFallback, PageHeader } from "@/components/app-shell";
+import { getDb } from "@/server/db/client";
+import { payeeChoices } from "@/server/payees/service";
 import { loadBookForPage } from "@/server/guards";
 import { entryFormAccounts, serverToday } from "@/server/ledger/page-data";
 import { saveEntryAction } from "../actions";
@@ -39,6 +41,7 @@ async function NewEntryContent({ params, searchParams }: PageProps<"/books/[book
           mode="new"
           action={saveEntryAction.bind(null, book.id, null)}
           groups={groups}
+          payees={(await payeeChoices(getDb(), book.id)).map((p) => p.name)}
           defaultDate={today}
           cancelHref={`/books/${book.id}/journal`}
         />

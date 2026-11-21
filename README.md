@@ -18,7 +18,7 @@ your real bank accounts, running on your own server.
   is in an audit log.
 - **Bank data you approve.** Transactions arrive through
   [SimpleFIN](https://www.simplefin.org/), CSV files or PDF statements and wait in
-  **For review**. Rules
+  **For review**. Rules and payees
   suggest categories, transfers between your accounts (and between books) are matched,
   splits and receipts are a click away, and nothing reaches the books until you approve
   it.
@@ -248,8 +248,12 @@ New transactions wait in **For review** in each book, laid out like a bank feed:
 for each bank account (the bank's balance next to the balance in your books), then a
 table with Spent and Received columns and a search box. **Add** each with a category (or
 split it), **Match** transfers between your accounts and entries you already wrote, or
-exclude it. Rules fill in the category for you (open a transaction's details and choose
-**Create a rule from this** to make one from it), and nothing posts until you add it. On
+exclude it. Rules fill in the category for you (the wand button beside **Add**, or **R**,
+makes one from a transaction), and nothing posts until you add it. Give a transaction a
+clean payee name ("Taco Bell" for "TACO BELL 729852 22 WEST MAIN ST") and the next one
+from that store comes in under that name, with the payee's usual category. **Setup >
+Payees** lists them to rename, merge or archive, and **Reports > Spending by payee**
+totals them. On
 the Posted tab, **Undo** sends a transaction back to review.
 
 Where no rule applies, Bucketbook guesses from what you've already added: the same store

@@ -1,4 +1,4 @@
-import { BarChart3, Gauge, Landmark, LineChart, PiggyBank, Scale } from "lucide-react";
+import { BarChart3, Gauge, Landmark, LineChart, PiggyBank, Scale, Store } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -38,6 +38,12 @@ const REPORTS = [
     title: "Spending trends",
     text: "Expenses by category, month by month.",
     Icon: LineChart,
+  },
+  {
+    slug: "payees",
+    title: "Spending by payee",
+    text: "Who your money went to, and came from, over a period.",
+    Icon: Store,
   },
   {
     slug: "net-worth",

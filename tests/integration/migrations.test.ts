@@ -122,6 +122,8 @@ describe("migrations", () => {
       "journal_lines",
       "loans",
       "opening_balances",
+      "payee_matches",
+      "payees",
       "reconciliation_items",
       "reconciliations",
       "simplefin_connections",

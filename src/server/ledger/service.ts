@@ -9,6 +9,7 @@ import {
 } from "@/lib/ledger-math";
 import { formatCents, parseCents } from "@/lib/money";
 import { recordAudit } from "../audit/record";
+import { cleanPayeeName, resolvePayee } from "../payees/service";
 import type { Database, DbOrTx } from "../db/client";
 import {
   type EntryKind,
@@ -258,9 +259,18 @@ export async function createEntry(
     changeNote: string;
     /** Set by keepOpeningBalances itself, which already brings everything in line. */
     skipOpeningSync?: boolean;
+    /**
+     * Add the payee to the Payees list if it isn't there yet: for a name someone
+     * chose. Otherwise the entry only links to a payee that already exists.
+     */
+    createPayee?: boolean;
   },
 ) {
   const entryNumber = await nextEntryNumber(tx, args.bookId);
+  const payeeLink = await resolvePayee(tx, args.bookId, args.payee, {
+    create: Boolean(args.createPayee),
+  });
+  const payee = payeeLink?.name ?? args.payee ?? null;
   const [entry] = await tx
     .insert(journalEntries)
     .values({
@@ -268,7 +278,8 @@ export async function createEntry(
       entryNumber,
       kind: args.kind,
       entryDate: args.entryDate,
-      payee: args.payee ?? null,
+      payee,
+      payeeId: payeeLink?.id ?? null,
       memo: args.memo,
       reversesEntryId: args.reversesEntryId ?? null,
       transferGroupId: args.transferGroupId ?? null,
@@ -281,7 +292,7 @@ export async function createEntry(
     entryId: entry!.id,
     version: 1,
     entryDate: args.entryDate,
-    payee: args.payee ?? null,
+    payee,
     memo: args.memo,
     changeNote: args.changeNote,
     lines: args.lines,
@@ -333,6 +344,7 @@ export async function postEntry(db: Database, actor: Actor, bookId: string, raw:
       memo: input.memo,
       lines,
       changeNote: "Created",
+      createPayee: true,
     });
   });
 }
@@ -1036,10 +1048,20 @@ async function editEntryInTx(
     allowParents: beforeLines.map((b) => b.accountId),
   });
   await assertBankLinksKept(tx, entryId, lines);
-  const payee = input.payee === undefined ? entry.payee : input.payee;
+  // A payee typed here joins the Payees list; one left as it was keeps its link.
+  const typed = input.payee === undefined ? entry.payee : input.payee;
+  const payeeChanged = cleanPayeeName(typed ?? "") !== cleanPayeeName(entry.payee ?? "");
+  const payeeLink = payeeChanged
+    ? await resolvePayee(tx, book.id, typed, { create: true })
+    : entry.payeeId
+      ? { id: entry.payeeId, name: entry.payee ?? "" }
+      : await resolvePayee(tx, book.id, typed, { create: false });
+  const payee = payeeLink?.name || typed || null;
+  const payeeId = payeeLink?.id ?? null;
   const same =
     input.entryDate === entry.entryDate &&
     (payee ?? null) === (entry.payee ?? null) &&
+    payeeId === (entry.payeeId ?? null) &&
     (input.memo ?? null) === (entry.memo ?? null) &&
     beforeLines.length === lines.length &&
     beforeLines.every(
@@ -1068,7 +1090,13 @@ async function editEntryInTx(
   });
   const [after] = await tx
     .update(journalEntries)
-    .set({ currentVersion: version, entryDate: input.entryDate, payee, memo: input.memo })
+    .set({
+      currentVersion: version,
+      entryDate: input.entryDate,
+      payee,
+      payeeId,
+      memo: input.memo,
+    })
     .where(eq(journalEntries.id, entryId))
     .returning();
   await recordAudit(tx, {
@@ -1108,7 +1136,7 @@ export type EntryListItem = {
 export async function listEntries(
   db: DbOrTx,
   bookId: string,
-  options: { limit?: number; offset?: number; all?: boolean } = {},
+  options: { limit?: number; offset?: number; all?: boolean; payeeId?: string } = {},
 ): Promise<{ items: EntryListItem[]; total: number }> {
   const limit = Math.min(options.limit ?? 50, 200);
   const offset = Math.max(options.offset ?? 0, 0);
@@ -1116,9 +1144,11 @@ export async function listEntries(
   // manual entries, opening balances, and reversals of those. Entries made from
   // bank transactions, transfers, bucket moves and investment values live in the
   // registers, the general ledger and For review's Posted tab.
-  const own = options.all
-    ? sql`true`
-    : sql`(e.kind in ('manual', 'opening_balance')
+  const own = options.payeeId
+    ? sql`e.payee_id = ${options.payeeId}`
+    : options.all
+      ? sql`true`
+      : sql`(e.kind in ('manual', 'opening_balance')
            or (e.kind = 'reversal' and exists (
              select 1 from journal_entries o
              where o.id = e.reverses_entry_id and o.kind in ('manual', 'opening_balance'))))`;

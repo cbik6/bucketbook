@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { AccountPicker } from "@/components/account-picker";
+import { PayeeInput } from "@/components/payee-input";
 import { Money } from "@/components/money";
 import { Button, IconButton } from "@/components/ui/button";
 import { SelectInput, TextInput } from "@/components/ui/field";
@@ -29,6 +30,7 @@ import { splitPayment } from "@/lib/loans";
 import { formatCents, parseCents } from "@/lib/money";
 import { suggestRuleText } from "@/lib/rules";
 import type { Decision, QueueItem } from "@/server/bank/review-service";
+import type { PayeeRef } from "@/server/payees/service";
 import { type AttachmentInfo, Attachments } from "../attachments";
 import { RuleEditor } from "../rules/rules-manager";
 import {
@@ -88,11 +90,12 @@ function defaultDraft(item: QueueItem): Draft {
     : item.transfer && (item.suggestedTransfer || !item.suggestedAccountId)
       ? `transfer:${item.transfer.id}`
       : (item.suggestedAccountId ??
+        item.payeeMatch?.defaultAccountId ??
         item.guess?.categoryId ??
         (item.transfer ? `transfer:${item.transfer.id}` : ""));
   return {
     choice,
-    payee: item.suggestedPayee ?? item.guess?.payee ?? item.payee ?? item.description,
+    payee: payeeTitle(item),
     memo: item.suggestedMemo ?? "",
     saveRule: false,
     splits: [],
@@ -101,6 +104,14 @@ function defaultDraft(item: QueueItem): Draft {
     partnerCounterpart: item.transfer?.partnerCounterpartAccountId ?? "",
   };
 }
+
+/** The payee a row starts with: a rule's, the payee this bank text means, history's, or the bank's text. */
+const payeeTitle = (item: QueueItem) =>
+  item.suggestedPayee ??
+  item.payeeMatch?.name ??
+  item.guess?.payee ??
+  item.payee ??
+  item.description;
 
 const isTyping = (el: EventTarget | null) =>
   el instanceof HTMLElement &&
@@ -140,10 +151,13 @@ export function ReviewQueue({
   buckets,
   loans,
   ruleOptions,
+  payees,
   canEdit,
   showAccount,
 }: {
   bookId: string;
+  /** The book's payees, for the payee field. */
+  payees: PayeeRef[];
   /** False when one account is showing, so rows skip its name. */
   showAccount: boolean;
   /** What the rule editor offers: bank accounts to limit to, and buckets. */
@@ -166,6 +180,13 @@ export function ReviewQueue({
     );
     return rawItems.map((i) => ({
       ...i,
+      payeeMatch: i.payeeMatch && {
+        ...i.payeeMatch,
+        defaultAccountId:
+          i.payeeMatch.defaultAccountId && usable.has(i.payeeMatch.defaultAccountId)
+            ? i.payeeMatch.defaultAccountId
+            : null,
+      },
       guess: i.guess && usable.has(i.guess.categoryId) ? i.guess : null,
       likely: i.likely.filter((id) => usable.has(id)),
     }));
@@ -324,7 +345,7 @@ export function ReviewQueue({
         } else if (d.choice.startsWith("link:")) {
           decisions.push({ id: item.id, kind: "link", entryId: d.choice.slice(5) });
         } else if (d.choice && d.choice !== "split") {
-          decisions.push({ id: item.id, kind: "account", accountId: d.choice });
+          decisions.push({ id: item.id, kind: "account", accountId: d.choice, payee: d.payee });
         } else unready += 1;
       }
       if (decisions.length === 0) {
@@ -539,6 +560,7 @@ export function ReviewQueue({
             buckets={buckets[item.accountId]}
             loans={loans}
             ruleOptions={ruleOptions}
+            payees={payees}
             showAccount={showAccount}
             active={item.id === activeId}
             selected={selected.has(item.id)}
@@ -610,6 +632,7 @@ type RowProps = {
   buckets?: { id: string; name: string; isUnassigned: boolean }[];
   loans: LoanHint[];
   ruleOptions: RuleOptions;
+  payees: PayeeRef[];
   showAccount: boolean;
   active: boolean;
   selected: boolean;
@@ -636,7 +659,7 @@ type RowData = Omit<RowProps, "refCallback">;
 function Row({ refCallback, ...p }: RowProps) {
   const { item, draft } = p;
   const base = `${p.uid}-${item.id}`;
-  const title = item.suggestedPayee ?? item.guess?.payee ?? item.payee ?? item.description;
+  const title = payeeTitle(item);
   const transfer = item.transfer;
   const crossBook = transfer && transfer.bookId !== p.bookId;
   const isSplit = draft.choice === "split";
@@ -890,7 +913,10 @@ function guessReason(guess: NonNullable<QueueItem["guess"]>) {
 function Badges({ item }: { item: QueueItem }) {
   return (
     <>
-      {item.guess && !item.transfer && !item.linkCandidates.length ? (
+      {item.guess &&
+      !item.transfer &&
+      !item.linkCandidates.length &&
+      !item.payeeMatch?.defaultAccountId ? (
         <span
           title={guessReason(item.guess)}
           className="inline-flex items-center gap-1 rounded bg-sunken px-1.5 py-px text-xs text-ink-muted"
@@ -1101,11 +1127,20 @@ function Details(
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1.5 text-[0.8125rem] font-medium text-ink">
             Payee
-            <TextInput
+            <PayeeInput
               value={draft.payee}
-              maxLength={200}
-              onChange={(e) => p.setDraft({ payee: e.target.value })}
-              autoComplete="off"
+              payees={p.payees.map((x) => x.name)}
+              onChange={(payee) => {
+                // Picking a payee with a usual category fills it in when none is chosen yet.
+                const known = p.payees.find(
+                  (x) => x.name.toLowerCase() === payee.trim().toLowerCase(),
+                );
+                p.setDraft(
+                  !draft.choice && known?.defaultAccountId
+                    ? { payee, choice: known.defaultAccountId }
+                    : { payee },
+                );
+              }}
             />
           </label>
           <label className="flex flex-col gap-1.5 text-[0.8125rem] font-medium text-ink">

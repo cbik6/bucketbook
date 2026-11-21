@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { PageFallback, PageHeader } from "@/components/app-shell";
 import { entryLabel, formatEntryNumber, isWrittenEntry } from "@/lib/ledger-math";
 import { formatCents } from "@/lib/money";
+import { payeeChoices } from "@/server/payees/service";
 import { getDb } from "@/server/db/client";
 import { NotFoundError } from "@/server/errors";
 import { loadBookForPage } from "@/server/guards";
@@ -59,6 +60,7 @@ async function EditContent({ params }: PageProps<"/books/[bookId]/journal/[entry
           mode="edit"
           action={saveEntryAction.bind(null, book.id, entryId)}
           groups={groups}
+          payees={(await payeeChoices(getDb(), book.id)).map((p) => p.name)}
           defaultDate={serverToday()}
           cancelHref={detailHref}
           reconciledNote={reconciledNote}

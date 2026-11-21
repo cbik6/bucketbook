@@ -18,6 +18,7 @@ import {
 import { users } from "./auth";
 import { accounts } from "./accounts";
 import { books } from "./books";
+import { payees } from "./payees";
 import { inList } from "./sql-helpers";
 
 /**
@@ -58,6 +59,8 @@ export const journalEntries = pgTable(
     entryDate: date("entry_date", { mode: "string" }).notNull(),
     /** Who the money went to or came from, when there is one. */
     payee: text("payee"),
+    /** The payee on the Payees list, when the entry has one; `payee` is its name. */
+    payeeId: uuid("payee_id").references(() => payees.id, { onDelete: "set null" }),
     memo: text("memo"),
     currentVersion: integer("current_version").notNull().default(1),
     /** Set on a reversal: the entry it cancels out. */
@@ -86,6 +89,9 @@ export const journalEntries = pgTable(
       .on(t.reversesEntryId)
       .where(sql`${t.reversesEntryId} is not null`),
     index("journal_entries_book_date_idx").on(t.bookId, t.entryDate),
+    index("journal_entries_payee_idx")
+      .on(t.payeeId)
+      .where(sql`${t.payeeId} is not null`),
     index("journal_entries_transfer_group_idx")
       .on(t.transferGroupId)
       .where(sql`${t.transferGroupId} is not null`),

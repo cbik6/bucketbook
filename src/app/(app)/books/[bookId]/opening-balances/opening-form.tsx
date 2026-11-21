@@ -167,8 +167,8 @@ export function OpeningForm({
               <span className="tabular">{formatCents(summary.obe)}</span>
             </div>
             <p className="text-[0.8125rem] text-ink-muted">
-              Opening Balance Equity takes the other side of the opening amounts: it&apos;s your starting
-              net worth.
+              Opening Balance Equity takes the other side of the opening amounts: it&apos;s your
+              starting net worth.
             </p>
           </>
         )}

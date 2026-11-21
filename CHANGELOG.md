@@ -18,6 +18,16 @@ All notable changes to this project are listed here. The format follows
   move. The Opening balances screen shows when an account opens earlier because of its
   older transactions.
 
+- **Payees.** Each book keeps a list of who money goes to and comes from:
+  - A name you type on a journal entry, or give a transaction in review, joins the list;
+    the bank's raw text doesn't. The payee field suggests names as you type.
+  - Review remembers the bank text you named, so the next "TACO BELL 998877 ..." comes in
+    as Taco Bell, with Taco Bell's usual category.
+  - **Setup > Payees** lists each payee with how often and how much it's used. Rename one
+    and every entry shows the new name; merge duplicates; set a usual category; archive.
+  - **Reports > Spending by payee** totals spending and income per payee for any range,
+    with each payee's entries a click away, and exports to CSV.
+  - Names you already typed or cleaned up on entries become your first payees.
 - **Rules from review, one click away.** Each transaction in review has a rule button
   beside Add (or press R) that opens a new rule filled in from it. Before, it was only
   inside the transaction's details.

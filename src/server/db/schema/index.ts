@@ -4,6 +4,7 @@ export * from "./accounts";
 export * from "./audit";
 export * from "./settings";
 export * from "./ledger";
+export * from "./payees";
 export * from "./bank";
 export * from "./buckets";
 export * from "./reconcile";

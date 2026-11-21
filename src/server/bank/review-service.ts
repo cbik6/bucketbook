@@ -23,6 +23,13 @@ import {
 import { NotFoundError, UserFacingError } from "../errors";
 import { createEntry, loadBookForPosting, reverseEntry, validateLines } from "../ledger/service";
 import { allocateDepositInTx, unassignedOf } from "../buckets/service";
+import {
+  type PayeeRef,
+  cleanPayeeName,
+  learnPayeeMatch,
+  payeesForBankText,
+  setDefaultIfMissing,
+} from "../payees/service";
 import { bankText, bookLearner } from "./learner-service";
 import { applyRules } from "./rules-service";
 
@@ -236,8 +243,18 @@ export async function approveItem(
       );
     }
     const validated = await validateLines(tx, bookId, lines);
-    const payee = (input.payee ?? item.suggestedPayee ?? item.payee ?? item.description) || null;
+    const text = bankText(item.description, item.payee);
+    const matched =
+      input.payee === undefined && !item.suggestedPayee
+        ? (await payeesForBankText(tx, bookId, [text])).get(text)
+        : undefined;
+    const payee =
+      (input.payee ?? item.suggestedPayee ?? matched?.name ?? item.payee ?? item.description) ||
+      null;
     const memo = (input.memo ?? item.suggestedMemo ?? "") || null;
+    // A name you chose joins the Payees list; the bank's own text doesn't.
+    const raw = [item.description, item.payee ?? ""].map((t) => cleanPayeeName(t).toLowerCase());
+    const chosen = Boolean(payee) && !raw.includes(cleanPayeeName(payee ?? "").toLowerCase());
     const entry = await createEntry(tx, {
       actor,
       bookId,
@@ -247,9 +264,15 @@ export async function approveItem(
       memo,
       lines: validated,
       changeNote: "Approved from review",
+      createPayee: chosen,
     });
     await markPosted(tx, actor, item, entry.id, "approved");
     await allocateIfDeposit(tx, actor, bookId, side, item);
+    if (entry.payeeId) {
+      // Next time this store's text shows up, it's this payee.
+      await learnPayeeMatch(tx, bookId, text, entry.payeeId);
+      if (lines.length === 2) await setDefaultIfMissing(tx, entry.payeeId, lines[1]!.accountId);
+    }
 
     let ruleCreated = false;
     if (input.saveRule && lines.length === 2 && payee) {
@@ -319,7 +342,7 @@ async function saveRuleForPayee(
  * its own transaction so one problem doesn't block the rest.
  */
 export type Decision =
-  | { id: string; kind: "account"; accountId?: string }
+  | { id: string; kind: "account"; accountId?: string; payee?: string }
   | { id: string; kind: "transfer"; partnerId: string }
   | { id: string; kind: "link"; entryId: string };
 
@@ -345,7 +368,7 @@ export async function applyDecisions(
       } else if (d.kind === "link") {
         await linkToEntry(db, actor, bookId, d.id, d.entryId);
       } else {
-        await approveItem(db, actor, bookId, d.id, { accountId: d.accountId });
+        await approveItem(db, actor, bookId, d.id, { accountId: d.accountId, payee: d.payee });
       }
       done.add(d.id);
       results.approved += 1;
@@ -777,6 +800,8 @@ export type QueueItem = {
   suggestedMemo: string | null;
   suggestedTransfer: boolean;
   suggestedRuleName: string | null;
+  /** The payee this bank text was learned to mean, with its usual category. */
+  payeeMatch: PayeeRef | null;
   duplicateOf: { id: string; postedDate: string; description: string; status: string } | null;
   transfer: {
     id: string;
@@ -880,6 +905,14 @@ export async function listQueue(
 
   // Learn from what you've already added, on this server; only the review tab needs it.
   const learner = tab === "review" && rows.length > 0 ? await bookLearner(db, bookId) : null;
+  const payeeMatches =
+    tab === "review"
+      ? await payeesForBankText(
+          db,
+          bookId,
+          rows.map((r) => bankText(r.item.description, r.item.payee)),
+        )
+      : new Map<string, PayeeRef>();
 
   return rows.map(({ item, accountName, entryNumber, entryKind, ruleName, attachmentCount }) => {
     const partner = transfers.get(item.id);
@@ -917,6 +950,7 @@ export async function listQueue(
       suggestedMemo: item.suggestedMemo,
       suggestedTransfer: item.suggestedTransfer,
       suggestedRuleName: ruleName ?? null,
+      payeeMatch: payeeMatches.get(bankText(item.description, item.payee)) ?? null,
       duplicateOf: dup ? { ...dup, status: dup.status } : null,
       transfer: partner
         ? {

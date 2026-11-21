@@ -12,6 +12,7 @@ import { type QueueTab, listQueue, queueCounts } from "@/server/bank/review-serv
 import { bucketChoices } from "@/server/buckets/service";
 import { getDb } from "@/server/db/client";
 import { loanHints } from "@/server/loans/service";
+import { payeeChoices } from "@/server/payees/service";
 import { loadBookForPage } from "@/server/guards";
 import { entryFormAccounts } from "@/server/ledger/page-data";
 import { AccountCards } from "./account-cards";
@@ -84,6 +85,7 @@ async function ReviewContent({ params, searchParams }: PageProps<"/books/[bookId
           ),
         }}
         loans={await loanHints(db, book.id)}
+        payees={await payeeChoices(db, book.id)}
         canEdit={canEdit}
         showAccount={showAccount}
       />

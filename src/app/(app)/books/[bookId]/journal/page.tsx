@@ -11,6 +11,7 @@ import { formatEntryNumber } from "@/lib/ledger-math";
 import { getDb } from "@/server/db/client";
 import { loadBookForPage } from "@/server/guards";
 import { listEntries } from "@/server/ledger/service";
+import { payeeName } from "@/server/payees/service";
 import { KindBadge } from "./kind-badge";
 import { NewEntryShortcut } from "./shortcut";
 
@@ -25,13 +26,19 @@ async function JournalContent({ params, searchParams }: PageProps<"/books/[bookI
   const { book } = await loadBookForPage(bookId);
   const page = Math.max(1, Number(typeof sp.page === "string" ? sp.page : 1) || 1);
   const all = sp.all === "1";
+  // From the Payees page or a report: one payee's entries, of every kind.
+  const payee = typeof sp.payee === "string" ? await payeeName(getDb(), book.id, sp.payee) : null;
   const { items, total } = await listEntries(getDb(), book.id, {
     limit: PAGE_SIZE,
     offset: (page - 1) * PAGE_SIZE,
     all,
+    payeeId: payee?.id,
   });
   const q = (n: number) =>
-    `${base}?${new URLSearchParams({ page: String(n), ...(all ? { all: "1" } : {}) })}`;
+    `${base}?${new URLSearchParams({
+      page: String(n),
+      ...(payee ? { payee: payee.id } : all ? { all: "1" } : {}),
+    })}`;
   const canEdit = book.role !== "viewer";
   const base = `/books/${book.id}/journal`;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -45,15 +52,26 @@ async function JournalContent({ params, searchParams }: PageProps<"/books/[bookI
         description={
           <>
             <span className="tabular">{total === 1 ? "1 entry" : `${total} entries`}</span>
-            {all
-              ? ", including those made from bank transactions. "
-              : ". Entries made from bank transactions are in each account's register. "}
-            <Link
-              href={all ? base : `${base}?all=1`}
-              className="text-signal-ink underline underline-offset-2"
-            >
-              {all ? "Show only entries you wrote" : "Show all entries"}
-            </Link>
+            {payee ? (
+              <>
+                {` for ${payee.name}, including those made from bank transactions. `}
+                <Link href={base} className="text-signal-ink underline underline-offset-2">
+                  Show every payee
+                </Link>
+              </>
+            ) : all ? (
+              ", including those made from bank transactions. "
+            ) : (
+              ". Entries made from bank transactions are in each account's register. "
+            )}
+            {payee ? null : (
+              <Link
+                href={all ? base : `${base}?all=1`}
+                className="text-signal-ink underline underline-offset-2"
+              >
+                {all ? "Show only entries you wrote" : "Show all entries"}
+              </Link>
+            )}
           </>
         }
         actions={

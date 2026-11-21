@@ -15,6 +15,7 @@ import {
   NotebookPen,
   PiggyBank,
   Settings2,
+  Store,
   Users,
   Wand2,
 } from "lucide-react";
@@ -59,6 +60,7 @@ export function NavLinks({
   const setup: NavLink[] = [
     ...(canEdit ? [{ href: `${b}/connections`, label: "Bank connections", Icon: Link2 }] : []),
     { href: `${b}/rules`, label: "Rules", Icon: Wand2 },
+    { href: `${b}/payees`, label: "Payees", Icon: Store },
     { href: `${b}/loans`, label: "Loans", Icon: HandCoins },
     { href: `${b}/opening-balances`, label: "Opening balances", Icon: Landmark },
     { href: `${b}/settings`, label: "Book settings", Icon: Settings2 },

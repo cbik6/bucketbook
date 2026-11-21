@@ -686,3 +686,23 @@ and the anchor keeps today's balance equal to the bank's. Opening balances saved
 a date use the book's old start date, which keeps 1.0.2's meaning; migration 0017 anchors
 every existing opening line on its entry's date at its amount, so no balance changes.
 This supersedes the start-date parts of D28, D56 and D57.
+
+### D72. Payees as a list, linked from entries
+
+Each book has a `payees` table (name unique per book ignoring case, a usual category, and
+archived). `journal_entries.payee_id` links an entry to its payee, and the entry keeps the
+name in `payee` too, so every query and screen that reads the payee text keeps working.
+Renaming or merging updates `payee` on the linked entries' headers in place, without a
+new entry version: the payee is a label, and each version keeps the name it had.
+
+Payees are made on purpose, so the list stays clean: a name typed on a journal entry, a
+name other than the bank's own text when approving in review, or one added on the Payees
+page. Every other entry (raw bank text, bucket moves, values from the bank) only links to
+a payee that already exists. `payee_matches` maps the category learner's store key of a
+bank text (D63) to a payee, learned on each approval with a payee; review suggests the
+matched payee and its usual category after a rule's, before history's guess. A payee's
+first single-category approval sets its usual category if it has none.
+
+Migration 0018 makes payees from names on manual and bank entries, leaving out entries
+whose payee is just their bank transaction's text, picks the most used spelling, and
+links every entry with that name.

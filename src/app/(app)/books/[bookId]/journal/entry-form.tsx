@@ -3,6 +3,7 @@
 import { Check, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
+import { PayeeInput } from "@/components/payee-input";
 import { Field, FormError, TextInput, inputClass } from "@/components/ui/field";
 import { buttonClass, IconButton, PendingLabel } from "@/components/ui/button";
 import { FillLine } from "@/components/ui/fill-line";
@@ -18,6 +19,8 @@ type Line = DraftLine & { key: number };
 type Props = {
   action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
   groups: AccountOptionGroup[];
+  /** The book's payee names, offered as you type. */
+  payees: string[];
   initial?: { entryDate: string; payee?: string | null; memo: string | null; lines: DraftLine[] };
   defaultDate: string;
   /** The earliest date allowed, if any. */
@@ -41,6 +44,7 @@ function withSpare(ls: Line[]): Line[] {
 export function EntryForm({
   action,
   groups,
+  payees,
   initial,
   defaultDate,
   minDate,
@@ -196,13 +200,12 @@ export function EntryForm({
           />
         </Field>
         <Field label="Payee" htmlFor={`${uid}-payee`} optional>
-          <TextInput
+          <PayeeInput
             id={`${uid}-payee`}
             value={payee}
-            maxLength={200}
-            onChange={(e) => setPayee(e.target.value)}
+            payees={payees}
+            onChange={setPayee}
             placeholder="Who was paid, or who paid you"
-            autoComplete="off"
           />
         </Field>
         <Field label="Memo" htmlFor={`${uid}-memo`} optional>
