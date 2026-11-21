@@ -61,6 +61,7 @@ export function BookSwitcher({
               </Menu.GroupLabel>
               {books.map((b) => (
                 <Menu.LinkItem
+                  closeOnClick
                   key={b.id}
                   render={<Link href={`/books/${b.id}/accounts`} />}
                   className={itemClass}
@@ -73,11 +74,11 @@ export function BookSwitcher({
               ))}
             </Menu.Group>
             <Menu.Separator className="my-1.5 h-px bg-rule" />
-            <Menu.LinkItem render={<Link href="/books/new" />} className={itemClass}>
+            <Menu.LinkItem closeOnClick render={<Link href="/books/new" />} className={itemClass}>
               <Plus size={15} aria-hidden className="text-ink-muted" />
               New book
             </Menu.LinkItem>
-            <Menu.LinkItem render={<Link href="/books" />} className={itemClass}>
+            <Menu.LinkItem closeOnClick render={<Link href="/books" />} className={itemClass}>
               <Library size={15} aria-hidden className="text-ink-muted" />
               All books
             </Menu.LinkItem>

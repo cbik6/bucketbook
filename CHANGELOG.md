@@ -8,6 +8,8 @@ All notable changes to this project are listed here. The format follows
 
 ### Fixed
 
+- The book switcher and the account menu close after you choose a book or People.
+  They stayed open on the new page.
 - The installer downloads the current images before starting. A machine with an older
   Bucketbook image from an earlier install started that old version, and the backup
   service failed with "bucketbook-backup: executable file not found".

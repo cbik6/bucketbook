@@ -74,7 +74,7 @@ export function AccountMenu({
             </Menu.RadioGroup>
             <Menu.Separator className="my-1.5 h-px bg-rule" />
             {admin ? (
-              <Menu.LinkItem render={<Link href="/people" />} className={itemClass}>
+              <Menu.LinkItem closeOnClick render={<Link href="/people" />} className={itemClass}>
                 <Users size={15} aria-hidden className="text-ink-muted" />
                 People
               </Menu.LinkItem>

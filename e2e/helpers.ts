@@ -22,6 +22,8 @@ export async function accountMenu(page: Page, item: string) {
     await expect(menuItem).toBeVisible({ timeout: 1000 });
   }).toPass();
   await menuItem.click();
+  // Choosing an item closes the menu, links included (they don't by default).
+  await expect(page.getByRole("menu")).toBeHidden();
 }
 
 /** Picks a category for a review row from its searchable list. */
