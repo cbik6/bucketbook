@@ -252,9 +252,11 @@ export async function approveItem(
       (input.payee ?? item.suggestedPayee ?? matched?.name ?? item.payee ?? item.description) ||
       null;
     const memo = (input.memo ?? item.suggestedMemo ?? "") || null;
-    // A name you chose joins the Payees list; the bank's own text doesn't.
-    const raw = [item.description, item.payee ?? ""].map((t) => cleanPayeeName(t).toLowerCase());
-    const chosen = Boolean(payee) && !raw.includes(cleanPayeeName(payee ?? "").toLowerCase());
+    // A name joins the Payees list unless it's just the bank's description: the bank's
+    // own payee field ("Costco") and names you choose count.
+    const chosen =
+      Boolean(payee) &&
+      cleanPayeeName(payee ?? "").toLowerCase() !== cleanPayeeName(item.description).toLowerCase();
     const entry = await createEntry(tx, {
       actor,
       bookId,

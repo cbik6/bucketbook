@@ -11,9 +11,10 @@ import { NotFoundError, UserFacingError } from "../errors";
  * to a payee and also keep its name as text, so every screen that shows an
  * entry's payee keeps working, and renaming or merging updates them all.
  *
- * Payees are made on purpose: typing a name on a journal entry, choosing or
- * typing a name in review (anything but the bank's own text), or adding one on
- * the Payees page. Raw bank text stays plain text, so the list stays clean.
+ * Payees are made on purpose: typing a name on a journal entry, adding one in
+ * review under any name but the bank's raw description (the bank's own payee
+ * field counts), or adding one on the Payees page. Raw descriptions stay plain
+ * text, so the list stays clean.
  */
 
 type Actor = { userId: string };

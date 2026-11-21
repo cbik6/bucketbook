@@ -696,13 +696,13 @@ Renaming or merging updates `payee` on the linked entries' headers in place, wit
 new entry version: the payee is a label, and each version keeps the name it had.
 
 Payees are made on purpose, so the list stays clean: a name typed on a journal entry, a
-name other than the bank's own text when approving in review, or one added on the Payees
-page. Every other entry (raw bank text, bucket moves, values from the bank) only links to
+name other than the bank's raw description when approving in review (the bank's own payee
+field, like SimpleFIN's "Costco", counts), or one added on the Payees page. Every other entry (raw bank text, bucket moves, values from the bank) only links to
 a payee that already exists. `payee_matches` maps the category learner's store key of a
 bank text (D63) to a payee, learned on each approval with a payee; review suggests the
 matched payee and its usual category after a rule's, before history's guess. A payee's
 first single-category approval sets its usual category if it has none.
 
-Migration 0018 makes payees from names on manual and bank entries, leaving out entries
-whose payee is just their bank transaction's text, picks the most used spelling, and
-links every entry with that name.
+Migration 0018 makes payees from names on manual entries and on bank entries whose payee
+differs from their bank transaction's description, leaving out reversed entries, picks
+the most used spelling, and links every entry with that name.

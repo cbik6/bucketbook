@@ -51,7 +51,7 @@ const purchase = (ctx: Ctx, payee: string | null, amount: string, category = "Gr
     ],
   });
 
-async function importRows(ctx: Ctx, rows: Array<[string, number, string]>) {
+async function importRows(ctx: Ctx, rows: Array<[string, number, string, string?]>) {
   await importCsv(getDb(), ctx.actor, ctx.bookId, {
     accountId: ctx.id("Checking"),
     mapping: {
@@ -61,12 +61,12 @@ async function importRows(ctx: Ctx, rows: Array<[string, number, string]>) {
       amountMode: "signed",
       amountColumn: 2,
     },
-    rows: rows.map(([postedDate, amountCents, description], i) => ({
+    rows: rows.map(([postedDate, amountCents, description, payee], i) => ({
       line: i + 2,
       postedDate,
       amountCents,
       description,
-      payee: null,
+      payee: payee ?? null,
       memo: null,
     })),
   });
@@ -229,13 +229,25 @@ describe("spending by payee", () => {
 });
 
 describe("the 0018 migration", () => {
-  it("makes payees from names you typed, not from raw bank text", async () => {
+  it("makes payees from names you typed and the bank's payee field, not raw descriptions", async () => {
     const ctx = await setupBook();
     const typed = await purchase(ctx, "Grocery store", "10.00");
-    const queue = await importRows(ctx, [["2026-03-02", -500, "BYUI FOOD SVCS 525 S CTR ST"]]);
-    const raw = await approveItem(getDb(), ctx.actor, ctx.bookId, queue[0]!.id, {
+    const oops = await purchase(ctx, "Wrong Store", "5.00");
+    await reverseEntry(getDb(), ctx.actor, ctx.bookId, oops.id, { entryDate: "2026-03-05" });
+    const queue = await importRows(ctx, [
+      ["2026-03-02", -500, "BYUI FOOD SVCS 525 S CTR ST"],
+      ["2026-03-03", -2500, "COSTCO WHSE#1379 IDAHO FALLS ID", "Costco"],
+    ]);
+    const raw = await approveItem(getDb(), ctx.actor, ctx.bookId, queue.find((q) => !q.payee)!.id, {
       accountId: ctx.id("Dining Out"),
     });
+    const costco = await approveItem(
+      getDb(),
+      ctx.actor,
+      ctx.bookId,
+      queue.find((q) => q.payee === "Costco")!.id,
+      { accountId: ctx.id("Groceries") },
+    );
     // Back to how 1.0.2 left things: no payees, no links.
     await getPool().query("update journal_entries set payee_id = null");
     await getPool().query("delete from payees");
@@ -246,8 +258,9 @@ describe("the 0018 migration", () => {
       }
     }
     const list = await payeeChoices(getDb(), ctx.bookId);
-    expect(list.map((p) => p.name)).toEqual(["Grocery store"]);
-    expect((await entryRow(typed.id)).payeeId).toBe(list[0]!.id);
+    expect(list.map((p) => p.name)).toEqual(["Costco", "Grocery store"]);
+    expect((await entryRow(typed.id)).payeeId).toBe(list[1]!.id);
+    expect((await entryRow(costco.entry.id)).payeeId).toBe(list[0]!.id);
     expect((await entryRow(raw.entry.id)).payeeId).toBeNull();
   });
 });
