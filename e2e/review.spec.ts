@@ -115,9 +115,8 @@ test("review: CSV import, transfer match, approve, save a rule, rule suggests", 
   await expect(pay2.getByText("From your history")).toBeVisible();
   await expect(pay2.getByLabel(/Category for/)).toContainText("Paychecks");
 
-  // Create a rule straight from a transaction, prefilled from it.
-  await next.getByRole("button", { name: "LOCAL GROCER #12", exact: true }).click();
-  await next.getByRole("button", { name: "Create a rule from this" }).click();
+  // Create a rule straight from a transaction's row, prefilled from it.
+  await next.getByRole("button", { name: "Create a rule from LOCAL GROCER #12" }).click();
   await expect(next.getByRole("heading", { name: "New rule from this transaction" })).toBeVisible();
   await expect(next.getByLabel("Text to look for")).toHaveValue("LOCAL GROCER");
   await next.getByLabel("Name", { exact: true }).fill("Local Grocer, any store");

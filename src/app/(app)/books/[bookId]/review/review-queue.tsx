@@ -175,6 +175,18 @@ export function ReviewQueue({
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<string | null>(null);
+  // The row whose rule editor is open; it closes with the row's details.
+  const [ruleFor, setRuleFor] = useState<string | null>(null);
+  const [ruleShownFor, setRuleShownFor] = useState(expanded);
+  if (ruleShownFor !== expanded) {
+    setRuleShownFor(expanded);
+    if (ruleFor !== expanded) setRuleFor(null);
+  }
+  const openRule = (item: QueueItem) => {
+    if (!canEdit) return;
+    setExpanded(item.id);
+    setRuleFor(item.id);
+  };
   const [query, setQuery] = useState("");
   const [activeId, setActiveId] = useState<string | null>(items[0]?.id ?? null);
   // Each row saves on its own, so a second approve never steals the first row's state.
@@ -396,6 +408,12 @@ export function ReviewQueue({
           exclude(item);
         }
         break;
+      case "r":
+        if (item) {
+          e.preventDefault();
+          openRule(item);
+        }
+        break;
     }
   };
 
@@ -484,7 +502,7 @@ export function ReviewQueue({
       </div>
       <div
         aria-hidden
-        className="hidden grid-cols-[1.75rem_5.75rem_minmax(0,1fr)_minmax(13rem,19rem)_6.5rem_6.5rem_5.5rem] gap-3 border-b border-rule-strong bg-sunken/60 px-2 py-2 text-xs font-medium uppercase tracking-wide text-ink-muted lg:grid"
+        className="hidden grid-cols-[1.75rem_5.75rem_minmax(0,1fr)_minmax(13rem,19rem)_6.5rem_6.5rem_7.5rem] gap-3 border-b border-rule-strong bg-sunken/60 px-2 py-2 text-xs font-medium uppercase tracking-wide text-ink-muted lg:grid"
       >
         <span />
         <span>Date</span>
@@ -525,6 +543,9 @@ export function ReviewQueue({
             active={item.id === activeId}
             selected={selected.has(item.id)}
             expanded={expanded === item.id}
+            ruleOpen={ruleFor === item.id && expanded === item.id}
+            onOpenRule={() => openRule(item)}
+            onRuleDone={() => setRuleFor(null)}
             busy={busy.has(item.id)}
             error={errors[item.id]}
             canEdit={canEdit}
@@ -563,7 +584,7 @@ export function ReviewQueue({
       </ol>
       <p className="mt-3 hidden text-xs text-ink-muted lg:block">
         <Kbd>J</Kbd> <Kbd>K</Kbd> move, <Kbd>Enter</Kbd> details, <Kbd>Esc</Kbd> close, <Kbd>A</Kbd>{" "}
-        add, <Kbd>X</Kbd> select, <Kbd>E</Kbd> exclude
+        add, <Kbd>X</Kbd> select, <Kbd>E</Kbd> exclude, <Kbd>R</Kbd> rule
       </p>
     </div>
   );
@@ -593,6 +614,10 @@ type RowProps = {
   active: boolean;
   selected: boolean;
   expanded: boolean;
+  /** The rule editor, prefilled from this transaction, is open in the details. */
+  ruleOpen: boolean;
+  onOpenRule: () => void;
+  onRuleDone: () => void;
   busy: boolean;
   error?: string;
   canEdit: boolean;
@@ -664,7 +689,7 @@ function Row({ refCallback, ...p }: RowProps) {
         p.selected ? "bg-signal-soft/60" : p.expanded ? "bg-sunken/50" : "hover:bg-sunken/40"
       }`}
     >
-      <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_auto] gap-x-3 gap-y-2 px-2 py-3 lg:grid-cols-[1.75rem_5.75rem_minmax(0,1fr)_minmax(13rem,19rem)_6.5rem_6.5rem_5.5rem] lg:items-center lg:py-2">
+      <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_auto] gap-x-3 gap-y-2 px-2 py-3 lg:grid-cols-[1.75rem_5.75rem_minmax(0,1fr)_minmax(13rem,19rem)_6.5rem_6.5rem_7.5rem] lg:items-center lg:py-2">
         <div className="row-span-2 pt-0.5 lg:row-span-1 lg:pt-0">
           {p.canEdit ? (
             // The label pads the checkbox to a finger-sized target without moving it.
@@ -785,6 +810,17 @@ function Row({ refCallback, ...p }: RowProps) {
         </div>
         <div className="col-start-3 row-start-2 flex items-center justify-end gap-1 lg:col-start-7 lg:row-start-1">
           {p.canEdit ? (
+            <IconButton
+              size="sm"
+              aria-label={`Create a rule from ${title}`}
+              title="Create a rule from this (R)"
+              aria-pressed={p.ruleOpen}
+              onClick={p.ruleOpen ? p.onRuleDone : p.onOpenRule}
+            >
+              <Wand2 size={15} aria-hidden />
+            </IconButton>
+          ) : null}
+          {p.canEdit ? (
             <Button
               // Every row's button looks the same; the row itself shows keyboard focus.
               variant="secondary"
@@ -903,7 +939,6 @@ function Details(
   const { item, draft } = p;
   const choice = draft.choice;
   const plainAccount = choice && !choice.includes(":") && choice !== "split";
-  const [ruleOpen, setRuleOpen] = useState(false);
   const mode: Mode = choice.startsWith("link:")
     ? "match"
     : choice.startsWith("transfer:")
@@ -1115,7 +1150,7 @@ function Details(
         </label>
       ) : null}
 
-      {p.canEdit && ruleOpen ? (
+      {p.canEdit && p.ruleOpen ? (
         <RuleEditor
           bookId={p.bookId}
           groups={p.groups}
@@ -1142,7 +1177,7 @@ function Details(
               transfer: choice.startsWith("transfer:"),
             },
           }}
-          onDone={() => setRuleOpen(false)}
+          onDone={p.onRuleDone}
         />
       ) : null}
 
@@ -1155,8 +1190,8 @@ function Details(
 
       {p.canEdit ? (
         <div className="flex flex-wrap items-center gap-2 border-t border-rule pt-3">
-          {ruleOpen ? null : (
-            <Button size="sm" variant="ghost" onClick={() => setRuleOpen(true)}>
+          {p.ruleOpen ? null : (
+            <Button size="sm" variant="ghost" onClick={p.onOpenRule}>
               <Wand2 size={14} aria-hidden />
               Create a rule from this
             </Button>

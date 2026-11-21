@@ -18,6 +18,9 @@ All notable changes to this project are listed here. The format follows
   move. The Opening balances screen shows when an account opens earlier because of its
   older transactions.
 
+- **Rules from review, one click away.** Each transaction in review has a rule button
+  beside Add (or press R) that opens a new rule filled in from it. Before, it was only
+  inside the transaction's details.
 - The version you're running is shown at the bottom of the account menu and in Book
   settings, with a link to what's new.
 
