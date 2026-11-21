@@ -13,15 +13,19 @@ export async function saveOpeningBalancesAction(
   formData: FormData,
 ): Promise<ActionState> {
   const amounts: Record<string, string> = {};
+  const dates: Record<string, string> = {};
   for (const [key, value] of formData.entries()) {
     if (key.startsWith("amt-")) amounts[key.slice(4)] = String(value);
+    if (key.startsWith("asof-")) dates[key.slice(5)] = String(value);
   }
   try {
     const user = await requireUser();
     await requireBookAccess(getDb(), user.id, bookId, "editor");
-    await saveOpeningBalances(getDb(), { userId: user.id }, bookId, amounts);
+    await saveOpeningBalances(getDb(), { userId: user.id }, bookId, amounts, dates);
   } catch (err) {
-    return actionError(err, amounts);
+    const values = { ...amounts };
+    for (const [id, date] of Object.entries(dates)) values[`asof-${id}`] = date;
+    return actionError(err, values);
   }
   redirect(`/books/${bookId}/opening-balances?saved=1`);
 }

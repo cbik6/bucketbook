@@ -6,12 +6,7 @@ import type { Database } from "../db/client";
 import { accounts } from "../db/schema";
 import { NotFoundError, UserFacingError } from "../errors";
 import { accountTotals } from "../ledger/queries";
-import {
-  assertDateAllowed,
-  createEntry,
-  loadBookForPosting,
-  validateLines,
-} from "../ledger/service";
+import { createEntry, loadBookForPosting, validateLines } from "../ledger/service";
 
 type Actor = { userId: string };
 
@@ -48,8 +43,7 @@ export async function recordBalance(
   }
   if (!z.uuid().safeParse(accountId).success) throw new NotFoundError("That account");
   return db.transaction(async (tx) => {
-    const book = await loadBookForPosting(tx, bookId);
-    assertDateAllowed(input.date, book.startDate);
+    await loadBookForPosting(tx, bookId);
     const [acct] = await tx
       .select()
       .from(accounts)

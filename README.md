@@ -232,12 +232,17 @@ a small paid service that connects to most US banks and credit cards.
    stores that encrypted with `APP_ENCRYPTION_KEY`.
 3. A guide opens and walks through each bank account: make a new account for it (pick the
    type and name), connect it to one you already have, or skip it. Its opening balance is
-   set from the bank's balance that day.
+   the bank's balance that day.
 4. Press **Sync now**. Each account brings in transactions from the day you connected it,
-   so enter its balance on that day as its opening balance (the Bank connections page
-   shows the bank's balance). After that it syncs on the schedule in **Book settings**:
+   never earlier. After that it syncs on the schedule in **Book settings**:
    once a day by default, or up to every 4 hours, starting at the hour you pick (in the
    server's `TZ`), or only when you press Sync now.
+
+**Older history** comes from statements: upload CSV or PDF statements from any date
+under Import, or type entries for any date. Bucketbook keeps each account's opening
+balance true for its date: it lowers or raises the opening amount by what the older
+transactions add up to, so a connected account still shows exactly the bank's balance.
+The Opening balances screen sets that balance and date for accounts you track by hand.
 
 New transactions wait in **For review** in each book, laid out like a bank feed: a card
 for each bank account (the bank's balance next to the balance in your books), then a

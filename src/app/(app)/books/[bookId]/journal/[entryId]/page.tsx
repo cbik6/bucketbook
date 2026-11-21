@@ -236,7 +236,7 @@ async function EntryContent({
               entryLabel={label}
               notes={reverseNotes}
               reconciled={reconciledText}
-              minDate={entry.entryDate < book.startDate ? book.startDate : entry.entryDate}
+              minDate={entry.entryDate}
             />
           </div>
         ) : null}

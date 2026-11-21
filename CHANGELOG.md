@@ -8,8 +8,26 @@ All notable changes to this project are listed here. The format follows
 
 ### Added
 
+- **Any date, any time.** Journal entries, CSV and PDF statements, and review accept
+  transactions from any date, including before the book was made. Books no longer have
+  a start date.
+- **Opening balances stay true.** Each account's opening balance is what it held on a
+  date you choose (today by default; for a connected bank account, the bank's balance
+  on the day you connected it). Add older transactions later and Bucketbook lowers or
+  raises the opening amount to match, so the balance on that date, and today's, don't
+  move. The Opening balances screen shows when an account opens earlier because of its
+  older transactions.
+
 - The version you're running is shown at the bottom of the account menu and in Book
   settings, with a link to what's new.
+
+### Changed
+
+- Opening balance entries are kept by Bucketbook, one per date, and can't be reversed by
+  hand; change or clear the amounts on the Opening balances screen. Your existing
+  opening balances carry over unchanged.
+- Reports' "All dates" start from the book's first entry.
+- SimpleFIN still brings in transactions only from the day an account was connected.
 
 ### Fixed
 

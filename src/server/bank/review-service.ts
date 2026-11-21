@@ -21,13 +21,7 @@ import {
   journalEntries,
 } from "../db/schema";
 import { NotFoundError, UserFacingError } from "../errors";
-import {
-  assertDateAllowed,
-  createEntry,
-  loadBookForPosting,
-  reverseEntry,
-  validateLines,
-} from "../ledger/service";
+import { createEntry, loadBookForPosting, reverseEntry, validateLines } from "../ledger/service";
 import { allocateDepositInTx, unassignedOf } from "../buckets/service";
 import { bankText, bookLearner } from "./learner-service";
 import { applyRules } from "./rules-service";
@@ -188,10 +182,9 @@ export async function approveItem(
   if (!parsed.success) throw new UserFacingError(parsed.error.issues[0]!.message);
   const input = parsed.data;
   return db.transaction(async (tx) => {
-    const book = await loadBookForPosting(tx, bookId);
+    await loadBookForPosting(tx, bookId);
     const item = await lockItem(tx, bookId, itemId);
     assertReviewable(item);
-    assertDateAllowed(item.postedDate, book.startDate);
     const size = Math.abs(item.amountCents);
 
     const side = await bankLineAccount(
@@ -433,8 +426,6 @@ export async function approveTransfer(
     if (item.accountId === partner.accountId) {
       throw new UserFacingError("Both transactions are on the same account.");
     }
-    assertDateAllowed(item.postedDate, locked.get(bookId)!.startDate);
-    assertDateAllowed(partner.postedDate, locked.get(otherBookId)!.startDate);
     const memo = input.memo || null;
 
     const itemSide = await bankLineAccount(tx, item.accountId, input.bucketId);

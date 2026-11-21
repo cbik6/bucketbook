@@ -1,3 +1,4 @@
+import { bookFirstDay } from "@/server/ledger/queries";
 import { isIsoDate, todayIso } from "@/lib/dates";
 import { getCurrentUser } from "@/server/auth/session";
 import { requireBookAccess } from "@/server/books/service";
@@ -38,7 +39,7 @@ export async function GET(
     const v = url.searchParams.get(k);
     return v && isIsoDate(v) ? v : fallback;
   };
-  const from = param("from", book.startDate);
+  const from = param("from", await bookFirstDay(getDb(), book.id, today));
   const to = param("to", today);
   const db = getDb();
   let rows: (string | number)[][];

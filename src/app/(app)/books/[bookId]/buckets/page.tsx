@@ -28,7 +28,6 @@ async function BucketsContent({ params }: PageProps<"/books/[bookId]/buckets">) 
           accounts={overview.accounts}
           eligible={overview.eligible}
           today={serverToday()}
-          minDate={book.startDate}
           canEdit={book.role !== "viewer"}
         />
       </div>

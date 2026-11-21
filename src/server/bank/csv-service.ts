@@ -5,7 +5,7 @@ import { type CsvMapping, MAX_CSV_ROWS, csvFingerprints, csvMappingSchema } from
 import { isIsoDate } from "@/lib/dates";
 import { recordAudit } from "../audit/record";
 import type { Database, DbOrTx } from "../db/client";
-import { bankTransactions, books, csvPresets } from "../db/schema";
+import { bankTransactions, csvPresets } from "../db/schema";
 import { UserFacingError } from "../errors";
 import { loadBookForPosting } from "../ledger/service";
 import { DUPLICATE_WINDOW_DAYS } from "../simplefin/plan";
@@ -39,7 +39,7 @@ const importSchema = z
     path: ["mapping"],
   });
 
-export type CsvRowStatus = "new" | "imported" | "possible_duplicate" | "before_start";
+export type CsvRowStatus = "new" | "imported" | "possible_duplicate";
 
 export type CsvPreviewRow = {
   line: number;
@@ -53,13 +53,12 @@ const dayNumber = (day: string) => Math.round(Date.parse(`${day}T00:00:00Z`) / 8
 /**
  * Classifies each row: already imported (same fingerprint), a possible
  * duplicate of something on the account from another source (same amount, a
- * few days apart), before the book's start date, or new.
+ * few days apart), or new. Any date is fine: opening balances adjust to older rows.
  */
 async function classify(
   db: DbOrTx,
   bookId: string,
   accountId: string,
-  startDate: string,
   rows: z.infer<typeof rowSchema>[],
   kind: "csv" | "pdf",
 ) {
@@ -105,9 +104,6 @@ async function classify(
   const claimed = new Set<string>();
   return rows.map((row, i) => {
     const print = prints[i]!;
-    if (row.postedDate < startDate) {
-      return { row, print, status: "before_start" as const, dup: null };
-    }
     if (existingPrints.has(print)) return { row, print, status: "imported" as const, dup: null };
     let best: (typeof others)[number] | null = null;
     let bestGap = Infinity;
@@ -140,19 +136,7 @@ function parseImport(raw: unknown) {
 export async function previewCsv(db: DbOrTx, bookId: string, raw: unknown) {
   const input = parseImport(raw);
   await requireBankableAccount(db, bookId, input.accountId);
-  const [book] = await db
-    .select({ startDate: books.startDate })
-    .from(books)
-    .where(eq(books.id, bookId));
-  if (!book) throw new UserFacingError("That book was not found.");
-  const classified = await classify(
-    db,
-    bookId,
-    input.accountId,
-    book.startDate,
-    input.rows,
-    input.kind,
-  );
+  const classified = await classify(db, bookId, input.accountId, input.rows, input.kind);
   return classified.map((c): CsvPreviewRow => ({
     line: c.row.line,
     status: c.status,
@@ -168,17 +152,10 @@ export async function previewCsv(db: DbOrTx, bookId: string, raw: unknown) {
 export async function importCsv(db: Database, actor: Actor, bookId: string, raw: unknown) {
   const input = parseImport(raw);
   return db.transaction(async (tx) => {
-    const book = await loadBookForPosting(tx, bookId);
+    await loadBookForPosting(tx, bookId);
     await requireBankableAccount(tx, bookId, input.accountId);
     if (input.mapping) await saveCsvPreset(tx, bookId, input.accountId, input.mapping);
-    const classified = await classify(
-      tx,
-      bookId,
-      input.accountId,
-      book.startDate,
-      input.rows,
-      input.kind,
-    );
+    const classified = await classify(tx, bookId, input.accountId, input.rows, input.kind);
     const batchId = randomUUID();
     const fresh = classified.filter((c) => c.status === "new" || c.status === "possible_duplicate");
     const inserted = fresh.length
@@ -211,7 +188,6 @@ export async function importCsv(db: Database, actor: Actor, bookId: string, raw:
     const counts = {
       count: inserted.length,
       skipped: classified.filter((c) => c.status === "imported").length,
-      beforeStart: classified.filter((c) => c.status === "before_start").length,
       possibleDuplicates: classified.filter((c) => c.status === "possible_duplicate").length,
     };
     await recordAudit(tx, {

@@ -1,3 +1,4 @@
+import { bookFirstDay } from "@/server/ledger/queries";
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
@@ -20,7 +21,12 @@ async function Content({ params, searchParams }: PageProps<"/books/[bookId]/repo
   const { bookId } = await params;
   const sp = await searchParams;
   const { book } = await loadBookForPage(bookId);
-  const { range, from, to } = reportRange(sp, book.startDate, serverToday(), "all");
+  const { range, from, to } = reportRange(
+    sp,
+    await bookFirstDay(getDb(), book.id, serverToday()),
+    serverToday(),
+    "all",
+  );
   const rows = await netWorthByMonth(getDb(), book.id, { from, to });
   const base = `/books/${book.id}`;
   const latest = rows.at(-1);

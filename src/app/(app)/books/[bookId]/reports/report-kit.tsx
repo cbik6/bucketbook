@@ -8,10 +8,10 @@ import type { ReportLine } from "@/server/reports/service";
 
 export const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-/** The report's dates: a preset or custom range, with "All dates" running from the book's start. */
+/** The report's dates: a preset or custom range, with "All dates" running from the book's first entry. */
 export function reportRange(
   sp: Record<string, string | string[] | undefined>,
-  startDate: string,
+  firstDay: string,
   today: string,
   fallback: RangePreset,
 ): { range: DateRange; from: string; to: string } {
@@ -20,9 +20,7 @@ export function reportRange(
     today,
     fallback,
   );
-  const from = range.from ?? startDate;
-  const to = range.to ?? today;
-  return { range, from: from < startDate ? startDate : from, to };
+  return { range, from: range.from ?? firstDay, to: range.to ?? today };
 }
 
 export function csvHref(

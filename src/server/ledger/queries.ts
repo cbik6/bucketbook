@@ -38,6 +38,18 @@ export async function accountTotals(
 }
 
 /** True if any journal line (current or replaced) uses the account. */
+/**
+ * The book's first day with anything in it, for reports' "All dates". Falls back
+ * to `fallback` (today, say) for an empty book.
+ */
+export async function bookFirstDay(db: DbOrTx, bookId: string, fallback: string): Promise<string> {
+  const result = await db.execute<{ first: string | null }>(
+    sql`select min(entry_date)::text as first from journal_entries where book_id = ${bookId}`,
+  );
+  const first = result.rows[0]?.first;
+  return first && first < fallback ? first : fallback;
+}
+
 export async function accountHasActivity(db: DbOrTx, accountId: string): Promise<boolean> {
   const result = await db.execute<{ used: boolean }>(
     sql`select exists (select 1 from journal_lines where account_id = ${accountId}) as used`,

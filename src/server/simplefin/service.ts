@@ -516,7 +516,7 @@ export type SyncResult = {
 
 type Interval = { from: string; to: string };
 
-/** The first day a feed brings in: its import date, but never before the book starts. */
+/** The first day a feed brings in: the day it was connected (never earlier). */
 function effectiveStart(bookStart: string, importFrom: string | null) {
   return importFrom && importFrom > bookStart ? importFrom : bookStart;
 }
@@ -778,7 +778,7 @@ async function recordValuation(
       actor: { userId: null as unknown as string },
       bookId,
       kind: "valuation",
-      entryDate: day < book.startDate ? book.startDate : day,
+      entryDate: day,
       payee: feed.institution,
       memo: hasHistory ? `Value update: ${feed.name}` : `Starting value: ${feed.name}`,
       lines,
@@ -951,7 +951,12 @@ export async function allConnectionSchedules(db: DbOrTx) {
 export async function openingFromBank(
   db: Database,
   actor: Actor,
-  feed: { bookId: string | null; accountId: string | null; balanceCents: number | null },
+  feed: {
+    bookId: string | null;
+    accountId: string | null;
+    balanceCents: number | null;
+    importFrom?: string | null;
+  },
 ) {
   if (!feed.bookId || !feed.accountId || feed.balanceCents === null) return;
   const [acct] = await db
@@ -960,7 +965,10 @@ export async function openingFromBank(
     .where(eq(accounts.id, feed.accountId));
   if (!acct || acct.subtype === "investment") return;
   const natural = acct.type === "liability" ? -feed.balanceCents : feed.balanceCents;
-  await setOpeningBalanceFor(db, actor, feed.bookId, feed.accountId, natural);
+  // The bank's balance on the day the account was connected; transactions come in
+  // from that day on, and anything older added later adjusts the opening amount.
+  const asOf = feed.importFrom ?? todayIso(serverTimeZone());
+  await setOpeningBalanceFor(db, actor, feed.bookId, feed.accountId, natural, asOf);
 }
 
 /**

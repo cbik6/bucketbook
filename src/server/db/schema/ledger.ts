@@ -21,7 +21,8 @@ import { books } from "./books";
 import { inList } from "./sql-helpers";
 
 /**
- * manual: typed on the journal screen. opening_balance: the one opening entry.
+ * manual: typed on the journal screen. opening_balance: opening amounts, one entry per
+ * date, kept by the app from opening_balances (below).
  * reversal: cancels another entry. bank: approved from the review queue.
  * transfer: money moving between two of your own accounts (one entry per book).
  * bucket: money moving between buckets inside one real account (allocations
@@ -84,9 +85,6 @@ export const journalEntries = pgTable(
     uniqueIndex("journal_entries_one_reversal_key")
       .on(t.reversesEntryId)
       .where(sql`${t.reversesEntryId} is not null`),
-    uniqueIndex("journal_entries_one_opening_key")
-      .on(t.bookId)
-      .where(sql`${t.kind} = 'opening_balance'`),
     index("journal_entries_book_date_idx").on(t.bookId, t.entryDate),
     index("journal_entries_transfer_group_idx")
       .on(t.transferGroupId)
@@ -165,4 +163,32 @@ export const journalLines = pgTable(
     check("journal_lines_credit_nonnegative", sql`${t.creditCents} >= 0`),
     check("journal_lines_one_side", sql`(${t.debitCents} > 0) <> (${t.creditCents} > 0)`),
   ],
+);
+
+/**
+ * An account's anchored balance: on `as_of` (before that day's activity) it held
+ * `balance_cents`, in its natural direction (what a card owes is positive). The
+ * app keeps the opening_balance entries matching these: the opening amount is
+ * the anchored balance less any activity dated before `as_of`, posted on the
+ * earlier of `as_of` and the account's first activity. So older transactions can
+ * be added at any time without changing the balance on the anchor date.
+ */
+export const openingBalances = pgTable(
+  "opening_balances",
+  {
+    accountId: uuid("account_id")
+      .primaryKey()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    bookId: uuid("book_id")
+      .notNull()
+      .references(() => books.id, { onDelete: "cascade" }),
+    asOf: date("as_of", { mode: "string" }).notNull(),
+    balanceCents: bigint("balance_cents", { mode: "number" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [index("opening_balances_book_idx").on(t.bookId)],
 );

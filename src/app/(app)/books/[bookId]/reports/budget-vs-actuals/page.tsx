@@ -1,3 +1,4 @@
+import { bookFirstDay } from "@/server/ledger/queries";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -21,7 +22,12 @@ async function Content({
   const { bookId } = await params;
   const sp = await searchParams;
   const { book } = await loadBookForPage(bookId);
-  const { range, from, to } = reportRange(sp, book.startDate, serverToday(), "this-month");
+  const { range, from, to } = reportRange(
+    sp,
+    await bookFirstDay(getDb(), book.id, serverToday()),
+    serverToday(),
+    "this-month",
+  );
   const r = await budgetVsActual(getDb(), book.id, { from, to });
   const base = `/books/${book.id}`;
   // Over budget means more spending, or less income, than planned.

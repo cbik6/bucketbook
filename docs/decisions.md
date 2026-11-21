@@ -659,3 +659,30 @@ frequent because SimpleFIN asks apps to stay around 24 requests a day and manual
 count too; banks usually update SimpleFIN about daily anyway. Each connection keeps its
 own random minute so installs don't all call the bridge at once. Owners only, like
 connecting a bank.
+
+### D71. Anchored opening balances, no start date
+
+Books no longer have a start date that limits anything (the column stays, unused). Any
+entry, statement row or review item can have any date. What made the start date
+necessary was double counting: an opening balance already includes everything before it.
+Instead, each account can have an anchor (`opening_balances`): the balance it held at the
+start of a date. The app keeps the `opening_balance` entries matching the anchors:
+
+- opening amount = anchored balance less the account's activity dated before the anchor
+  (an account with buckets counts its buckets, and its opening sits in Unassigned);
+- opening date = the anchor date, or the day before the account's first activity when
+  that is earlier, so the opening comes first in registers.
+
+Accounts sharing an opening date share one entry, offset to Opening Balance Equity. Every
+ledger write that could matter (dated before an anchor or before an opening entry)
+recomputes them in the same transaction; an entry left with nothing is reversed. The
+reversals of opening entries, like the entries themselves, aren't counted as activity.
+Opening entries can't be edited or reversed by hand. Reconciliations keep their own
+amounts, so a finished one isn't changed.
+
+SimpleFIN accounts anchor on the day they're connected at the bank's balance (D56, D57),
+and still only bring in transactions from that day. Older history comes from statements,
+and the anchor keeps today's balance equal to the bank's. Opening balances saved without
+a date use the book's old start date, which keeps 1.0.2's meaning; migration 0017 anchors
+every existing opening line on its entry's date at its amount, so no balance changes.
+This supersedes the start-date parts of D28, D56 and D57.

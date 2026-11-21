@@ -120,6 +120,13 @@
       "when": 1795231128945,
       "tag": "0016_book_bank_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795237093567,
+      "tag": "0017_opening_anchors",
+      "breakpoints": true
     }
   ]
 }

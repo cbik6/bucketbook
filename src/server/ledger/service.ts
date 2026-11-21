@@ -5,7 +5,6 @@ import {
   type DraftLine,
   type ParsedLine,
   formatEntryNumber,
-  naturalToSides,
   parseDraftLines,
 } from "@/lib/ledger-math";
 import { formatCents, parseCents } from "@/lib/money";
@@ -19,6 +18,7 @@ import {
   journalEntries,
   journalEntryVersions,
   journalLines,
+  openingBalances,
   users,
 } from "../db/schema";
 import { NotFoundError, UserFacingError } from "../errors";
@@ -206,15 +206,6 @@ export async function parentsBlocked(
   return new Set(rows.map((r) => r.id).filter((id): id is string => Boolean(id)));
 }
 
-export function assertDateAllowed(entryDate: string, startDate: string) {
-  if (entryDate < startDate) {
-    throw new UserFacingError(
-      `Entries start on the book's start date (${formatDate(startDate)}). Use opening balances for anything earlier.`,
-      "entryDate",
-    );
-  }
-}
-
 async function insertVersion(
   tx: DbOrTx,
   args: {
@@ -265,6 +256,8 @@ export async function createEntry(
     reversesEntryId?: string;
     transferGroupId?: string;
     changeNote: string;
+    /** Set by keepOpeningBalances itself, which already brings everything in line. */
+    skipOpeningSync?: boolean;
   },
 ) {
   const entryNumber = await nextEntryNumber(tx, args.bookId);
@@ -301,15 +294,35 @@ export async function createEntry(
     action: "create",
     after: { ...entry, lines: args.lines },
   });
+  if (
+    args.kind !== "opening_balance" &&
+    !args.skipOpeningSync &&
+    (await openingMayChange(tx, args.bookId, args.entryDate))
+  ) {
+    await keepOpeningBalances(tx, args.actor, args.bookId);
+  }
   return entry!;
+}
+
+/**
+ * Whether a change dated `date` can move an opening amount: it lands before some
+ * account's anchor date, or before an opening entry. Most activity is newer than
+ * both, and then there's nothing to recompute.
+ */
+async function openingMayChange(tx: DbOrTx, bookId: string, date: string): Promise<boolean> {
+  const result = await tx.execute<{ hit: boolean }>(sql`
+    select exists (select 1 from opening_balances where book_id = ${bookId} and as_of > ${date}::date)
+        or exists (select 1 from journal_entries where book_id = ${bookId}
+                   and kind = 'opening_balance' and entry_date > ${date}::date) as hit
+  `);
+  return Boolean(result.rows[0]?.hit);
 }
 
 /** Posts a new manual journal entry. */
 export async function postEntry(db: Database, actor: Actor, bookId: string, raw: unknown) {
   const input = parseEntryInput(raw);
   return db.transaction(async (tx) => {
-    const book = await loadBookForPosting(tx, bookId);
-    assertDateAllowed(input.entryDate, book.startDate);
+    await loadBookForPosting(tx, bookId);
     const lines = await validateLines(tx, bookId, input.lines);
     return createEntry(tx, {
       actor,
@@ -382,7 +395,6 @@ export async function editEntry(
         `This entry was reversed by ${formatEntryNumber(reversedBy.entryNumber)}, so it can't be edited. Post a new entry instead.`,
       );
     }
-    assertDateAllowed(input.entryDate, book.startDate);
     await assertReconciledChangeConfirmed(tx, entryId, input.confirmReconciled);
     return editEntryInTx(tx, actor, book, entryId, input);
   });
@@ -405,10 +417,15 @@ export async function reverseEntry(
     .safeParse(raw);
   if (!parsed.success) throw new UserFacingError(parsed.error.issues[0]!.message, "entryDate");
   return db.transaction(async (tx) => {
-    const book = await loadBookForPosting(tx, bookId);
+    await loadBookForPosting(tx, bookId);
     const { entry, reversedBy } = await loadEntryForChange(tx, bookId, entryId);
     if (entry.kind === "reversal") {
       throw new UserFacingError("A reversal can't be reversed. Post a new entry instead.");
+    }
+    if (entry.kind === "opening_balance") {
+      throw new UserFacingError(
+        "Bucketbook keeps opening balance entries in line with the Opening balances screen. Change or clear the amounts there instead.",
+      );
     }
     if (reversedBy) {
       throw new UserFacingError(
@@ -423,7 +440,6 @@ export async function reverseEntry(
         "entryDate",
       );
     }
-    assertDateAllowed(date, book.startDate);
     const original = await currentLines(tx, entryId, entry.currentVersion);
     const lines: ParsedLine[] = original.map((l) => ({
       accountId: l.accountId,
@@ -465,6 +481,20 @@ export async function reverseEntry(
 
 // ---------------------------------------------------------------------------
 // Opening balances
+//
+// Each account can have an anchored balance (opening_balances): on `asOf`, before
+// that day's activity, it held `balanceCents`. The app keeps the opening_balance
+// entries matching the anchors, so transactions can be added for any date:
+//
+//   opening amount = anchored balance - activity dated before asOf
+//   opening date   = asOf, or the day before the account's first activity when
+//                    that is earlier (so the opening comes first in registers)
+//
+// Accounts sharing an opening date share one entry, offset to Opening Balance
+// Equity. Whenever anything else is posted, edited or reversed, the entries are
+// brought back in line (keepOpeningBalances), so the balance on each anchor date
+// never moves. An account with buckets counts its buckets' activity, and its
+// opening amount sits in its Unassigned bucket.
 // ---------------------------------------------------------------------------
 
 export type OpeningAccount = {
@@ -476,40 +506,361 @@ export type OpeningAccount = {
   parentAccountId: string | null;
   sortOrder: number;
   archivedAt: Date | null;
-  /** Current opening amount in the account's natural direction. */
+  /** The anchored balance in the account's natural direction (0 when none). */
   naturalCents: number;
+  /** Whether the account has an anchored balance at all. */
+  anchored: boolean;
+  /** The anchor date, or null. */
+  asOf: string | null;
+  /** The opening amount actually posted (natural direction), after earlier activity. */
+  openingCents: number;
+  /** The date that amount is posted on, or null when nothing is posted. */
+  openingDate: string | null;
 };
 
-/** Balance sheet accounts that can hold an opening balance. */
-export async function openingBalanceState(db: DbOrTx, bookId: string) {
-  const [opening] = await db
-    .select()
-    .from(journalEntries)
-    .where(and(eq(journalEntries.bookId, bookId), eq(journalEntries.kind, "opening_balance")));
-  const lines = opening ? await currentLines(db, opening.id, opening.currentVersion) : [];
-  const [reversal] = opening
-    ? await db
-        .select({ entryNumber: journalEntries.entryNumber })
-        .from(journalEntries)
-        .where(eq(journalEntries.reversesEntryId, opening.id))
-    : [];
-  const all = await db.select().from(accounts).where(eq(accounts.bookId, bookId));
-  const obe = all.find((a) => a.systemRole === "opening_balance_equity");
-  const amounts = new Map<string, number>();
-  for (const l of lines) {
-    amounts.set(l.accountId, (amounts.get(l.accountId) ?? 0) + l.debitCents - l.creditCents);
+type AnchorPlan = {
+  accountId: string;
+  type: AccountType;
+  asOf: string;
+  balanceCents: number;
+  /** Where the opening line posts: the account, or its Unassigned bucket. */
+  targetId: string | null;
+  /** Net (debit positive) to post, and on which date. */
+  net: number;
+  date: string;
+};
+
+/**
+ * Real activity: not opening entries, and not the reversals that cancel them
+ * (both are the app's own bookkeeping of the anchors).
+ */
+const notOpening = sql`l.entry_kind <> 'opening_balance' and not exists (
+  select 1 from journal_entries rv join journal_entries og on og.id = rv.reverses_entry_id
+  where rv.id = l.entry_id and og.kind = 'opening_balance')`;
+
+/** Each anchor with what its opening line has to be right now. */
+async function planAnchors(tx: DbOrTx, bookId: string): Promise<AnchorPlan[]> {
+  const result = await tx.execute<{
+    account_id: string;
+    type: string;
+    allows_posting: boolean;
+    as_of: string;
+    balance_cents: string;
+    unassigned_id: string | null;
+    history: string;
+    earliest: string | null;
+  }>(sql`
+    select o.account_id, a.type, a.allows_posting, o.as_of::text as as_of,
+           o.balance_cents::text as balance_cents,
+           (select u.id from accounts u
+             where u.parent_account_id = o.account_id and u.is_unassigned limit 1) as unassigned_id,
+           coalesce((select sum(l.net_cents) from ledger_lines l join accounts x on x.id = l.account_id
+             where (x.id = o.account_id or (x.parent_account_id = o.account_id and x.is_bucket))
+               and ${notOpening} and l.entry_date < o.as_of), 0)::text as history,
+           (select min(l.entry_date)::text from ledger_lines l join accounts x on x.id = l.account_id
+             where (x.id = o.account_id or (x.parent_account_id = o.account_id and x.is_bucket))
+               and ${notOpening}) as earliest
+    from opening_balances o
+    join accounts a on a.id = o.account_id
+    where o.book_id = ${bookId}
+  `);
+  return result.rows.map((r) => {
+    const type = r.type as AccountType;
+    const sign = type === "asset" ? 1 : -1;
+    const naturalHistory = sign * Number(r.history);
+    const openingNatural = Number(r.balance_cents) - naturalHistory;
+    return {
+      accountId: r.account_id,
+      type,
+      asOf: r.as_of,
+      balanceCents: Number(r.balance_cents),
+      targetId: r.allows_posting ? r.account_id : r.unassigned_id,
+      net: sign * openingNatural,
+      date: r.earliest && r.earliest < r.as_of ? dayBefore(r.earliest) : r.as_of,
+    };
+  });
+}
+
+function dayBefore(iso: string): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+type LiveOpening = {
+  id: string;
+  entryNumber: number;
+  entryDate: string;
+  currentVersion: number;
+  memo: string | null;
+  lines: { accountId: string; net: number }[];
+};
+
+/** The opening entries that count: not reversed, with their current lines. */
+async function liveOpeningEntries(tx: DbOrTx, bookId: string): Promise<LiveOpening[]> {
+  const entries = await tx.execute<{
+    id: string;
+    entry_number: number;
+    entry_date: string;
+    current_version: number;
+    memo: string | null;
+  }>(sql`
+    select e.id, e.entry_number, e.entry_date::text as entry_date, e.current_version, e.memo
+    from journal_entries e
+    where e.book_id = ${bookId} and e.kind = 'opening_balance'
+      and not exists (select 1 from journal_entries r where r.reverses_entry_id = e.id)
+    order by e.entry_date, e.entry_number
+  `);
+  const out: LiveOpening[] = [];
+  for (const e of entries.rows) {
+    const lines = await currentLines(tx, e.id, e.current_version);
+    out.push({
+      id: e.id,
+      entryNumber: e.entry_number,
+      entryDate: e.entry_date,
+      currentVersion: e.current_version,
+      memo: e.memo,
+      lines: lines.map((l) => ({ accountId: l.accountId, net: l.debitCents - l.creditCents })),
+    });
   }
+  return out;
+}
+
+function toParsedLines(nets: Map<string, number>, offsetAccountId: string): ParsedLine[] {
+  const lines: ParsedLine[] = [];
+  let total = 0;
+  for (const [accountId, net] of nets) {
+    if (net === 0) continue;
+    total += net;
+    lines.push({
+      accountId,
+      debitCents: net > 0 ? net : 0,
+      creditCents: net < 0 ? -net : 0,
+      memo: null,
+    });
+  }
+  if (lines.length && total !== 0) {
+    lines.push({
+      accountId: offsetAccountId,
+      debitCents: total < 0 ? -total : 0,
+      creditCents: total > 0 ? total : 0,
+      memo: null,
+    });
+  }
+  return lines;
+}
+
+function sameNets(a: Map<string, number>, b: Map<string, number>) {
+  const keys = new Set([...a.keys(), ...b.keys()]);
+  for (const k of keys) if ((a.get(k) ?? 0) !== (b.get(k) ?? 0)) return false;
+  return true;
+}
+
+/** Writes a new version of an opening entry from lines the app computed itself. */
+async function reviseOpeningEntry(
+  tx: DbOrTx,
+  actor: Actor,
+  bookId: string,
+  entry: LiveOpening,
+  date: string,
+  lines: ParsedLine[],
+  changeNote: string,
+) {
+  const version = entry.currentVersion + 1;
+  const beforeLines = await currentLines(tx, entry.id, entry.currentVersion);
+  await tx
+    .update(journalLines)
+    .set({ isCurrent: false })
+    .where(and(eq(journalLines.entryId, entry.id), eq(journalLines.isCurrent, true)));
+  await insertVersion(tx, {
+    actor,
+    bookId,
+    entryId: entry.id,
+    version,
+    entryDate: date,
+    payee: null,
+    memo: entry.memo,
+    changeNote,
+    lines,
+  });
+  const [after] = await tx
+    .update(journalEntries)
+    .set({ currentVersion: version, entryDate: date })
+    .where(eq(journalEntries.id, entry.id))
+    .returning();
+  await recordAudit(tx, {
+    bookId,
+    userId: actor.userId,
+    entityType: "journal_entry",
+    entityId: entry.id,
+    action: "update",
+    before: { entryDate: entry.entryDate, lines: beforeLines },
+    after: { ...after, lines },
+  });
+}
+
+/**
+ * Brings the opening_balance entries in line with the anchors. Runs inside the
+ * transaction of every change to the ledger, so the balance on each anchor date
+ * stays what was entered (or what the bank said) whatever else is added.
+ */
+export async function keepOpeningBalances(
+  tx: DbOrTx,
+  actor: Actor,
+  bookId: string,
+  /** Accounts whose opening balance was just removed: their lines go too. */
+  released: string[] = [],
+) {
+  const plans = await planAnchors(tx, bookId);
+  const live = await liveOpeningEntries(tx, bookId);
+  if (plans.length === 0 && live.length === 0) return;
+  const anchored = new Set([...plans.map((p) => p.accountId), ...released]);
+
+  // What each date's entry should hold: account -> net.
+  const wanted = new Map<string, Map<string, number>>();
+  const add = (date: string, accountId: string, net: number) => {
+    if (net === 0) return;
+    const m = wanted.get(date) ?? new Map<string, number>();
+    m.set(accountId, (m.get(accountId) ?? 0) + net);
+    wanted.set(date, m);
+  };
+  for (const p of plans) {
+    if (p.targetId) add(p.date, p.targetId, p.net);
+  }
+
+  const offsetId = await openingEquityId(tx, bookId);
+  // Lines on accounts without an anchor (and their buckets) aren't ours to change.
+  const bucketParent = await bucketParents(tx, bookId);
+  for (const e of live) {
+    for (const l of e.lines) {
+      if (l.accountId === offsetId) continue;
+      const owner = bucketParent.get(l.accountId) ?? l.accountId;
+      if (!anchored.has(owner) && !anchored.has(l.accountId)) add(e.entryDate, l.accountId, l.net);
+    }
+  }
+
+  const used = new Set<string>();
+  for (const e of live) {
+    const want = used.has(e.entryDate) ? undefined : wanted.get(e.entryDate);
+    const have = new Map<string, number>();
+    for (const l of e.lines) {
+      if (l.accountId !== offsetId) have.set(l.accountId, (have.get(l.accountId) ?? 0) + l.net);
+    }
+    if (want && want.size > 0) {
+      used.add(e.entryDate);
+      if (!sameNets(want, have)) {
+        await reviseOpeningEntry(
+          tx,
+          actor,
+          bookId,
+          e,
+          e.entryDate,
+          toParsedLines(want, offsetId),
+          "Opening amounts updated to keep each account's balance on its opening date",
+        );
+      }
+      continue;
+    }
+    // Nothing belongs on this date any more: cancel the entry. A line on an account
+    // that now holds buckets is cancelled in its Unassigned bucket instead.
+    const lines: ParsedLine[] = [];
+    for (const l of e.lines) {
+      const target = await postingTargetFor(tx, l.accountId);
+      lines.push({
+        accountId: target,
+        debitCents: l.net < 0 ? -l.net : 0,
+        creditCents: l.net > 0 ? l.net : 0,
+        memo: null,
+      });
+    }
+    await createEntry(tx, {
+      actor,
+      bookId,
+      kind: "reversal",
+      entryDate: e.entryDate,
+      memo: `Reverses ${formatEntryNumber(e.entryNumber)}: opening amounts moved to an earlier date`,
+      lines,
+      reversesEntryId: e.id,
+      changeNote: "Opening amounts moved to an earlier date",
+      skipOpeningSync: true,
+    });
+  }
+
+  for (const [date, nets] of wanted) {
+    if (used.has(date) || nets.size === 0) continue;
+    const lines = toParsedLines(nets, offsetId);
+    if (lines.length < 2) continue;
+    await createEntry(tx, {
+      actor,
+      bookId,
+      kind: "opening_balance",
+      entryDate: date,
+      memo: "Opening balances",
+      lines,
+      changeNote: "Created",
+      skipOpeningSync: true,
+    });
+  }
+}
+
+async function openingEquityId(tx: DbOrTx, bookId: string): Promise<string> {
+  const [obe] = await tx
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(and(eq(accounts.bookId, bookId), eq(accounts.systemRole, "opening_balance_equity")));
+  if (!obe) throw new UserFacingError("This book is missing its Opening Balance Equity account.");
+  return obe.id;
+}
+
+/** bucket id -> the account that holds it. */
+async function bucketParents(tx: DbOrTx, bookId: string): Promise<Map<string, string>> {
+  const rows = await tx
+    .select({ id: accounts.id, parent: accounts.parentAccountId })
+    .from(accounts)
+    .where(and(eq(accounts.bookId, bookId), eq(accounts.isBucket, true)));
+  return new Map(
+    rows
+      .filter((r): r is { id: string; parent: string } => Boolean(r.parent))
+      .map((r) => [r.id, r.parent]),
+  );
+}
+
+/** The account itself, or its Unassigned bucket when it now holds buckets. */
+async function postingTargetFor(tx: DbOrTx, accountId: string): Promise<string> {
+  const [a] = await tx
+    .select({ allowsPosting: accounts.allowsPosting })
+    .from(accounts)
+    .where(eq(accounts.id, accountId));
+  if (!a || a.allowsPosting) return accountId;
+  const [u] = await tx
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(and(eq(accounts.parentAccountId, accountId), eq(accounts.isUnassigned, true)));
+  return u?.id ?? accountId;
+}
+
+/** Balance sheet accounts that can hold an opening balance, with their anchors. */
+export async function openingBalanceState(db: DbOrTx, bookId: string) {
+  const all = await db.select().from(accounts).where(eq(accounts.bookId, bookId));
+  const anchors = await db.select().from(openingBalances).where(eq(openingBalances.bookId, bookId));
+  const anchorBy = new Map(anchors.map((a) => [a.accountId, a]));
+  const plans = new Map((await planAnchors(db, bookId)).map((p) => [p.accountId, p]));
+  const live = await liveOpeningEntries(db, bookId);
+  const obe = all.find((a) => a.systemRole === "opening_balance_equity");
   const eligible: OpeningAccount[] = all
     .filter(
       (a) =>
         ["asset", "liability", "equity"].includes(a.type) &&
         !a.systemRole &&
-        a.allowsPosting &&
-        (!a.archivedAt || amounts.has(a.id)),
+        !a.isBucket &&
+        (a.allowsPosting || a.bucketsEnabled) &&
+        (!a.archivedAt || anchorBy.has(a.id)),
     )
     .map((a) => {
-      const net = amounts.get(a.id) ?? 0;
       const type = a.type as AccountType;
+      const anchor = anchorBy.get(a.id);
+      const plan = plans.get(a.id);
+      const sign = type === "asset" ? 1 : -1;
       return {
         id: a.id,
         name: a.name,
@@ -519,28 +870,42 @@ export async function openingBalanceState(db: DbOrTx, bookId: string) {
         parentAccountId: a.parentAccountId,
         sortOrder: a.sortOrder,
         archivedAt: a.archivedAt,
-        naturalCents: type === "asset" ? net : -net,
+        naturalCents: anchor?.balanceCents ?? 0,
+        anchored: Boolean(anchor),
+        asOf: anchor?.asOf ?? null,
+        openingCents: plan ? sign * plan.net : 0,
+        openingDate: plan && plan.net !== 0 ? plan.date : null,
       };
     });
   return {
-    entry: opening ?? null,
-    reversedByNumber: reversal?.entryNumber ?? null,
+    entries: live.map((e) => ({ id: e.id, entryNumber: e.entryNumber, entryDate: e.entryDate })),
     accounts: eligible,
     openingBalanceEquityId: obe?.id ?? null,
-    openingBalanceEquityNet: obe ? (amounts.get(obe.id) ?? 0) : 0,
   };
 }
 
+const anchorDate = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Pick the date of this balance.")
+  .refine((v) => {
+    const d = new Date(`${v}T00:00:00Z`);
+    return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+  }, "That isn't a real date.");
+
 /**
- * Saves opening balances as one entry dated on the book's start date, with the
- * difference posted to Opening Balance Equity. Saving again creates a new
- * version of the same entry.
+ * Saves anchored balances: for each account, what it held (statement-style,
+ * positive for what a card owes) on a date. A blank amount removes the account's
+ * opening balance. `asOf` is one date for every account or a date per account;
+ * without one, an account keeps its anchor's date, or uses the book's start date.
+ * The opening entries are then brought in line.
  */
 export async function saveOpeningBalances(
   db: Database,
   actor: Actor,
   bookId: string,
   rawAmounts: Record<string, string>,
+  asOf?: string | Record<string, string>,
 ) {
   return db.transaction(async (tx) => {
     const book = await loadBookForPosting(tx, bookId);
@@ -548,76 +913,66 @@ export async function saveOpeningBalances(
     if (!state.openingBalanceEquityId) {
       throw new UserFacingError("This book is missing its Opening Balance Equity account.");
     }
-    if (state.reversedByNumber) {
-      throw new UserFacingError(
-        `The opening balance entry was reversed by ${formatEntryNumber(state.reversedByNumber)}, so it can't be changed here.`,
-      );
-    }
     const eligible = new Map(state.accounts.map((a) => [a.id, a]));
-    const lines: ParsedLine[] = [];
-    let offset = 0;
+    const changes: { accountId: string; before: unknown; after: unknown }[] = [];
     for (const [accountId, text] of Object.entries(rawAmounts)) {
       const account = eligible.get(accountId);
-      if (!account) continue;
+      if (!account || !isAccountType(account.type)) continue;
       const t = text.trim();
-      if (!t) continue;
+      const before = account.anchored
+        ? { balanceCents: account.naturalCents, asOf: account.asOf }
+        : null;
+      if (!t) {
+        if (account.anchored) {
+          await tx.delete(openingBalances).where(eq(openingBalances.accountId, accountId));
+          changes.push({ accountId, before, after: null });
+        }
+        continue;
+      }
       let natural: number;
       try {
         natural = parseCents(t);
       } catch (e) {
         throw new UserFacingError(`${account.name}: ${(e as Error).message}`, accountId);
       }
-      if (natural === 0) continue;
-      if (!isAccountType(account.type)) continue;
-      const sides = naturalToSides(account.type, natural);
-      offset += sides.debitCents - sides.creditCents;
-      lines.push({ accountId, ...sides, memo: null });
-    }
-    if (lines.length === 0) {
-      if (state.entry) {
+      const rawDate =
+        typeof asOf === "string" ? asOf : (asOf?.[accountId] ?? account.asOf ?? book.startDate);
+      const parsedDate = anchorDate.safeParse(rawDate ?? "");
+      if (!parsedDate.success) {
         throw new UserFacingError(
-          "Opening balances can't all be zero once saved. Change the amounts, or reverse the entry from the journal.",
+          `${account.name}: ${parsedDate.error.issues[0]!.message}`,
+          `asof-${accountId}`,
         );
       }
-      return { entry: null, changed: false };
+      const date = parsedDate.data;
+      if (account.anchored && account.naturalCents === natural && account.asOf === date) continue;
+      await tx
+        .insert(openingBalances)
+        .values({ accountId, bookId, asOf: date, balanceCents: natural })
+        .onConflictDoUpdate({
+          target: openingBalances.accountId,
+          set: { asOf: date, balanceCents: natural, updatedAt: new Date() },
+        });
+      changes.push({ accountId, before, after: { balanceCents: natural, asOf: date } });
     }
-    if (offset !== 0) {
-      lines.push({
-        accountId: state.openingBalanceEquityId,
-        debitCents: offset < 0 ? -offset : 0,
-        creditCents: offset > 0 ? offset : 0,
-        memo: null,
+    for (const c of changes) {
+      await recordAudit(tx, {
+        bookId,
+        userId: actor.userId,
+        entityType: "opening_balance",
+        entityId: c.accountId,
+        action: c.before ? (c.after ? "update" : "delete") : "create",
+        before: c.before ?? undefined,
+        after: c.after ?? undefined,
       });
     }
-    // Every line balances against Opening Balance Equity, so this always balances.
-    const draft: DraftLine[] = lines.map((l) => ({
-      accountId: l.accountId,
-      debit: l.debitCents ? centsText(l.debitCents) : "",
-      credit: l.creditCents ? centsText(l.creditCents) : "",
-      memo: "",
-    }));
-    const input = {
-      entryDate: book.startDate,
-      payee: null,
-      memo: "Opening balances",
-      lines: draft,
-    };
-    if (state.entry) {
-      // A single account plus its offset still needs two lines; that holds here.
-      const result = await editEntryInTx(tx, actor, book, state.entry.id, input);
-      return result;
-    }
-    const validated = await validateLines(tx, bookId, draft, { allowParents: "all" });
-    const entry = await createEntry(tx, {
+    await keepOpeningBalances(
+      tx,
       actor,
       bookId,
-      kind: "opening_balance",
-      entryDate: book.startDate,
-      memo: "Opening balances",
-      lines: validated,
-      changeNote: "Created",
-    });
-    return { entry, changed: true };
+      changes.filter((c) => !c.after).map((c) => c.accountId),
+    );
+    return { changed: changes.length > 0 };
   });
 }
 
@@ -725,6 +1080,10 @@ async function editEntryInTx(
     before: { ...entry, lines: beforeLines },
     after: { ...after, lines },
   });
+  const earliest = input.entryDate < entry.entryDate ? input.entryDate : entry.entryDate;
+  if (entry.kind !== "opening_balance" && (await openingMayChange(tx, book.id, earliest))) {
+    await keepOpeningBalances(tx, actor, book.id);
+  }
   return { entry: after!, changed: true };
 }
 
@@ -908,8 +1267,8 @@ export async function getEntryDetail(
 }
 
 /**
- * Sets one account's opening balance (in its natural direction, for example
- * what a card owes as a positive amount), keeping every other account's.
+ * Sets one account's anchored balance (in its natural direction, for example
+ * what a card owes as a positive amount) on a date, leaving every other account's.
  */
 export async function setOpeningBalanceFor(
   db: Database,
@@ -917,13 +1276,13 @@ export async function setOpeningBalanceFor(
   bookId: string,
   accountId: string,
   naturalCents: number,
+  asOf?: string,
 ) {
-  const state = await openingBalanceState(db, bookId);
-  const amounts: Record<string, string> = {};
-  for (const a of state.accounts) {
-    if (a.naturalCents !== 0) amounts[a.id] = centsText(a.naturalCents);
-  }
-  amounts[accountId] = centsText(naturalCents);
-  if (Object.values(amounts).every((v) => v === "0.00")) return null;
-  return saveOpeningBalances(db, actor, bookId, amounts);
+  return saveOpeningBalances(
+    db,
+    actor,
+    bookId,
+    { [accountId]: centsText(naturalCents) },
+    asOf ? { [accountId]: asOf } : undefined,
+  );
 }

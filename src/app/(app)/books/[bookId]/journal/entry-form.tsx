@@ -20,7 +20,8 @@ type Props = {
   groups: AccountOptionGroup[];
   initial?: { entryDate: string; payee?: string | null; memo: string | null; lines: DraftLine[] };
   defaultDate: string;
-  minDate: string;
+  /** The earliest date allowed, if any. */
+  minDate?: string;
   cancelHref: string;
   mode: "new" | "edit";
   /** Set when the entry is in a finished reconciliation: asks for a confirming tick. */
@@ -68,7 +69,7 @@ export function EntryForm({
     if (!dateTouched && mode === "new") {
       const local = todayIso();
       // eslint-disable-next-line react-hooks/set-state-in-effect -- the server can't know the viewer's time zone
-      if (local >= minDate) setEntryDate(local);
+      if (!minDate || local >= minDate) setEntryDate(local);
     }
   }, [dateTouched, mode, minDate]);
 

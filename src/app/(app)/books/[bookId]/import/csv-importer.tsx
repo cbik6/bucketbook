@@ -30,18 +30,15 @@ const STATUS_LABEL: Record<CsvPreviewRow["status"], string> = {
   new: "New",
   imported: "Already imported, skipped",
   possible_duplicate: "Possible duplicate, flagged",
-  before_start: "Before the start date, skipped",
 };
 
 export function CsvImporter({
   bookId,
-  startDate,
   accounts,
   presets,
   initialAccountId,
 }: {
   bookId: string;
-  startDate: string;
   accounts: Account[];
   presets: Record<string, CsvMapping>;
   initialAccountId: string;
@@ -131,8 +128,7 @@ export function CsvImporter({
     ? {
         fresh: checked.filter((c) => c.status === "new").length,
         dup: checked.filter((c) => c.status === "possible_duplicate").length,
-        skipped: checked.filter((c) => c.status === "imported" || c.status === "before_start")
-          .length,
+        skipped: checked.filter((c) => c.status === "imported").length,
       }
     : null;
   const statusByLine = new Map(checked?.map((c) => [c.line, c]) ?? []);
@@ -343,7 +339,6 @@ export function CsvImporter({
               <tbody>
                 {mapped.rows.slice(0, checked ? 200 : 8).map((r) => {
                   const st = statusByLine.get(r.line);
-                  const early = r.postedDate < startDate;
                   return (
                     <tr
                       key={r.line}
@@ -358,7 +353,7 @@ export function CsvImporter({
                       </td>
                       {checked ? (
                         <td className="py-2 text-[0.8125rem]">
-                          {st ? STATUS_LABEL[st.status] : early ? STATUS_LABEL.before_start : ""}
+                          {st ? STATUS_LABEL[st.status] : ""}
                           {st?.duplicateOfText ? (
                             <span className="block text-ink-muted">Like {st.duplicateOfText}</span>
                           ) : null}

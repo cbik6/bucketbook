@@ -50,7 +50,7 @@ test("ledger: opening balances, post, edit, reverse, register", async ({ page })
   await field(page, "Line 1 debit").fill("54.20");
   await pickAccount(page, "Line 2 account", "Checking");
   await expect(field(page, "Line 2 credit")).toHaveValue("54.20");
-  await expect(page.getByText("Balanced")).toBeVisible();
+  await expect(page.getByText("Balanced", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Post entry" }).click();
   await expect(page.getByRole("heading", { name: "JE 2" })).toBeVisible();
   await expect(page.getByText("Saved. This entry is in the ledger.")).toBeVisible();

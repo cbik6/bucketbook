@@ -14,6 +14,10 @@ export type OpeningRow = {
   type: AccountType;
   depth: number;
   initial: string;
+  /** The date of the balance: the account's anchor date, or today. */
+  initialDate: string;
+  /** When older transactions changed what the account opens with, says so. */
+  adjusted: string | null;
 };
 
 export type OpeningGroup = { type: AccountType; label: string; hint: string; rows: OpeningRow[] };
@@ -40,6 +44,13 @@ export function OpeningForm({
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       groups.flatMap((g) => g.rows.map((r) => [r.id, state.values?.[r.id] ?? r.initial])),
+    ),
+  );
+  const [dates, setDates] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      groups.flatMap((g) =>
+        g.rows.map((r) => [r.id, state.values?.[`asof-${r.id}`] ?? r.initialDate]),
+      ),
     ),
   );
 
@@ -77,29 +88,50 @@ export function OpeningForm({
               return (
                 <div
                   key={r.id}
-                  className="flex items-center justify-between gap-4 border-b border-rule py-2"
+                  className="flex flex-col gap-2 border-b border-rule py-2 sm:flex-row sm:items-center sm:gap-4"
                   style={{ paddingLeft: `${r.depth * 1.25}rem` }}
                 >
-                  <label htmlFor={`ob-${r.id}`} className="min-w-0 truncate">
-                    {r.code ? (
-                      <span className="mr-2 font-mono text-[0.8125rem] text-ink-muted">
-                        {r.code}
-                      </span>
+                  <div className="min-w-0 flex-1">
+                    <label htmlFor={`ob-${r.id}`} className="block truncate">
+                      {r.code ? (
+                        <span className="mr-2 font-mono text-[0.8125rem] text-ink-muted">
+                          {r.code}
+                        </span>
+                      ) : null}
+                      {r.name}
+                    </label>
+                    {r.adjusted ? (
+                      <p className="text-[0.8125rem] text-ink-muted">{r.adjusted}</p>
                     ) : null}
-                    {r.name}
-                  </label>
-                  <div className="w-36 shrink-0">
-                    <input
-                      id={`ob-${r.id}`}
-                      name={`amt-${r.id}`}
-                      inputMode="decimal"
-                      autoComplete="off"
-                      placeholder="0.00"
-                      value={values[r.id] ?? ""}
-                      onChange={(e) => setValues((v) => ({ ...v, [r.id]: e.target.value }))}
-                      aria-invalid={invalid || undefined}
-                      className={`${inputClass} tabular text-right`}
-                    />
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <div className="w-40">
+                      <label htmlFor={`ob-${r.id}-date`} className="sr-only">
+                        {r.name}: balance on
+                      </label>
+                      <input
+                        id={`ob-${r.id}-date`}
+                        name={`asof-${r.id}`}
+                        type="date"
+                        value={dates[r.id] ?? ""}
+                        onChange={(e) => setDates((d) => ({ ...d, [r.id]: e.target.value }))}
+                        aria-invalid={state.field === `asof-${r.id}` || undefined}
+                        className={`${inputClass} tabular`}
+                      />
+                    </div>
+                    <div className="w-36">
+                      <input
+                        id={`ob-${r.id}`}
+                        name={`amt-${r.id}`}
+                        inputMode="decimal"
+                        autoComplete="off"
+                        placeholder="0.00"
+                        value={values[r.id] ?? ""}
+                        onChange={(e) => setValues((v) => ({ ...v, [r.id]: e.target.value }))}
+                        aria-invalid={invalid || undefined}
+                        className={`${inputClass} tabular text-right`}
+                      />
+                    </div>
                   </div>
                 </div>
               );
@@ -131,12 +163,12 @@ export function OpeningForm({
               </div>
             ) : null}
             <div className="mt-1 flex justify-between gap-4 border-t border-rule-strong pt-2 font-semibold">
-              <span>Opening Balance Equity</span>
+              <span>Net worth from these balances</span>
               <span className="tabular">{formatCents(summary.obe)}</span>
             </div>
             <p className="text-[0.8125rem] text-ink-muted">
-              The difference is your starting net worth. It goes to Opening Balance Equity so the
-              entry balances.
+              Opening Balance Equity takes the other side of the opening amounts: it&apos;s your starting
+              net worth.
             </p>
           </>
         )}

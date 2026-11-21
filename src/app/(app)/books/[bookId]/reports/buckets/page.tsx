@@ -1,3 +1,4 @@
+import { bookFirstDay } from "@/server/ledger/queries";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -21,7 +22,12 @@ async function Content({ params, searchParams }: PageProps<"/books/[bookId]/repo
   const sp = await searchParams;
   const { book } = await loadBookForPage(bookId);
   const today = serverToday();
-  const { range, from, to } = reportRange(sp, book.startDate, today, "ytd");
+  const { range, from, to } = reportRange(
+    sp,
+    await bookFirstDay(getDb(), book.id, today),
+    today,
+    "ytd",
+  );
   const parents = await bucketSummary(getDb(), book.id, { from, to }, today);
   const base = `/books/${book.id}`;
   const q = new URLSearchParams({ from, to });

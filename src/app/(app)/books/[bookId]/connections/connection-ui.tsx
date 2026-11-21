@@ -381,7 +381,7 @@ function FeedStatus({ feed }: { feed: FeedView }) {
           >
             Check opening balances
           </Link>
-          , then anything dated before the book&apos;s start date.
+          , then look for anything added twice or missing since the account was connected.
         </p>
       )}
       {feed.importFrom ? (

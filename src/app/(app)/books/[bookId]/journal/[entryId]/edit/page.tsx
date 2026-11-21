@@ -60,7 +60,6 @@ async function EditContent({ params }: PageProps<"/books/[bookId]/journal/[entry
           action={saveEntryAction.bind(null, book.id, entryId)}
           groups={groups}
           defaultDate={serverToday()}
-          minDate={book.startDate}
           cancelHref={detailHref}
           reconciledNote={reconciledNote}
           initial={{

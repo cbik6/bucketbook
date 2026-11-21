@@ -12,9 +12,9 @@ import {
 import { accountOptionGroups } from "@/lib/account-options";
 import { createBook, setPostToParents } from "@/server/books/service";
 import { getDb, getPool } from "@/server/db/client";
-import { accounts, auditLog, journalLines } from "@/server/db/schema";
+import { accounts, auditLog, journalEntries, journalLines } from "@/server/db/schema";
 import { UserFacingError } from "@/server/errors";
-import { accountRegister, accountTotals } from "@/server/ledger/queries";
+import { accountNetCents, accountRegister, accountTotals } from "@/server/ledger/queries";
 import {
   editEntry,
   getEntryDetail,
@@ -115,14 +115,13 @@ describe("posting journal entries", () => {
     ).rejects.toThrow(/Line 1/);
   });
 
-  it("refuses dates before the book's start date", async () => {
+  it("takes entries dated before the book was created", async () => {
     const { actor, bookId, id } = await setupBook("2026-03-01");
-    await expect(
-      postEntry(getDb(), actor, bookId, {
-        entryDate: "2026-02-28",
-        lines: [line(id("Groceries"), "1"), line(id("Checking"), "", "1")],
-      }),
-    ).rejects.toThrow(/start on the book's start date/);
+    const entry = await postEntry(getDb(), actor, bookId, {
+      entryDate: "2025-02-28",
+      lines: [line(id("Groceries"), "1"), line(id("Checking"), "", "1")],
+    });
+    expect(entry.entryDate).toBe("2025-02-28");
   });
 
   it("refuses archived accounts and accounts from another book", async () => {
@@ -346,6 +345,14 @@ describe("reversals", () => {
 });
 
 describe("opening balances", () => {
+  /** An account's balance at the start of `day` (everything dated before it). */
+  async function balanceBefore(accountId: string, day: string) {
+    const r = await getDb().execute<{ net: string }>(sql`
+      select coalesce(sum(net_cents), 0)::text as net from ledger_lines
+      where account_id = ${accountId} and entry_date < ${day}::date`);
+    return Number(r.rows[0]!.net);
+  }
+
   it("offsets to Opening Balance Equity and versions on later saves", async () => {
     const { actor, bookId, id } = await setupBook();
     const first = await saveOpeningBalances(getDb(), actor, bookId, {
@@ -355,9 +362,10 @@ describe("opening balances", () => {
     });
     expect(first.changed).toBe(true);
     let state = await openingBalanceState(getDb(), bookId);
-    expect(state.entry?.entryDate).toBe("2026-01-01");
+    // Without a date they're as of the book's start date, in one entry.
+    expect(state.entries.map((e) => e.entryDate)).toEqual(["2026-01-01"]);
     // OBE takes the difference: 2,500 + 10,000 - 430.15 = 12,069.85 credit.
-    expect(state.openingBalanceEquityNet).toBe(-1206985);
+    expect(await accountNetCents(getDb(), state.openingBalanceEquityId!)).toBe(-1206985);
     expect(state.accounts.find((a) => a.name === "Credit Card")!.naturalCents).toBe(43015);
 
     const second = await saveOpeningBalances(getDb(), actor, bookId, {
@@ -367,12 +375,146 @@ describe("opening balances", () => {
     });
     expect(second.changed).toBe(true);
     state = await openingBalanceState(getDb(), bookId);
-    expect(state.entry?.currentVersion).toBe(2);
+    expect(state.entries).toHaveLength(1);
+    const [entry] = await getDb()
+      .select()
+      .from(journalEntries)
+      .where(eq(journalEntries.id, state.entries[0]!.id));
+    expect(entry!.currentVersion).toBe(2);
     expect(await trialBalanceNet(bookId)).toBe(0);
 
-    await expect(saveOpeningBalances(getDb(), actor, bookId, {})).rejects.toThrow(
-      /can't all be zero/,
+    // Clearing every amount removes the opening balances.
+    await saveOpeningBalances(getDb(), actor, bookId, {
+      [id("Checking")]: "",
+      [id("Savings")]: "",
+      [id("Credit Card")]: "",
+    });
+    state = await openingBalanceState(getDb(), bookId);
+    expect(state.entries).toHaveLength(0);
+    expect(await accountNetCents(getDb(), id("Checking"))).toBe(0);
+    expect(await trialBalanceNet(bookId)).toBe(0);
+  });
+
+  it("keeps the balance on its date when older transactions are added, changed or removed", async () => {
+    const { actor, bookId, id } = await setupBook("2026-11-01");
+    // The bank said 2,000 on Nov 17.
+    await saveOpeningBalances(getDb(), actor, bookId, { [id("Checking")]: "2000" }, "2026-11-17");
+    await postEntry(getDb(), actor, bookId, {
+      entryDate: "2026-11-20",
+      lines: [line(id("Groceries"), "50"), line(id("Checking"), "", "50")],
+    });
+    expect(await accountNetCents(getDb(), id("Checking"))).toBe(195000);
+
+    // A March statement arrives: a 300 paycheck and a 120 grocery run.
+    const pay = await postEntry(getDb(), actor, bookId, {
+      entryDate: "2026-03-05",
+      lines: [line(id("Checking"), "300"), line(id("Paychecks"), "", "300")],
+    });
+    await postEntry(getDb(), actor, bookId, {
+      entryDate: "2026-03-09",
+      lines: [line(id("Groceries"), "120"), line(id("Checking"), "", "120")],
+    });
+    // Nov 17 still shows the bank's 2,000, and today's balance hasn't moved.
+    expect(await balanceBefore(id("Checking"), "2026-11-17")).toBe(200000);
+    expect(await accountNetCents(getDb(), id("Checking"))).toBe(195000);
+    let state = await openingBalanceState(getDb(), bookId);
+    const checking = () => state.accounts.find((a) => a.id === id("Checking"))!;
+    // It opens at 2,000 - 300 + 120 = 1,820 on Mar 4, the day before the earlier activity.
+    expect([checking().openingCents, checking().openingDate]).toEqual([182000, "2026-03-04"]);
+    expect(state.entries.map((e) => e.entryDate)).toEqual(["2026-03-04"]);
+    expect(await balanceBefore(id("Checking"), "2026-03-05")).toBe(182000);
+    expect(await balanceBefore(id("Checking"), "2026-03-06")).toBe(212000);
+
+    // Correcting the paycheck to 350 moves the opening amount, not the anchor.
+    await editEntry(getDb(), actor, bookId, pay.id, {
+      entryDate: "2026-03-05",
+      memo: null,
+      lines: [line(id("Checking"), "350"), line(id("Paychecks"), "", "350")],
+    });
+    expect(await balanceBefore(id("Checking"), "2026-11-17")).toBe(200000);
+    state = await openingBalanceState(getDb(), bookId);
+    expect(checking().openingCents).toBe(177000);
+
+    // Reversing it (also dated in March) leaves Nov 17 at 2,000; the opening takes the difference.
+    await reverseEntry(getDb(), actor, bookId, pay.id, { entryDate: "2026-03-05" });
+    expect(await balanceBefore(id("Checking"), "2026-11-17")).toBe(200000);
+    state = await openingBalanceState(getDb(), bookId);
+    expect(checking().openingCents).toBe(212000);
+    expect(await trialBalanceNet(bookId)).toBe(0);
+  });
+
+  it("gives each date its own entry and moves accounts out when they get older history", async () => {
+    const { actor, bookId, id } = await setupBook("2026-11-01");
+    await saveOpeningBalances(
+      getDb(),
+      actor,
+      bookId,
+      { [id("Checking")]: "1000", [id("Savings")]: "5000" },
+      "2026-11-17",
     );
+    let state = await openingBalanceState(getDb(), bookId);
+    expect(state.entries.map((e) => e.entryDate)).toEqual(["2026-11-17"]);
+    const original = state.entries[0]!.id;
+
+    await postEntry(getDb(), actor, bookId, {
+      entryDate: "2026-06-01",
+      lines: [line(id("Groceries"), "40"), line(id("Checking"), "", "40")],
+    });
+    state = await openingBalanceState(getDb(), bookId);
+    // Checking now opens on May 31; Savings stays in the Nov 17 entry.
+    expect(state.entries.map((e) => e.entryDate)).toEqual(["2026-05-31", "2026-11-17"]);
+    expect(state.entries[1]!.id).toBe(original);
+    expect(await balanceBefore(id("Checking"), "2026-11-17")).toBe(100000);
+    expect(await accountNetCents(getDb(), id("Savings"))).toBe(500000);
+
+    // Savings gets older history too: the Nov 17 entry has nothing left and is reversed.
+    await postEntry(getDb(), actor, bookId, {
+      entryDate: "2026-06-01",
+      lines: [line(id("Savings"), "10"), line(id("Interest Earned"), "", "10")],
+    });
+    state = await openingBalanceState(getDb(), bookId);
+    expect(state.entries.map((e) => e.entryDate)).toEqual(["2026-05-31"]);
+    const reversals = await getDb()
+      .select()
+      .from(journalEntries)
+      .where(eq(journalEntries.reversesEntryId, original));
+    expect(reversals).toHaveLength(1);
+    expect(await balanceBefore(id("Savings"), "2026-11-17")).toBe(500000);
+    expect(await balanceBefore(id("Checking"), "2026-11-17")).toBe(100000);
+    expect(await trialBalanceNet(bookId)).toBe(0);
+
+    // Opening entries are the app's to keep: they can't be reversed or edited by hand.
+    await expect(
+      reverseEntry(getDb(), actor, bookId, state.entries[0]!.id, { entryDate: "2026-05-31" }),
+    ).rejects.toThrow(/Opening balances screen/);
+  });
+
+  it("keeps a balance of zero true, and moves the date of a balance", async () => {
+    const { actor, bookId, id } = await setupBook("2026-11-01");
+    // A card that owed nothing when it was set up.
+    await saveOpeningBalances(getDb(), actor, bookId, { [id("Credit Card")]: "0" }, "2026-11-17");
+    expect((await openingBalanceState(getDb(), bookId)).entries).toHaveLength(0);
+    await postEntry(getDb(), actor, bookId, {
+      entryDate: "2026-10-03",
+      lines: [line(id("Dining Out"), "80"), line(id("Credit Card"), "", "80")],
+    });
+    // It owed nothing on Nov 17, so before the Oct 3 charge it must have been 80 in credit.
+    expect(await balanceBefore(id("Credit Card"), "2026-11-17")).toBe(0);
+    expect(await balanceBefore(id("Credit Card"), "2026-10-03")).toBe(8000);
+
+    // The balance was really as of Oct 1: now the Oct 3 charge comes after it.
+    await saveOpeningBalances(getDb(), actor, bookId, { [id("Credit Card")]: "0" }, "2026-10-01");
+    expect(await balanceBefore(id("Credit Card"), "2026-10-01")).toBe(0);
+    expect(await accountNetCents(getDb(), id("Credit Card"))).toBe(-8000);
+    expect((await openingBalanceState(getDb(), bookId)).entries).toHaveLength(0);
+    expect(await trialBalanceNet(bookId)).toBe(0);
+  });
+
+  it("refuses a bad date", async () => {
+    const { actor, bookId, id } = await setupBook();
+    await expect(
+      saveOpeningBalances(getDb(), actor, bookId, { [id("Checking")]: "10" }, "2026-02-30"),
+    ).rejects.toThrow(/real date/);
   });
 });
 

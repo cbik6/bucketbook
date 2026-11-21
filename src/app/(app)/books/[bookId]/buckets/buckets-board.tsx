@@ -62,7 +62,7 @@ export function BucketsBoard({
   accounts: BucketAccountView[];
   eligible: Eligible[];
   today: string;
-  minDate: string;
+  minDate?: string;
   canEdit: boolean;
 }) {
   return (
@@ -101,7 +101,7 @@ function BucketAccount({
   bookId: string;
   account: BucketAccountView;
   today: string;
-  minDate: string;
+  minDate?: string;
   canEdit: boolean;
 }) {
   const id = useId();
@@ -359,7 +359,7 @@ function MoveForm({
   bookId: string;
   buckets: BucketView[];
   today: string;
-  minDate: string;
+  minDate?: string;
   onDone: () => void;
 }) {
   const uid = useId();
@@ -367,7 +367,7 @@ function MoveForm({
   const [fromId, setFromId] = useState(buckets.find((b) => b.isUnassigned)?.id ?? "");
   const [toId, setToId] = useState(buckets.find((b) => !b.isUnassigned)?.id ?? "");
   const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(today < minDate ? minDate : today);
+  const [date, setDate] = useState(minDate && today < minDate ? minDate : today);
   const [memo, setMemo] = useState("");
   const from = buckets.find((b) => b.id === fromId);
   return (

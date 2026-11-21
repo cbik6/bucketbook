@@ -8,7 +8,7 @@ const DEFAULTS: Record<SystemRole, { name: string; subtype: string; description:
   opening_balance_equity: {
     name: "Opening Balance Equity",
     subtype: "opening_balance",
-    description: "Balances you had on the book's start date.",
+    description: "What your accounts held when you started tracking them.",
   },
   retained_earnings: {
     name: "Retained Earnings",

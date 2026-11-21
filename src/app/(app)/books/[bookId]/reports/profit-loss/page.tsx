@@ -1,3 +1,4 @@
+import { bookFirstDay } from "@/server/ledger/queries";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -28,7 +29,12 @@ async function Content({ params, searchParams }: PageProps<"/books/[bookId]/repo
   const { bookId } = await params;
   const sp = await searchParams;
   const { book } = await loadBookForPage(bookId);
-  const { range, from, to } = reportRange(sp, book.startDate, serverToday(), "ytd");
+  const { range, from, to } = reportRange(
+    sp,
+    await bookFirstDay(getDb(), book.id, serverToday()),
+    serverToday(),
+    "ytd",
+  );
   const monthly = one(sp.monthly) === "1";
   const pl = await profitAndLoss(getDb(), book.id, { from, to }, { monthly });
   const base = `/books/${book.id}`;

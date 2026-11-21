@@ -69,16 +69,10 @@ async function ImportContent({ params, searchParams }: PageProps<"/books/[bookId
           })}
         </nav>
         {kind === "pdf" ? (
-          <PdfImporter
-            bookId={book.id}
-            startDate={book.startDate}
-            accounts={list}
-            initialAccountId={initialAccountId}
-          />
+          <PdfImporter bookId={book.id} accounts={list} initialAccountId={initialAccountId} />
         ) : (
           <CsvImporter
             bookId={book.id}
-            startDate={book.startDate}
             accounts={list}
             presets={presets}
             initialAccountId={initialAccountId}

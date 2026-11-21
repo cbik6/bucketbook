@@ -18,8 +18,6 @@ import {
 
 export const metadata: Metadata = { title: "Book settings" };
 
-const dateFormat = new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeZone: "UTC" });
-
 async function SettingsContent({ params }: PageProps<"/books/[bookId]/settings">) {
   // Per-user page: always render at request time, never at build time.
   await connection();
@@ -50,10 +48,6 @@ async function SettingsContent({ params }: PageProps<"/books/[bookId]/settings">
             Details
           </h2>
           <dl className="grid max-w-md grid-cols-[auto_1fr] gap-x-8 gap-y-2 text-sm">
-            <dt className="text-ink-muted">Start date</dt>
-            <dd className="tabular">
-              {dateFormat.format(new Date(`${book.startDate}T00:00:00Z`))}
-            </dd>
             <dt className="text-ink-muted">Currency</dt>
             <dd>{book.currencyCode}</dd>
             <dt className="text-ink-muted">Started from</dt>
@@ -71,9 +65,6 @@ async function SettingsContent({ params }: PageProps<"/books/[bookId]/settings">
               </a>
             </dd>
           </dl>
-          <p className="mt-4 text-[0.8125rem] text-ink-muted">
-            The start date is fixed once the book is created: opening balances are as of that day.
-          </p>
         </section>
 
         <section className="py-8" aria-labelledby="bank-sync-heading">

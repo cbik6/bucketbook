@@ -233,5 +233,19 @@ export function describeAudit(
     }
   }
 
+  if (row.entityType === "opening_balance") {
+    const account = accountNames.get(row.entityId) ?? "an account";
+    const link = { kind: "account" as const, id: row.entityId };
+    const said = (v: Obj) => `${formatCents(Number(v.balanceCents ?? 0))} on ${str(v.asOf)}`;
+    if (row.action === "delete") {
+      return { summary: `Removed the opening balance of ${account}`, details: [], link };
+    }
+    return {
+      summary: `${row.action === "create" ? "Set" : "Changed"} the opening balance of ${account}`,
+      details: [row.action === "create" ? said(after) : `${said(before)} to ${said(after)}`],
+      link,
+    };
+  }
+
   return { summary: `${row.action} ${row.entityType}`, details: [] };
 }

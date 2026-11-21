@@ -15,12 +15,7 @@ import type { Database, DbOrTx } from "../db/client";
 import { accounts, bucketRules } from "../db/schema";
 import { NotFoundError, UserFacingError, pgErrorInfo } from "../errors";
 import { accountNetCents } from "../ledger/queries";
-import {
-  assertDateAllowed,
-  createEntry,
-  loadBookForPosting,
-  validateLines,
-} from "../ledger/service";
+import { createEntry, loadBookForPosting, validateLines } from "../ledger/service";
 
 type Actor = { userId: string };
 
@@ -353,8 +348,7 @@ export async function moveBetweenBuckets(db: Database, actor: Actor, bookId: str
   if (cents <= 0) throw new UserFacingError("Move an amount above zero.", "amount");
   if (input.fromId === input.toId) throw new UserFacingError("Pick two different buckets.", "toId");
   return db.transaction(async (tx) => {
-    const book = await loadBookForPosting(tx, bookId);
-    assertDateAllowed(input.date, book.startDate);
+    await loadBookForPosting(tx, bookId);
     const from = await loadAccount(tx, bookId, input.fromId);
     const to = await loadAccount(tx, bookId, input.toId);
     if (!from.isBucket || !to.isBucket || from.parentAccountId !== to.parentAccountId) {
@@ -612,7 +606,7 @@ export async function runMonthlyRules(
     const [bookId, parentId] = key.split("|") as [string, string];
     await db.transaction(async (tx) => {
       const book = await loadBookForPosting(tx, bookId).catch(() => null);
-      if (!book || today < book.startDate) return;
+      if (!book) return;
       const unassigned = await unassignedOf(tx, parentId);
       if (!unassigned) return;
       const available = await accountNetCents(tx, unassigned.id);

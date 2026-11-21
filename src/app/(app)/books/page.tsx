@@ -80,7 +80,7 @@ function BookTable({
             Started from
           </th>
           <th scope="col" className="py-2 text-right font-medium">
-            Start date
+            Created
           </th>
         </tr>
       </thead>

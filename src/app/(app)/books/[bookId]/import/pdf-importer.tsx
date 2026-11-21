@@ -21,7 +21,6 @@ const STATUS_LABEL: Record<CsvPreviewRow["status"], string> = {
   new: "New",
   imported: "Already imported, skipped",
   possible_duplicate: "Possible duplicate, flagged",
-  before_start: "Before the start date, skipped",
 };
 
 /**
@@ -30,12 +29,10 @@ const STATUS_LABEL: Record<CsvPreviewRow["status"], string> = {
  */
 export function PdfImporter({
   bookId,
-  startDate,
   accounts,
   initialAccountId,
 }: {
   bookId: string;
-  startDate: string;
   accounts: Account[];
   initialAccountId: string;
 }) {
@@ -143,8 +140,7 @@ export function PdfImporter({
     ? {
         fresh: checked.filter((c) => c.status === "new").length,
         dup: checked.filter((c) => c.status === "possible_duplicate").length,
-        skipped: checked.filter((c) => c.status === "imported" || c.status === "before_start")
-          .length,
+        skipped: checked.filter((c) => c.status === "imported").length,
       }
     : null;
   const owed = accounts.find((a) => a.id === accountId)?.type === "liability";
@@ -306,7 +302,6 @@ export function PdfImporter({
                 {rows.map((r) => {
                   const out = left.has(r.line);
                   const st = statusByLine.get(r.line);
-                  const early = r.postedDate < startDate;
                   return (
                     <tr
                       key={r.line}
@@ -349,13 +344,7 @@ export function PdfImporter({
                       </td>
                       {checked ? (
                         <td className="py-2 align-top text-[0.8125rem]">
-                          {out
-                            ? "Left out"
-                            : st
-                              ? STATUS_LABEL[st.status]
-                              : early
-                                ? STATUS_LABEL.before_start
-                                : ""}
+                          {out ? "Left out" : st ? STATUS_LABEL[st.status] : ""}
                           {st?.duplicateOfText ? (
                             <span className="block text-ink-muted">Like {st.duplicateOfText}</span>
                           ) : null}

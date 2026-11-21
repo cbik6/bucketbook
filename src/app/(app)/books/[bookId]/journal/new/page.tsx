@@ -39,8 +39,7 @@ async function NewEntryContent({ params, searchParams }: PageProps<"/books/[book
           mode="new"
           action={saveEntryAction.bind(null, book.id, null)}
           groups={groups}
-          defaultDate={today < book.startDate ? book.startDate : today}
-          minDate={book.startDate}
+          defaultDate={today}
           cancelHref={`/books/${book.id}/journal`}
         />
       </div>

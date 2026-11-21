@@ -590,7 +590,10 @@ describe("guided setup", () => {
     expect(skipped.ignored).toBe(true);
     const { openingBalanceState } = await import("@/server/ledger/service");
     const state = await openingBalanceState(getDb(), ctx.bookId);
-    expect(state.entry?.entryDate).toBe("2026-01-01");
+    // Connected accounts open on the day they were connected, at the bank's balance.
+    expect(state.entries.map((e) => e.entryDate)).toEqual([card.importFrom]);
+    const costco = state.accounts.find((a) => a.id === card.accountId)!;
+    expect([costco.asOf, costco.naturalCents]).toEqual([card.importFrom, 60_828]);
   });
 });
 
@@ -1037,25 +1040,77 @@ describe("CSV import", () => {
     memo: null,
   });
 
-  it("skips rows already imported and rows before the start date, and saves the preset", async () => {
+  it("takes rows from any date, skips rows already imported, and saves the preset", async () => {
     const ctx = await setupBook("household", "2026-02-01");
     const payload = {
       accountId: ctx.id("Checking"),
       mapping,
       rows: [
-        row(2, "2026-01-20", -100, "Too early"),
+        row(2, "2025-01-20", -100, "Before the book was made"),
         row(3, "2026-02-02", -500, "Coffee"),
         row(4, "2026-02-02", -500, "Coffee"),
       ],
     };
     const first = await importCsv(getDb(), ctx.actor, ctx.bookId, payload);
-    expect(first).toMatchObject({ count: 2, beforeStart: 1, skipped: 0 });
+    expect(first).toMatchObject({ count: 3, skipped: 0 });
     const preview = await previewCsv(getDb(), ctx.bookId, payload);
-    expect(preview.map((p) => p.status)).toEqual(["before_start", "imported", "imported"]);
+    expect(preview.map((p) => p.status)).toEqual(["imported", "imported", "imported"]);
     const second = await importCsv(getDb(), ctx.actor, ctx.bookId, payload);
-    expect(second).toMatchObject({ count: 0, skipped: 2 });
+    expect(second).toMatchObject({ count: 0, skipped: 3 });
     const { getCsvPreset } = await import("@/server/bank/csv-service");
     expect(await getCsvPreset(getDb(), ctx.id("Checking"))).toMatchObject({ amountColumn: 2 });
+  });
+
+  it("an older statement for a connected account keeps today's balance at the bank's", async () => {
+    const ctx = await setupBook("household", "2026-11-01");
+    const bridge = fakeBridge({ CHK: { balance: "1500.00", transactions: [] } });
+    const { connection } = await connectSimplefin(
+      getDb(),
+      ctx.actor,
+      ctx.bookId,
+      ACCESS_URL,
+      bridge.impl,
+    );
+    const [feed] = await getDb()
+      .select()
+      .from(bankFeeds)
+      .where(eq(bankFeeds.connectionId, connection.id));
+    const { guidedConnect } = await import("@/server/simplefin/service");
+    const connected = await guidedConnect(getDb(), ctx.actor, feed!.id, {
+      choice: "existing",
+      accountId: ctx.id("Checking"),
+    });
+    // Opens at the bank's balance on the day it was connected.
+    expect(await accountNetCents(getDb(), ctx.id("Checking"))).toBe(150_000);
+
+    // Last spring's statement, uploaded and approved.
+    await importCsv(getDb(), ctx.actor, ctx.bookId, {
+      accountId: ctx.id("Checking"),
+      mapping,
+      rows: [
+        row(2, "2026-04-01", 250_000, "Paycheck"),
+        row(3, "2026-04-03", -64_210, "Rent"),
+        row(4, "2026-04-09", -8_734, "Groceries"),
+      ],
+    });
+    const waiting = (await items(ctx.bookId)).filter((i) => i.status === "review");
+    expect(waiting).toHaveLength(3);
+    for (const item of waiting) {
+      await approveItem(getDb(), ctx.actor, ctx.bookId, item.id, {
+        accountId: item.amountCents > 0 ? ctx.id("Paychecks") : ctx.id("Groceries"),
+      });
+    }
+    // Still exactly the bank's balance, and April reads like the statement.
+    expect(await accountNetCents(getDb(), ctx.id("Checking"))).toBe(150_000);
+    const { openingBalanceState } = await import("@/server/ledger/service");
+    const checking = (await openingBalanceState(getDb(), ctx.bookId)).accounts.find(
+      (a) => a.id === ctx.id("Checking"),
+    )!;
+    expect(checking.asOf).toBe(connected.importFrom);
+    expect([checking.openingDate, checking.openingCents]).toEqual([
+      "2026-03-31",
+      150_000 - 250_000 + 64_210 + 8_734,
+    ]);
   });
 
   it("flags rows that SimpleFIN already brought in", async () => {
