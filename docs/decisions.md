@@ -618,3 +618,11 @@ tag follows every 1.x release; a release tag such as `:1.0.0` pins one.
 
 Anyone may use, change and share Bucketbook. Someone who runs a changed version as a
 service for others must offer them the source, so it can't become a closed hosted product.
+
+### D68. Port 9951 everywhere
+
+The app listens on 9951 inside its container, is published on 9951 by default, and the
+dev server uses it too, so there is one port to know. 3000 clashed with too many other
+self-hosted apps. The installer moves to the next free port when 9951 is taken; only
+`APP_PORT` (the port on the host) is meant to change. The container port is set in the
+image (`PORT`), and `docker-compose.yml` maps to it, so the two must change together.

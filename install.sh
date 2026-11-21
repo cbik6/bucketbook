@@ -9,13 +9,13 @@
 #
 # Optional settings, for example `curl ... | BUCKETBOOK_PORT=8080 sh`:
 #   BUCKETBOOK_DIR   folder to install into (default: bucketbook)
-#   BUCKETBOOK_PORT  port on this machine (default: 9951)
+#   BUCKETBOOK_PORT  port on this machine (default: 9951, or the next free one)
 #   BUCKETBOOK_URL   address people will type (default: http://<this machine's IP>:<port>)
 set -eu
 
 SOURCE="${BUCKETBOOK_SOURCE:-https://raw.githubusercontent.com/cbik6/bucketbook/main}"
 DIR="${BUCKETBOOK_DIR:-bucketbook}"
-PORT="${BUCKETBOOK_PORT:-9951}"
+PORT="${BUCKETBOOK_PORT:-}"
 
 say() { printf '%s\n' "$*"; }
 fail() {
@@ -29,7 +29,10 @@ docker info >/dev/null 2>&1 || fail "Docker isn't running, or this user can't us
 
 if [ -f "$DIR/.env" ]; then
   say "Bucketbook is already installed in $DIR."
-  say "To update it:  cd $DIR && docker compose pull && docker compose up -d"
+  say "To update it, run these in $DIR:"
+  say "  curl -fsSLO $SOURCE/docker-compose.yml"
+  say "  docker compose pull"
+  say "  docker compose up -d"
   exit 0
 fi
 
@@ -70,6 +73,36 @@ this_timezone() {
     *) printf 'UTC' ;;
   esac
 }
+
+# Whether something on this machine already listens on a port, including
+# another Docker container that publishes it.
+port_busy() {
+  if docker ps --format '{{.Ports}}' 2>/dev/null | grep -q ":$1->"; then
+    return 0
+  fi
+  if command -v ss >/dev/null 2>&1; then
+    ss -Hltn 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]$1\$"
+  elif command -v lsof >/dev/null 2>&1; then
+    lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1
+  elif command -v netstat >/dev/null 2>&1; then
+    netstat -an 2>/dev/null | grep -i listen | grep -Eq "[:.]$1[[:space:]]"
+  else
+    return 1
+  fi
+}
+
+if [ -n "$PORT" ]; then
+  if port_busy "$PORT"; then
+    fail "port $PORT is already in use on this machine. Pick another, for example BUCKETBOOK_PORT=$((PORT + 1)), or leave BUCKETBOOK_PORT out to have one chosen."
+  fi
+else
+  PORT=9951
+  while port_busy "$PORT"; do
+    PORT=$((PORT + 1))
+    [ "$PORT" -le 9999 ] || fail "ports 9951 to 9999 are all in use. Choose one with BUCKETBOOK_PORT=<port>."
+  done
+  [ "$PORT" = 9951 ] || say "Port 9951 is in use on this machine, so Bucketbook will use port $PORT."
+fi
 
 URL="${BUCKETBOOK_URL:-http://$(this_ip):$PORT}"
 

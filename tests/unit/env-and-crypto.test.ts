@@ -8,7 +8,7 @@ const key = () => randomBytes(32).toString("base64");
 describe("parseEnv", () => {
   const valid = {
     DATABASE_URL: "postgres://u:p@db:5432/app",
-    APP_URL: "http://192.168.1.20:3000",
+    APP_URL: "http://192.168.1.20:9951",
     BETTER_AUTH_SECRET: "x".repeat(32),
     APP_ENCRYPTION_KEY: key(),
   };

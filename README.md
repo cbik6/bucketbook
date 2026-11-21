@@ -70,8 +70,9 @@ bucketbook/
   .env.example      every setting explained
 ```
 
-When it finishes it prints the address to open, for example `http://192.168.1.20:3000`.
-The setup wizard there creates your login and your first book. The bank connection step
+When it finishes it prints the address to open, for example `http://192.168.1.20:9951`.
+It uses port 9951, or the next free port if something else already has 9951. The setup
+wizard there creates your login and your first book. The bank connection step
 can be skipped for now.
 
 To pick the folder, port or address, set them in front of `sh`:
@@ -96,7 +97,7 @@ You can read [the installer](install.sh) before running it; it's short.
 
    | Setting              | What to put there                                                                                             |
    | -------------------- | ------------------------------------------------------------------------------------------------------------- |
-   | `APP_URL`            | The address you'll type in the browser, for example `http://192.168.1.20:3000` or `https://books.example.com` |
+   | `APP_URL`            | The address you'll type in the browser, for example `http://192.168.1.20:9951` or `https://books.example.com` |
    | `BETTER_AUTH_SECRET` | Output of `openssl rand -base64 32`                                                                           |
    | `APP_ENCRYPTION_KEY` | Output of `openssl rand -base64 32` (a different value)                                                       |
    | `POSTGRES_PASSWORD`  | Output of `openssl rand -hex 24`                                                                              |
@@ -109,19 +110,28 @@ You can read [the installer](install.sh) before running it; it's short.
 
    Database migrations run automatically every time the app starts.
 
+   If port 9951 is already in use on your machine, set `APP_PORT` to a free one (say
+   `9952`) and use the same port in `APP_URL`.
+
 4. Open `APP_URL` in your browser.
 
-Check that it's healthy:
+Check that it's healthy (use your port if it isn't 9951):
 
 ```bash
-curl http://localhost:3000/api/health
+curl http://localhost:9951/api/health
 ```
+
+### Changing the port later
+
+Change `APP_PORT` in `.env`, and the port in `APP_URL` to match, then run
+`docker compose up -d` in the `bucketbook` folder.
 
 ### Updating
 
-From the `bucketbook` folder:
+From the `bucketbook` folder, get the latest `docker-compose.yml`, then the new image:
 
 ```bash
+curl -fsSLO https://raw.githubusercontent.com/cbik6/bucketbook/main/docker-compose.yml
 docker compose pull
 docker compose up -d
 ```
@@ -149,7 +159,7 @@ proxy at the app's port, for example in a Caddyfile:
 
 ```
 books.example.com {
-    reverse_proxy 127.0.0.1:3000
+    reverse_proxy 127.0.0.1:9951
 }
 ```
 
@@ -304,24 +314,24 @@ Requirements: Node 24, npm, Docker.
 npm install
 npm run db:up                  # dev Postgres on 127.0.0.1:5433
 cp .env.example .env.local     # then set DATABASE_URL and the secrets (see below)
-npm run dev                    # http://localhost:3000
+npm run dev                    # http://localhost:9951
 ```
 
 A working `.env.local` for development:
 
 ```
 DATABASE_URL=postgres://bucketbook:bucketbook@localhost:5433/bucketbook
-APP_URL=http://localhost:3000
+APP_URL=http://localhost:9951
 BETTER_AUTH_SECRET=<openssl rand -base64 32>
 APP_ENCRYPTION_KEY=<openssl rand -base64 32>
 ```
 
 To open the dev server from another computer on your network, set `APP_URL` to
-`http://<this machine's IP>:3000` and `DEV_ALLOWED_ORIGINS=<this machine's IP>`.
+`http://<this machine's IP>:9951` and `DEV_ALLOWED_ORIGINS=<this machine's IP>`.
 
 | Command                                                 | What it does                                                                                                      |
 | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `npm run dev`                                           | Dev server on port 3000, reachable on your network                                                                |
+| `npm run dev`                                           | Dev server on port 9951, reachable on your network                                                                |
 | `npm test`                                              | All Vitest tests (unit and integration)                                                                           |
 | `npm run test:unit`                                     | Unit tests only, no database needed                                                                               |
 | `npm run test:integration`                              | Integration tests against a throwaway `bucketbook_test` database in the dev Postgres                              |

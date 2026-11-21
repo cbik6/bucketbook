@@ -39,7 +39,7 @@ EXPOSE 9951
 
 # Healthy once migrations ran and the database answers.
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
-  CMD wget -qO- http://127.0.0.1:3000/api/health > /dev/null || exit 1
+  CMD wget -qO- "http://127.0.0.1:${PORT}/api/health" > /dev/null || exit 1
 
 # Startup (in instrumentation.ts) validates config and runs migrations first.
 CMD ["node", "server.js"]

@@ -12,9 +12,9 @@ setupCleanDatabase();
 /** Calls Better Auth over HTTP, the same way the browser does. */
 async function post(path: string, body: unknown) {
   const res = await getAuth().handler(
-    new Request(`http://localhost:3000/api/auth${path}`, {
+    new Request(`http://localhost:9951/api/auth${path}`, {
       method: "POST",
-      headers: { "content-type": "application/json", origin: "http://localhost:3000" },
+      headers: { "content-type": "application/json", origin: "http://localhost:9951" },
       body: JSON.stringify(body),
     }),
   );

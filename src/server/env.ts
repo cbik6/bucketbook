@@ -24,7 +24,7 @@ const envSchema = z.object({
     .min(1)
     .refine((v) => /^postgres(ql)?:\/\//.test(v), { message: "must start with postgres://" }),
   APP_URL: z.url({
-    message: "must be the full URL people use to open the app, like http://192.168.1.20:3000",
+    message: "must be the full URL people use to open the app, like http://192.168.1.20:9951",
   }),
   BETTER_AUTH_SECRET: z.string().min(32, {
     message: "must be at least 32 characters (generate with: openssl rand -base64 32)",

@@ -6,6 +6,33 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-21
+
+### Changed
+
+- Bucketbook uses port 9951 everywhere: inside its container, on your machine for new
+  installs, and for the dev server. Port 3000 clashed with too many other apps. Existing
+  installs keep the port on the machine set in their `.env`.
+- The installer checks the port before it writes anything. If 9951 is already in use it
+  picks the next free port and says which; a port chosen with `BUCKETBOOK_PORT` that is
+  in use stops the install with a clear message instead of a Docker error.
+
+### Fixed
+
+- Installs work again after a change merged following 1.0.0 pointed `docker-compose.yml`
+  at port 9951 inside the container while the published app still listened on 3000.
+
+### Upgrading from 1.0.0
+
+Download the new `docker-compose.yml` into your `bucketbook` folder before pulling, since
+the app's port inside its container changed:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/cbik6/bucketbook/main/docker-compose.yml
+docker compose pull
+docker compose up -d
+```
+
 ## [1.0.0] - 2026-11-20
 
 The first public release: everything in the first-version plan, plus what daily use asked
