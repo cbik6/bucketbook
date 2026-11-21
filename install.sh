@@ -9,13 +9,13 @@
 #
 # Optional settings, for example `curl ... | BUCKETBOOK_PORT=8080 sh`:
 #   BUCKETBOOK_DIR   folder to install into (default: bucketbook)
-#   BUCKETBOOK_PORT  port on this machine (default: 3000)
+#   BUCKETBOOK_PORT  port on this machine (default: 9951)
 #   BUCKETBOOK_URL   address people will type (default: http://<this machine's IP>:<port>)
 set -eu
 
 SOURCE="${BUCKETBOOK_SOURCE:-https://raw.githubusercontent.com/cbik6/bucketbook/main}"
 DIR="${BUCKETBOOK_DIR:-bucketbook}"
-PORT="${BUCKETBOOK_PORT:-3000}"
+PORT="${BUCKETBOOK_PORT:-9951}"
 
 say() { printf '%s\n' "$*"; }
 fail() {
