@@ -20,7 +20,7 @@ FROM node:24-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
-    PORT=3000 \
+    PORT=9951 \
     HOSTNAME=0.0.0.0 \
     RECEIPTS_DIR=/data/receipts
 
@@ -35,7 +35,7 @@ COPY --from=build --chown=app:app /app/public ./public
 COPY --from=build --chown=app:app /app/drizzle ./drizzle
 
 USER app
-EXPOSE 3000
+EXPOSE 9951
 
 # Healthy once migrations ran and the database answers.
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
