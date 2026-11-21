@@ -113,6 +113,17 @@ const payeeTitle = (item: QueueItem) =>
   item.payee ??
   item.description;
 
+/**
+ * A new payee for a row's draft. Picking a payee with a usual category fills
+ * that in too, when no category is chosen yet.
+ */
+function payeePatch(draft: Draft, payees: PayeeRef[], payee: string): Partial<Draft> {
+  const known = payees.find((x) => x.name.toLowerCase() === payee.trim().toLowerCase());
+  return !draft.choice && known?.defaultAccountId
+    ? { payee, choice: known.defaultAccountId }
+    : { payee };
+}
+
 const isTyping = (el: EventTarget | null) =>
   el instanceof HTMLElement &&
   (el.tagName === "INPUT" ||
@@ -203,6 +214,8 @@ export function ReviewQueue({
     setRuleShownFor(expanded);
     if (ruleFor !== expanded) setRuleFor(null);
   }
+  // The row whose payee is being edited in place.
+  const [payeeFor, setPayeeFor] = useState<string | null>(null);
   const openRule = (item: QueueItem) => {
     if (!canEdit) return;
     setExpanded(item.id);
@@ -435,6 +448,12 @@ export function ReviewQueue({
           openRule(item);
         }
         break;
+      case "p":
+        if (item && canEdit) {
+          e.preventDefault();
+          setPayeeFor(item.id);
+        }
+        break;
     }
   };
 
@@ -568,6 +587,12 @@ export function ReviewQueue({
             ruleOpen={ruleFor === item.id && expanded === item.id}
             onOpenRule={() => openRule(item)}
             onRuleDone={() => setRuleFor(null)}
+            editingPayee={payeeFor === item.id}
+            onEditPayee={() => setPayeeFor(item.id)}
+            onPayeeDone={(refocus) => {
+              setPayeeFor((x) => (x === item.id ? null : x));
+              if (refocus) focusRow(item.id);
+            }}
             busy={busy.has(item.id)}
             error={errors[item.id]}
             canEdit={canEdit}
@@ -606,7 +631,7 @@ export function ReviewQueue({
       </ol>
       <p className="mt-3 hidden text-xs text-ink-muted lg:block">
         <Kbd>J</Kbd> <Kbd>K</Kbd> move, <Kbd>Enter</Kbd> details, <Kbd>Esc</Kbd> close, <Kbd>A</Kbd>{" "}
-        add, <Kbd>X</Kbd> select, <Kbd>E</Kbd> exclude, <Kbd>R</Kbd> rule
+        add, <Kbd>X</Kbd> select, <Kbd>E</Kbd> exclude, <Kbd>P</Kbd> payee, <Kbd>R</Kbd> rule
       </p>
     </div>
   );
@@ -641,6 +666,11 @@ type RowProps = {
   ruleOpen: boolean;
   onOpenRule: () => void;
   onRuleDone: () => void;
+  /** The payee is being edited on the row itself. */
+  editingPayee: boolean;
+  onEditPayee: () => void;
+  /** Leaves the payee field; `refocus` puts focus back on the row (Enter). */
+  onPayeeDone: (refocus: boolean) => void;
   busy: boolean;
   error?: string;
   canEdit: boolean;
@@ -659,7 +689,9 @@ type RowData = Omit<RowProps, "refCallback">;
 function Row({ refCallback, ...p }: RowProps) {
   const { item, draft } = p;
   const base = `${p.uid}-${item.id}`;
+  // `title` names the row in labels; `shown` is the payee as edited so far.
   const title = payeeTitle(item);
+  const shown = draft.payee.trim() || title;
   const transfer = item.transfer;
   const crossBook = transfer && transfer.bookId !== p.bookId;
   const isSplit = draft.choice === "split";
@@ -732,25 +764,46 @@ function Row({ refCallback, ...p }: RowProps) {
           {formatDay(item.postedDate)}
         </div>
         <div className="min-w-0">
-          <button
-            type="button"
-            onClick={p.onToggleExpand}
-            aria-expanded={p.expanded}
-            aria-controls={`${base}-details`}
-            className="group/title flex max-w-full items-center gap-1 text-left"
-            tabIndex={-1}
-          >
-            <span className="truncate font-medium text-ink">{title}</span>
-            <ChevronDown
-              size={14}
-              aria-hidden
-              className={`shrink-0 text-ink-faint transition-transform duration-150 ${p.expanded ? "rotate-180" : ""}`}
-            />
-          </button>
+          {p.editingPayee && p.canEdit && !isMatch ? (
+            <RowPayee {...p} title={title} />
+          ) : (
+            <div className="flex max-w-full items-center gap-0.5">
+              {p.canEdit && !isMatch ? (
+                <button
+                  type="button"
+                  onClick={p.onEditPayee}
+                  aria-label={`Payee: ${shown}. Change it`}
+                  title="Change the payee (P)"
+                  className="min-w-0 truncate rounded text-left font-medium text-ink underline decoration-ink-faint decoration-dotted underline-offset-4 transition-colors duration-150 hover:decoration-ink"
+                  tabIndex={-1}
+                >
+                  {shown}
+                </button>
+              ) : (
+                <span className="min-w-0 truncate font-medium text-ink">{shown}</span>
+              )}
+              <button
+                type="button"
+                onClick={p.onToggleExpand}
+                aria-expanded={p.expanded}
+                aria-controls={`${base}-details`}
+                aria-label={`${p.expanded ? "Hide" : "Show"} details for ${title}`}
+                title="Details (Enter)"
+                className="-my-1 shrink-0 rounded p-1 text-ink-faint transition-colors duration-150 hover:bg-sunken hover:text-ink"
+                tabIndex={-1}
+              >
+                <ChevronDown
+                  size={14}
+                  aria-hidden
+                  className={`transition-transform duration-150 ${p.expanded ? "rotate-180" : ""}`}
+                />
+              </button>
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.8125rem] text-ink-muted">
             <span className="tabular lg:hidden">{formatDay(item.postedDate)}</span>
             {p.showAccount ? <span>{item.accountName}</span> : null}
-            {title !== item.description ? (
+            {shown !== item.description ? (
               // On a phone the bank's text gets its own line under the date.
               <span className="min-w-0 basis-full truncate lg:basis-auto">
                 {p.showAccount ? (
@@ -900,6 +953,43 @@ function Row({ refCallback, ...p }: RowProps) {
         <div id={`${base}-details`} hidden />
       )}
     </li>
+  );
+}
+
+/**
+ * The payee, edited on the row itself. Enter (or leaving the field) keeps it;
+ * Escape puts back what it was.
+ */
+function RowPayee({ title, ...p }: RowData & { title: string }) {
+  const [before] = useState(p.draft.payee);
+  // After the list has had its turn: Enter may have just picked a suggestion.
+  const finish = (refocus: boolean) => setTimeout(() => p.onPayeeDone(refocus), 0);
+  return (
+    <div className="max-w-[24rem]">
+      <PayeeInput
+        size="row"
+        autoFocus
+        label={`Payee for ${title}`}
+        value={p.draft.payee}
+        payees={p.payees.map((x) => x.name)}
+        onChange={(payee) => p.setDraft(payeePatch(p.draft, p.payees, payee))}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") finish(true);
+          if (e.key === "Escape") {
+            e.preventDefault();
+            e.stopPropagation();
+            p.setDraft({ payee: before });
+            finish(true);
+          }
+        }}
+        onBlur={(e) => {
+          // Choosing a suggestion keeps the field; leaving it closes it.
+          const to = e.relatedTarget;
+          if (to instanceof Element && to.closest("[data-payee-popup]")) return;
+          finish(false);
+        }}
+      />
+    </div>
   );
 }
 
@@ -1130,17 +1220,7 @@ function Details(
             <PayeeInput
               value={draft.payee}
               payees={p.payees.map((x) => x.name)}
-              onChange={(payee) => {
-                // Picking a payee with a usual category fills it in when none is chosen yet.
-                const known = p.payees.find(
-                  (x) => x.name.toLowerCase() === payee.trim().toLowerCase(),
-                );
-                p.setDraft(
-                  !draft.choice && known?.defaultAccountId
-                    ? { payee, choice: known.defaultAccountId }
-                    : { payee },
-                );
-              }}
+              onChange={(payee) => p.setDraft(payeePatch(draft, p.payees, payee))}
             />
           </label>
           <label className="flex flex-col gap-1.5 text-[0.8125rem] font-medium text-ink">

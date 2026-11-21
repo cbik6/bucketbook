@@ -53,7 +53,7 @@ test("payees: typed on an entry, renamed on the Payees page, shown in the report
   await expect(list.getByText("Corner Market Co.", { exact: true })).toBeVisible();
 
   // Its entries, and the report, use the new name.
-  await list.getByRole("link", { name: "1 entry" }).click();
+  await row.getByRole("link", { name: "1 entry" }).click();
   await expect(page.getByText(/for Corner Market Co\./)).toBeVisible();
   await page.goto(`${bookUrl}/reports/payees?range=all`);
   await expect(page.getByRole("heading", { name: "Spending by payee" })).toBeVisible();

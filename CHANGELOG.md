@@ -20,7 +20,9 @@ All notable changes to this project are listed here. The format follows
 
 - **Payees.** Each book keeps a list of who money goes to and comes from:
   - A name you type on a journal entry, or add a transaction under in review, joins the
-    list, including the bank's own payee name ("Costco"); the raw description doesn't. The payee field suggests names as you type.
+    list, including the bank's own payee name ("Costco"); the raw description doesn't.
+  - In review, click a transaction's name (or press P) to change its payee right on the
+    row. The payee field suggests names as you type.
   - Review remembers the bank text you named, so the next "TACO BELL 998877 ..." comes in
     as Taco Bell, with Taco Bell's usual category.
   - **Setup > Payees** lists each payee with how often and how much it's used. Rename one

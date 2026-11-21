@@ -126,6 +126,12 @@ test("review: CSV import, transfer match, approve, save a rule, rule suggests", 
   await next.getByRole("button", { name: /^Close details/ }).click();
   await expect(next.getByRole("button", { name: "Create a rule from this" })).toHaveCount(0);
 
+  // Change a payee right on its row: click the name, type, Enter.
+  await next.getByRole("button", { name: /^Payee: LOCAL GROCER #12\. Change it$/ }).click();
+  await next.getByLabel("Payee for LOCAL GROCER #12").fill("Local Grocer");
+  await page.keyboard.press("Enter");
+  await expect(next.getByRole("button", { name: "Payee: Local Grocer. Change it" })).toBeVisible();
+
   // Select all and approve together.
   await page.getByLabel("Select all").check();
   await page.getByRole("button", { name: "Add 3" }).click();

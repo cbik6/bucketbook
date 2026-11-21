@@ -249,8 +249,9 @@ for each bank account (the bank's balance next to the balance in your books), th
 table with Spent and Received columns and a search box. **Add** each with a category (or
 split it), **Match** transfers between your accounts and entries you already wrote, or
 exclude it. Rules fill in the category for you (the wand button beside **Add**, or **R**,
-makes one from a transaction), and nothing posts until you add it. Give a transaction a
-clean payee name ("Taco Bell" for "TACO BELL 729852 22 WEST MAIN ST") and the next one
+makes one from a transaction), and nothing posts until you add it. Click a transaction's name (or
+press **P**) to give it a clean payee name ("Taco Bell" for "TACO BELL 729852 22 WEST MAIN
+ST") and the next one
 from that store comes in under that name, with the payee's usual category. **Setup >
 Payees** lists them to rename, merge or archive, and **Reports > Spending by payee**
 totals them. On

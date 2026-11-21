@@ -19,6 +19,10 @@ export function PayeeInput({
   disabled,
   invalid,
   className,
+  autoFocus,
+  onBlur,
+  onKeyDown,
+  size = "regular",
 }: {
   id?: string;
   /** For a plain form post: the field's name. */
@@ -33,6 +37,11 @@ export function PayeeInput({
   disabled?: boolean;
   invalid?: boolean;
   className?: string;
+  autoFocus?: boolean;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  /** "row": the shorter field that fits in a review row. */
+  size?: "regular" | "row";
 }) {
   const typed = value.trim().toLowerCase();
   const isNew = typed.length > 0 && !payees.some((p) => p.toLowerCase() === typed);
@@ -52,11 +61,17 @@ export function PayeeInput({
         placeholder={placeholder}
         maxLength={200}
         autoComplete="off"
-        className={`${inputClass} ${className ?? ""}`}
+        autoFocus={autoFocus}
+        onBlur={onBlur}
+        onKeyDown={onKeyDown}
+        className={`${inputClass} ${size === "row" ? "h-9 text-[0.8125rem]" : ""} ${className ?? ""}`}
       />
       <Autocomplete.Portal>
         <Autocomplete.Positioner sideOffset={4} align="start" className="z-50 outline-none">
-          <Autocomplete.Popup className="max-h-[min(20rem,var(--available-height))] w-[max(var(--anchor-width),14rem)] max-w-[calc(100vw-2rem)] origin-[var(--transform-origin)] overflow-y-auto rounded-xl border border-rule bg-surface p-1 shadow-[var(--shadow-float)] outline-none transition-[scale,opacity] duration-150 ease-out data-[ending-style]:scale-[0.97] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.97] data-[starting-style]:opacity-0">
+          <Autocomplete.Popup
+            data-payee-popup=""
+            className="max-h-[min(20rem,var(--available-height))] w-[max(var(--anchor-width),14rem)] max-w-[calc(100vw-2rem)] origin-[var(--transform-origin)] overflow-y-auto rounded-xl border border-rule bg-surface p-1 shadow-[var(--shadow-float)] outline-none transition-[scale,opacity] duration-150 ease-out data-[ending-style]:scale-[0.97] data-[ending-style]:opacity-0 data-[starting-style]:scale-[0.97] data-[starting-style]:opacity-0"
+          >
             <Autocomplete.Empty>
               {isNew ? (
                 <p className="px-2.5 py-2 text-[0.8125rem] text-ink-muted">
