@@ -164,6 +164,36 @@ describe("transfer matching", () => {
     ]);
     expect(cross.get("o")?.bookId).toBe("LLC");
   });
+
+  it("pairs with a side still pending at its bank, in the same book only", () => {
+    const pending = (id: string, accountId: string, cents: number, day: string, bookId = "P") => ({
+      ...item(id, accountId, cents, day, bookId),
+      pending: true,
+    });
+    // A card payment: posted on checking, still pending on the card.
+    const pairs = pairTransfers([
+      item("checking", A, -12816, "2026-11-20"),
+      pending("card", B, 12816, "2026-11-20"),
+    ]);
+    expect(pairs.get("checking")?.id).toBe("card");
+    // A partner that has cleared wins a tie over a pending one.
+    const both = pairTransfers([
+      item("checking", A, -100, "2026-11-20"),
+      pending("card-pending", B, 100, "2026-11-20"),
+      item("card-posted", C, 100, "2026-11-20"),
+    ]);
+    expect(both.get("checking")?.id).toBe("card-posted");
+    // Two pending sides can't be approved, and a pending side in another book isn't offered.
+    expect(
+      pairTransfers([pending("o", A, -100, "2026-11-20"), pending("i", B, 100, "2026-11-20")]).size,
+    ).toBe(0);
+    expect(
+      pairTransfers([
+        item("o", A, -100, "2026-11-20"),
+        pending("llc", "L1", 100, "2026-11-20", "LLC"),
+      ]).size,
+    ).toBe(0);
+  });
 });
 
 describe("rule text from a transaction", () => {

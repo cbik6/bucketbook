@@ -10,6 +10,7 @@ import { UserFacingError } from "../errors";
 import { loadBookForPosting } from "../ledger/service";
 import { DUPLICATE_WINDOW_DAYS } from "../simplefin/plan";
 import { requireBankableAccount } from "./accounts";
+import { linkRecordedTransfers } from "./review-service";
 import { applyRules } from "./rules-service";
 
 type Actor = { userId: string };
@@ -181,6 +182,11 @@ export async function importCsv(db: Database, actor: Actor, bookId: string, raw:
           .returning({ id: bankTransactions.id })
       : [];
     await applyRules(
+      tx,
+      bookId,
+      inserted.map((r) => r.id),
+    );
+    await linkRecordedTransfers(
       tx,
       bookId,
       inserted.map((r) => r.id),

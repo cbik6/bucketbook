@@ -378,7 +378,9 @@ const transferSchema = z.object({
 
 /**
  * Records a matched pair as a transfer. In one book it is a single entry
- * between the two accounts. Across books each book posts its own side against
+ * between the two accounts. When the other side is still pending at its bank
+ * (in the same book), the entry is recorded now from this side alone, and the
+ * other side links to it on its own once it clears (linkRecordedTransfers). Across books each book posts its own side against
  * the account that stands for the other book, and the two entries share a
  * transfer group so each can point at the other.
  */
@@ -417,7 +419,8 @@ export async function approveTransfer(
     const item = lockedItems.get(itemId)!;
     const partner = lockedItems.get(input.partnerId)!;
     assertReviewable(item);
-    assertReviewable(partner);
+    const partnerPending = partner.status === "pending" && otherBookId === bookId;
+    if (!partnerPending) assertReviewable(partner);
     if (item.amountCents !== -partner.amountCents) {
       throw new UserFacingError(
         "These two transactions aren't equal and opposite, so they can't be one transfer.",
@@ -446,7 +449,7 @@ export async function approveTransfer(
         changeNote: "Matched transfer",
       });
       await markPosted(tx, actor, item, entry.id, "transfer");
-      await markPosted(tx, actor, partner, entry.id, "transfer");
+      if (!partnerPending) await markPosted(tx, actor, partner, entry.id, "transfer");
       await allocateIfDeposit(tx, actor, bookId, itemSide, item);
       await allocateIfDeposit(tx, actor, bookId, partnerSide, partner);
       return { entries: [entry] };
@@ -699,6 +702,58 @@ export async function linkCandidates(
   return out;
 }
 
+/**
+ * Links transactions that just arrived (or just cleared) to a transfer already
+ * recorded from the other account: the usual case is a card payment, added
+ * from checking while the card still showed it as pending. Only a transfer
+ * entry whose other side came from that account's bank qualifies, and only
+ * when exactly one does, so nothing is guessed.
+ */
+export async function linkRecordedTransfers(tx: DbOrTx, bookId: string, itemIds: string[]) {
+  if (itemIds.length === 0) return 0;
+  const items = await tx
+    .select()
+    .from(bankTransactions)
+    .where(
+      and(
+        eq(bankTransactions.bookId, bookId),
+        inArray(bankTransactions.id, itemIds),
+        eq(bankTransactions.status, "review"),
+        isNull(bankTransactions.duplicateOfId),
+      ),
+    );
+  if (items.length === 0) return 0;
+  const candidates = await linkCandidates(tx, bookId, items);
+  const entryIds = [...new Set([...candidates.values()].flat().map((c) => c.entryId))];
+  if (entryIds.length === 0) return 0;
+  const recorded = await tx
+    .select({ entryId: bankTransactions.entryId, accountId: bankTransactions.accountId })
+    .from(bankTransactions)
+    .innerJoin(journalEntries, eq(journalEntries.id, bankTransactions.entryId))
+    .where(
+      and(
+        inArray(bankTransactions.entryId, entryIds),
+        eq(bankTransactions.status, "posted"),
+        eq(bankTransactions.postMethod, "transfer"),
+        eq(journalEntries.kind, "transfer"),
+      ),
+    );
+  let linked = 0;
+  const taken = new Set<string>();
+  for (const item of items) {
+    const fits = (candidates.get(item.id) ?? []).filter(
+      (c) =>
+        !taken.has(c.entryId) &&
+        recorded.some((r) => r.entryId === c.entryId && r.accountId !== item.accountId),
+    );
+    if (fits.length !== 1) continue;
+    taken.add(fits[0]!.entryId);
+    await markPosted(tx, { userId: null as unknown as string }, item, fits[0]!.entryId, "linked");
+    linked += 1;
+  }
+  return linked;
+}
+
 export type QueueTab = "review" | "pending" | "posted" | "excluded";
 
 export type QueueItem = {
@@ -729,6 +784,8 @@ export type QueueItem = {
     bookName: string;
     accountName: string;
     postedDate: string;
+    /** The other side hasn't cleared at its bank yet; it links to the entry once it does. */
+    pending: boolean;
     /** Saved accounts that stand for the other book, if any. */
     counterpartAccountId: string | null;
     partnerCounterpartAccountId: string | null;
@@ -868,6 +925,7 @@ export async function listQueue(
             bookName: partnerInfo.get(partner.id)?.bookName ?? "",
             accountName: partnerInfo.get(partner.id)?.accountName ?? "",
             postedDate: partner.postedDate,
+            pending: Boolean(partner.pending),
             counterpartAccountId: counterparts.get(`${bookId}|${partner.bookId}`) ?? null,
             partnerCounterpartAccountId: counterparts.get(`${partner.bookId}|${bookId}`) ?? null,
           }
@@ -880,7 +938,11 @@ export async function listQueue(
   });
 }
 
-/** Every transaction in review across the books this user can edit, for transfer matching. */
+/**
+ * Every transaction in review across the books this user can edit, plus the
+ * ones still pending at the bank (which can only be the other side), for
+ * transfer matching.
+ */
 async function transferPool(db: DbOrTx, userId: string) {
   const rows = await db
     .select({
@@ -889,6 +951,7 @@ async function transferPool(db: DbOrTx, userId: string) {
       accountId: bankTransactions.accountId,
       amountCents: bankTransactions.amountCents,
       postedDate: bankTransactions.postedDate,
+      status: bankTransactions.status,
       bookName: books.name,
       accountName: accounts.name,
     })
@@ -898,7 +961,7 @@ async function transferPool(db: DbOrTx, userId: string) {
     .innerJoin(bookMembers, and(eq(bookMembers.bookId, books.id), eq(bookMembers.userId, userId)))
     .where(
       and(
-        eq(bankTransactions.status, "review"),
+        inArray(bankTransactions.status, ["review", "pending"]),
         isNull(books.archivedAt),
         ne(bookMembers.role, "viewer"),
         isNull(bankTransactions.duplicateOfId),
@@ -911,6 +974,7 @@ async function transferPool(db: DbOrTx, userId: string) {
       accountId: r.accountId,
       amountCents: r.amountCents,
       postedDate: r.postedDate,
+      pending: r.status === "pending",
     })),
     info: new Map(rows.map((r) => [r.id, { bookName: r.bookName, accountName: r.accountName }])),
   };

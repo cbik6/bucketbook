@@ -759,7 +759,7 @@ function Row({ refCallback, ...p }: RowProps) {
                 ? [
                     {
                       value: `transfer:${transfer.id}`,
-                      label: `Transfer ${spent ? "to" : "from"} ${transfer.accountName}${crossBook ? ` (${transfer.bookName})` : ""}`,
+                      label: `Transfer ${spent ? "to" : "from"} ${transfer.accountName}${crossBook ? ` (${transfer.bookName})` : ""}${transfer.pending ? " (pending there)" : ""}`,
                     },
                   ]
                 : []),
@@ -980,7 +980,14 @@ function Details(
         </p>
       ) : null}
 
-      {mode === "transfer" && item.transfer ? (
+      {mode === "transfer" && item.transfer?.pending ? (
+        <p className="text-sm text-ink">
+          {formatCents(Math.abs(item.amountCents))} {item.amountCents < 0 ? "left" : "arrived in"}{" "}
+          {item.accountName} on {formatDay(item.postedDate)}. {item.transfer.accountName} has shown
+          it as pending since {formatDay(item.transfer.postedDate)}. Adding records the transfer
+          now; its side there is matched to it on its own once it clears.
+        </p>
+      ) : mode === "transfer" && item.transfer ? (
         <div className="flex flex-col gap-3">
           <p className="text-sm text-ink">
             {formatCents(Math.abs(item.amountCents))} {item.amountCents < 0 ? "left" : "arrived in"}{" "}

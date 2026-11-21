@@ -31,6 +31,10 @@ All notable changes to this project are listed here. The format follows
 
 ### Fixed
 
+- A card payment from checking is offered as a transfer to the card even while the card
+  still shows it as pending. Add it from checking, and the card's side links to the same
+  entry on its own once it clears. Before, the payment had no match until the card side
+  cleared, and was easy to add under the wrong category.
 - The book switcher and the account menu close after you choose a book or People.
   They stayed open on the new page.
 - The installer downloads the current images before starting. A machine with an older

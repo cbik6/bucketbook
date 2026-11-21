@@ -7,6 +7,7 @@ import { createAccount } from "../accounts/service";
 import { systemAccount } from "../accounts/system";
 import { recordAudit } from "../audit/record";
 import { applyRules } from "../bank/rules-service";
+import { linkRecordedTransfers } from "../bank/review-service";
 import { requireBankableAccount } from "../bank/accounts";
 import type { BookRole } from "@/lib/account-types";
 import { requireBookAccess } from "../books/service";
@@ -912,6 +913,8 @@ async function applyWindow(
         .where(inArray(bankTransactions.id, plan.removals));
     }
     await applyRules(tx, feed.bookId!, touched);
+    // A card payment added from checking while the card still showed it pending.
+    await linkRecordedTransfers(tx, feed.bookId!, touched);
     return {
       newCount: plan.inserts.length,
       updatedCount: plan.updates.length,

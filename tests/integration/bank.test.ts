@@ -894,6 +894,66 @@ describe("review queue", () => {
     expect(rows.every((r) => r.status === "posted" && r.entryId === entries[0]!.id)).toBe(true);
   });
 
+  it("matches a card payment while the card still shows it pending, and links the card side once it clears", async () => {
+    const ctx = await setupBook();
+    const card = (pending: boolean) =>
+      fakeBridge({
+        CHK: {
+          balance: "0",
+          transactions: [
+            {
+              id: "pay",
+              day: "2026-03-18",
+              amount: "-128.16",
+              description: "Payment To Credit Card",
+            },
+          ],
+        },
+        CARD: {
+          balance: "0",
+          transactions: [
+            {
+              id: "auth",
+              day: "2026-03-18",
+              amount: "128.16",
+              description: "Auth : Payment",
+              pending,
+            },
+          ],
+        },
+      });
+    const conn = await connectAndMap(card(true), ctx, { CHK: "Checking", CARD: "Credit Card" });
+    await sync(conn.id, card(true));
+    const byExternal = async () => new Map((await items(ctx.bookId)).map((r) => [r.externalId, r]));
+    let rows = await byExternal();
+    expect(rows.get("auth")!.status).toBe("pending");
+
+    const queue = await listQueue(getDb(), ctx.user.id, ctx.bookId, "review");
+    const payment = queue.find((q) => q.id === rows.get("pay")!.id)!;
+    expect(payment.transfer).toMatchObject({ id: rows.get("auth")!.id, pending: true });
+
+    const { entries } = await approveTransfer(getDb(), ctx.actor, ctx.bookId, payment.id, {
+      partnerId: payment.transfer!.id,
+    });
+    expect(entries[0]!.kind).toBe("transfer");
+    expect(await accountNetCents(getDb(), ctx.id("Credit Card"))).toBe(12816);
+    rows = await byExternal();
+    expect(rows.get("pay")).toMatchObject({ status: "posted", entryId: entries[0]!.id });
+    // The card side waits at the bank, untouched.
+    expect(rows.get("auth")).toMatchObject({ status: "pending", entryId: null });
+
+    // It clears: the card side is linked to the same entry, with nothing left to review.
+    await sync(conn.id, card(false), new Date("2026-03-21T15:00:00Z"));
+    rows = await byExternal();
+    expect(rows.get("auth")).toMatchObject({
+      status: "posted",
+      entryId: entries[0]!.id,
+      postMethod: "linked",
+    });
+    expect(await accountNetCents(getDb(), ctx.id("Credit Card"))).toBe(12816);
+    expect(await listQueue(getDb(), ctx.user.id, ctx.bookId, "review")).toHaveLength(0);
+  });
+
   it("pairs a transfer between books: one entry per book, linked, with remembered counterparts", async () => {
     const home = await setupBook("household");
     const llc = await setupBook("small_business", "2026-01-01", home.user);
